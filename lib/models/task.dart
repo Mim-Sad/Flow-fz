@@ -3,6 +3,7 @@ enum TaskStatus {
   success,
   failed,
   cancelled,
+  deferred,
 }
 
 enum TaskPriority {
