@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -61,7 +62,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     if (_viewMode == 0) {
       return DateUtils.isSameDay(_selectedDate, now);
     } else if (_viewMode == 1) {
-      final startOfSelected = _selectedDate.subtract(Duration(days: (_selectedDate.weekday + 1) % 7));
+      final startOfSelected = _selectedDate.subtract(
+        Duration(days: (_selectedDate.weekday + 1) % 7),
+      );
       final startOfNow = now.subtract(Duration(days: (now.weekday + 1) % 7));
       return DateUtils.isSameDay(startOfSelected, startOfNow);
     } else {
@@ -72,170 +75,287 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final tasks = ref.watch(tasksProvider);
-    
+
     final filteredTasks = tasks.where((t) {
       if (_viewMode == 0) {
         return DateUtils.isSameDay(t.dueDate, _selectedDate);
       } else if (_viewMode == 1) {
-        final startOfWeek = _selectedDate.subtract(Duration(days: (_selectedDate.weekday + 1) % 7));
+        final startOfWeek = _selectedDate.subtract(
+          Duration(days: (_selectedDate.weekday + 1) % 7),
+        );
         final endOfWeek = startOfWeek.add(const Duration(days: 6));
         // Ensure we cover the full range including time
-        final startRange = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-        final endRange = DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day, 23, 59, 59);
-        return t.dueDate.isAfter(startRange.subtract(const Duration(seconds: 1))) && 
-               t.dueDate.isBefore(endRange.add(const Duration(seconds: 1)));
+        final startRange = DateTime(
+          startOfWeek.year,
+          startOfWeek.month,
+          startOfWeek.day,
+        );
+        final endRange = DateTime(
+          endOfWeek.year,
+          endOfWeek.month,
+          endOfWeek.day,
+          23,
+          59,
+          59,
+        );
+        return t.dueDate.isAfter(
+              startRange.subtract(const Duration(seconds: 1)),
+            ) &&
+            t.dueDate.isBefore(endRange.add(const Duration(seconds: 1)));
       } else {
-        return t.dueDate.year == _selectedDate.year && t.dueDate.month == _selectedDate.month;
+        return t.dueDate.year == _selectedDate.year &&
+            t.dueDate.month == _selectedDate.month;
       }
     }).toList();
 
-    final successCount = filteredTasks.where((t) => t.status == TaskStatus.success).length;
-    final failedCount = filteredTasks.where((t) => t.status == TaskStatus.failed).length;
-    final cancelledCount = filteredTasks.where((t) => t.status == TaskStatus.cancelled).length;
-    final pendingCount = filteredTasks.where((t) => t.status == TaskStatus.pending).length;
-    final deferredCount = filteredTasks.where((t) => t.status == TaskStatus.deferred).length;
+    final successCount = filteredTasks
+        .where((t) => t.status == TaskStatus.success)
+        .length;
+    final failedCount = filteredTasks
+        .where((t) => t.status == TaskStatus.failed)
+        .length;
+    final cancelledCount = filteredTasks
+        .where((t) => t.status == TaskStatus.cancelled)
+        .length;
+    final pendingCount = filteredTasks
+        .where((t) => t.status == TaskStatus.pending)
+        .length;
+    final deferredCount = filteredTasks
+        .where((t) => t.status == TaskStatus.deferred)
+        .length;
 
     return Scaffold(
-      body: Column(
+      body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: SegmentedButton<int>(
-              segments: const [
-                ButtonSegment(value: 0, label: Text('روزانه'), icon: Icon(Icons.today)),
-                ButtonSegment(value: 1, label: Text('هفتگی'), icon: Icon(Icons.view_week)),
-                ButtonSegment(value: 2, label: Text('ماهانه'), icon: Icon(Icons.calendar_month)),
-              ],
-              selected: {_viewMode},
-              onSelectionChanged: (val) => setState(() => _viewMode = val.first),
-              style: ButtonStyle(
-                backgroundColor: WidgetStateProperty.resolveWith<Color?>(
-                  (states) {
-                    if (states.contains(WidgetState.selected)) {
-                      return Theme.of(context).colorScheme.secondaryContainer;
-                    }
-                    return Colors.transparent;
-                  },
-                ),
-                side: WidgetStateProperty.all(BorderSide.none), // Remove border
-                elevation: WidgetStateProperty.all(0),
-              ),
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildStatSummary(context, successCount, filteredTasks.length),
-                  const SizedBox(height: 32),
-                  Text(
-                    'وضعیت کلی تسک‌ها',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                  ).animate().fadeIn(delay: 200.ms),
-                  const SizedBox(height: 24),
-                  if (filteredTasks.isNotEmpty)
-                    Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surfaceContainerLow,
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 5,
-                                child: SizedBox(
-                                  height: 180,
-                                  child: PieChart(
-                                    PieChartData(
-                                      sectionsSpace: 4,
-                                      centerSpaceRadius: 40,
-                                      sections: [
-                                        if (successCount > 0)
-                                          PieChartSectionData(
-                                            value: successCount.toDouble(),
-                                            title: '',
-                                            color: Colors.greenAccent,
-                                            radius: 35,
+          Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                    top: MediaQuery.of(context).padding.top + 80,
+                    left: 20,
+                    right: 20,
+                    bottom: 20,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildStatSummary(
+                        context,
+                        successCount,
+                        filteredTasks.length,
+                      ),
+                      const SizedBox(height: 32),
+                      Text(
+                        'وضعیت کلی تسک‌ها',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ).animate().fadeIn(delay: 200.ms),
+                      const SizedBox(height: 24),
+                      if (filteredTasks.isNotEmpty)
+                        Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerLow,
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    flex: 5,
+                                    child: SizedBox(
+                                      height: 180,
+                                      child:
+                                          PieChart(
+                                            PieChartData(
+                                              sectionsSpace: 4,
+                                              centerSpaceRadius: 40,
+                                              sections: [
+                                                if (successCount > 0)
+                                                  PieChartSectionData(
+                                                    value: successCount.toDouble(),
+                                                    title: '',
+                                                    color: Colors.greenAccent,
+                                                    radius: 35,
+                                                  ),
+                                                if (failedCount > 0)
+                                                  PieChartSectionData(
+                                                    value: failedCount.toDouble(),
+                                                    title: '',
+                                                    color: Colors.redAccent,
+                                                    radius: 35,
+                                                  ),
+                                                if (cancelledCount > 0)
+                                                  PieChartSectionData(
+                                                    value: cancelledCount
+                                                        .toDouble(),
+                                                    title: '',
+                                                    color: Colors.grey,
+                                                    radius: 35,
+                                                  ),
+                                                if (pendingCount > 0)
+                                                  PieChartSectionData(
+                                                    value: pendingCount.toDouble(),
+                                                    title: '',
+                                                    color: Colors.blueAccent,
+                                                    radius: 35,
+                                                  ),
+                                                if (deferredCount > 0)
+                                                  PieChartSectionData(
+                                                    value: deferredCount.toDouble(),
+                                                    title: '',
+                                                    color: Colors.orangeAccent,
+                                                    radius: 35,
+                                                  ),
+                                              ],
+                                            ),
+                                          ).animate().scale(
+                                            duration: 500.ms,
+                                            curve: Curves.easeOutBack,
                                           ),
-                                        if (failedCount > 0)
-                                          PieChartSectionData(
-                                            value: failedCount.toDouble(),
-                                            title: '',
-                                            color: Colors.redAccent,
-                                            radius: 35,
-                                          ),
-                                        if (cancelledCount > 0)
-                                          PieChartSectionData(
-                                            value: cancelledCount.toDouble(),
-                                            title: '',
-                                            color: Colors.grey,
-                                            radius: 35,
-                                          ),
-                                        if (pendingCount > 0)
-                                          PieChartSectionData(
-                                            value: pendingCount.toDouble(),
-                                            title: '',
-                                            color: Colors.blueAccent,
-                                            radius: 35,
-                                          ),
-                                        if (deferredCount > 0)
-                                          PieChartSectionData(
-                                            value: deferredCount.toDouble(),
-                                            title: '',
-                                            color: Colors.orangeAccent,
-                                            radius: 35,
-                                          ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    flex: 5,
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        _buildLegendItem(
+                                          context,
+                                          'موفق',
+                                          Colors.greenAccent,
+                                          successCount,
+                                        ),
+                                        _buildLegendItem(
+                                          context,
+                                          'ناموفق',
+                                          Colors.redAccent,
+                                          failedCount,
+                                        ),
+                                        _buildLegendItem(
+                                          context,
+                                          'لغو شده',
+                                          Colors.grey,
+                                          cancelledCount,
+                                        ),
+                                        _buildLegendItem(
+                                          context,
+                                          'در جریان',
+                                          Colors.blueAccent,
+                                          pendingCount,
+                                        ),
+                                        _buildLegendItem(
+                                          context,
+                                          'تعویق',
+                                          Colors.orangeAccent,
+                                          deferredCount,
+                                        ),
                                       ],
                                     ),
-                                  ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack),
-                                ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                flex: 5,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    _buildLegendItem(context, 'موفق', Colors.greenAccent, successCount),
-                                    _buildLegendItem(context, 'ناموفق', Colors.redAccent, failedCount),
-                                    _buildLegendItem(context, 'لغو شده', Colors.grey, cancelledCount),
-                                    _buildLegendItem(context, 'در جریان', Colors.blueAccent, pendingCount),
-                                    _buildLegendItem(context, 'تعویق', Colors.orangeAccent, deferredCount),
-                                  ],
-                                ),
-                              ),
+                            ),
+                            if (_viewMode != 0) ...[
+                              const SizedBox(height: 32),
+                              Text(
+                                'روند موفقیت',
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ).animate().fadeIn(delay: 400.ms),
+                              const SizedBox(height: 24),
+                              SizedBox(
+                                height: 200,
+                                child: _buildSuccessRateChart(filteredTasks),
+                              ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
                             ],
+                          ],
+                        )
+                      else
+                        const SizedBox(
+                          height: 250,
+                          child: Center(
+                            child: Text('تسک برای این بازه وجود ندارد'),
                           ),
                         ),
-                        if (_viewMode != 0) ...[
-                          const SizedBox(height: 32),
-                          Text(
-                            'روند موفقیت',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                          ).animate().fadeIn(delay: 400.ms),
-                          const SizedBox(height: 24),
-                          SizedBox(
-                            height: 200,
-                            child: _buildSuccessRateChart(filteredTasks),
-                          ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
+                    ],
+                  ),
+                ),
+              ),
+              _buildRangePicker(),
+            ],
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.surface.withValues(alpha: 0.7),
+                  child: SafeArea(
+                    bottom: false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      child: SegmentedButton<int>(
+                        segments: const [
+                          ButtonSegment(
+                            value: 0,
+                            label: Text('روزانه'),
+                            icon: Icon(Icons.today),
+                          ),
+                          ButtonSegment(
+                            value: 1,
+                            label: Text('هفتگی'),
+                            icon: Icon(Icons.view_week),
+                          ),
+                          ButtonSegment(
+                            value: 2,
+                            label: Text('ماهانه'),
+                            icon: Icon(Icons.calendar_month),
+                          ),
                         ],
-                      ],
-                    )
-                  else
-                    const SizedBox(
-                      height: 250,
-                      child: Center(child: Text('تسک برای این بازه وجود ندارد')),
+                        selected: {_viewMode},
+                        onSelectionChanged: (val) =>
+                            setState(() => _viewMode = val.first),
+                        style: ButtonStyle(
+                          backgroundColor: WidgetStateProperty.resolveWith<
+                            Color?
+                          >((states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return Theme.of(
+                                context,
+                              ).colorScheme.secondaryContainer;
+                            }
+                            return Colors.transparent;
+                          }),
+                          side: WidgetStateProperty.all(
+                            BorderSide(
+                              color:
+                                  Theme.of(context).colorScheme.outlineVariant,
+                            ),
+                          ),
+                          elevation: WidgetStateProperty.all(0),
+                        ),
+                      ),
                     ),
-                ],
+                  ),
+                ),
               ),
             ),
           ),
-          _buildRangePicker(),
         ],
       ),
     );
@@ -248,11 +368,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     if (_viewMode == 0) {
       label = _formatJalali(jalali);
     } else if (_viewMode == 1) {
-      final startOfWeek = _selectedDate.subtract(Duration(days: (_selectedDate.weekday + 1) % 7));
+      final startOfWeek = _selectedDate.subtract(
+        Duration(days: (_selectedDate.weekday + 1) % 7),
+      );
       final endOfWeek = startOfWeek.add(const Duration(days: 6));
       final jStart = Jalali.fromDateTime(startOfWeek);
       final jEnd = Jalali.fromDateTime(endOfWeek);
-      label = _toPersianDigit('${jStart.day} ${jStart.formatter.mN} - ${jEnd.day} ${jEnd.formatter.mN}');
+      label = _toPersianDigit(
+        '${jStart.day} ${jStart.formatter.mN} - ${jEnd.day} ${jEnd.formatter.mN}',
+      );
     } else {
       label = _toPersianDigit('${jalali.formatter.mN} ${jalali.year}');
     }
@@ -260,7 +384,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Row(
@@ -275,12 +401,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
                 Text(
                   _formatMiladiSmall(_selectedDate),
                   style: TextStyle(
                     fontSize: 10,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                   ),
                 ),
                 if (!_isCurrentRange())
@@ -294,7 +428,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       child: Text(
-                        _viewMode == 0 ? 'برو به امروز' : (_viewMode == 1 ? 'برو به هفته جاری' : 'برو به ماه جاری'),
+                        _viewMode == 0
+                            ? 'برو به امروز'
+                            : (_viewMode == 1
+                                  ? 'برو به هفته جاری'
+                                  : 'برو به ماه جاری'),
                         style: const TextStyle(fontSize: 12),
                       ),
                     ),
@@ -318,7 +456,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       } else if (_viewMode == 1) {
         _selectedDate = _selectedDate.add(Duration(days: delta * 7));
       } else {
-        _selectedDate = DateTime(_selectedDate.year, _selectedDate.month + delta, 1);
+        _selectedDate = DateTime(
+          _selectedDate.year,
+          _selectedDate.month + delta,
+          1,
+        );
       }
     });
   }
@@ -329,55 +471,61 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: isDark ? theme.colorScheme.surfaceContainerHighest : theme.colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            color: isDark
+                ? theme.colorScheme.surfaceContainerHighest
+                : theme.colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'بهره‌وری شما',
-                style: TextStyle(
-                  color: isDark ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'بهره‌وری شما',
+                    style: TextStyle(
+                      color: isDark
+                          ? theme.colorScheme.onSurfaceVariant
+                          : theme.colorScheme.onPrimaryContainer.withValues(
+                              alpha: 0.8,
+                            ),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${_toPersianDigit(percentage.toStringAsFixed(1))}%',
+                    style: TextStyle(
+                      color: _getSpectrumColor(percentage),
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      height: 1,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                '${_toPersianDigit(percentage.toStringAsFixed(1))}%',
-                style: TextStyle(
-                  color: _getSpectrumColor(percentage),
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  height: 1,
-                ),
+              Icon(
+                Icons.insights_rounded,
+                color: _getSpectrumColor(percentage),
+                size: 40,
               ),
             ],
           ),
-          Icon(
-            Icons.insights_rounded,
-            color: _getSpectrumColor(percentage),
-            size: 40,
-          ),
-        ],
-      ),
-    )
-    .animate()
-    .fadeIn(duration: 400.ms)
-    .slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic)
-    .blur(begin: const Offset(4, 4), end: Offset.zero);
+        )
+        .animate()
+        .fadeIn(duration: 400.ms)
+        .slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic)
+        .blur(begin: const Offset(4, 4), end: Offset.zero);
   }
 
   Color _getSpectrumColor(double value) {
     // Clamp value between 0 and 100
     double t = value.clamp(0, 100);
-    
+
     // Define stops and colors
     final stops = [0, 25, 50, 75, 100];
     final colors = [
@@ -414,7 +562,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     // Spectrum stops
     final spectrumStops = [0, 25, 50, 75, 100];
-    
+
     List<Color> gradientColors = [];
     List<double> gradientStops = [];
 
@@ -448,11 +596,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     if (_viewMode == 1) {
       // Weekly
-      final startOfWeek = _selectedDate.subtract(Duration(days: (_selectedDate.weekday + 1) % 7));
+      final startOfWeek = _selectedDate.subtract(
+        Duration(days: (_selectedDate.weekday + 1) % 7),
+      );
       for (int i = 0; i < 7; i++) {
         final day = startOfWeek.add(Duration(days: i));
-        final dayTasks = filteredTasks.where((t) => DateUtils.isSameDay(t.dueDate, day)).toList();
-        final success = dayTasks.where((t) => t.status == TaskStatus.success).length;
+        final dayTasks = filteredTasks
+            .where((t) => DateUtils.isSameDay(t.dueDate, day))
+            .toList();
+        final success = dayTasks
+            .where((t) => t.status == TaskStatus.success)
+            .length;
         final total = dayTasks.length;
         double rate = total == 0 ? 0 : (success / total) * 100;
         spots.add(FlSpot(i.toDouble(), rate));
@@ -465,8 +619,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       final daysInMonth = jalali.monthLength;
       for (int i = 1; i <= daysInMonth; i++) {
         final day = Jalali(jalali.year, jalali.month, i).toDateTime();
-        final dayTasks = filteredTasks.where((t) => DateUtils.isSameDay(t.dueDate, day)).toList();
-        final success = dayTasks.where((t) => t.status == TaskStatus.success).length;
+        final dayTasks = filteredTasks
+            .where((t) => DateUtils.isSameDay(t.dueDate, day))
+            .toList();
+        final success = dayTasks
+            .where((t) => t.status == TaskStatus.success)
+            .length;
         final total = dayTasks.length;
         double rate = total == 0 ? 0 : (success / total) * 100;
         spots.add(FlSpot(i.toDouble(), rate));
@@ -489,13 +647,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           verticalInterval: 1,
           getDrawingVerticalLine: (value) {
             return FlLine(
-              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.2),
+              color: Theme.of(
+                context,
+              ).colorScheme.outlineVariant.withValues(alpha: 0.2),
               strokeWidth: 1,
             );
           },
           getDrawingHorizontalLine: (value) {
             return FlLine(
-              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.2),
+              color: Theme.of(
+                context,
+              ).colorScheme.outlineVariant.withValues(alpha: 0.2),
               strokeWidth: 1,
             );
           },
@@ -507,13 +669,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               interval: 25,
               getTitlesWidget: (value, meta) {
                 if (value < 0 || value > 100) return const SizedBox.shrink();
-                return Text('${value.toInt()}%', style: const TextStyle(fontSize: 9));
+                return Text(
+                  '${value.toInt()}%',
+                  style: const TextStyle(fontSize: 9),
+                );
               },
               reservedSize: 30,
             ),
           ),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
@@ -575,7 +744,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  Widget _buildLegendItem(BuildContext context, String label, Color color, int count) {
+  Widget _buildLegendItem(
+    BuildContext context,
+    String label,
+    Color color,
+    int count,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -583,10 +757,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           Container(
             width: 10,
             height: 10,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 8),
           Expanded(

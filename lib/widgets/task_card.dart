@@ -262,26 +262,70 @@ class TaskCard extends ConsumerWidget {
               padding: EdgeInsets.all(16),
               child: Text('تغییر وضعیت تسک', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             ),
-            _statusTile(context, ref, TaskStatus.pending, 'در جریان', Icons.radio_button_unchecked),
-            _statusTile(context, ref, TaskStatus.success, 'موفق', Icons.check_circle_outline, Colors.green),
-            _statusTile(context, ref, TaskStatus.failed, 'ناموفق', Icons.cancel_outlined, Colors.red),
-            _statusTile(context, ref, TaskStatus.cancelled, 'لغو شده', Icons.block_flipped, Colors.grey),
-            _statusTile(context, ref, TaskStatus.deferred, 'تعویق شده', Icons.history_rounded, Colors.orange),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  const SizedBox(width: 16),
+                  _buildStatusAction(context, ref, task, TaskStatus.success, 'انجام شده', Icons.check_circle_rounded, Colors.green),
+                  const SizedBox(width: 16),
+                  _buildStatusAction(context, ref, task, TaskStatus.failed, 'انجام نشده', Icons.cancel_rounded, Colors.red),
+                  const SizedBox(width: 16),
+                  _buildStatusAction(context, ref, task, TaskStatus.cancelled, 'لغو شده', Icons.block_rounded, Colors.grey),
+                  const SizedBox(width: 16),
+                  _buildStatusAction(context, ref, task, TaskStatus.deferred, 'تعویق شده', Icons.history_rounded, Colors.orange),
+                  const SizedBox(width: 16),
+                  _buildStatusAction(context, ref, task, TaskStatus.pending, 'در جریان', Icons.radio_button_unchecked_rounded, Colors.blue),
+                  const SizedBox(width: 16),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
 
-  Widget _statusTile(BuildContext context, WidgetRef ref, TaskStatus status, String label, IconData icon, [Color? color]) {
-    return ListTile(
-      leading: Icon(icon, color: color ?? Theme.of(context).colorScheme.primary),
-      title: Text(label),
+  Widget _buildStatusAction(BuildContext context, WidgetRef ref, Task task, TaskStatus status, String label, IconData icon, Color color) {
+    final isSelected = task.status == status;
+    return InkWell(
       onTap: () {
         ref.read(tasksProvider.notifier).updateStatus(task.id!, status);
         Navigator.pop(context);
       },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 80,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
+          border: Border.all(
+            color: isSelected ? color : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: isSelected ? color : Theme.of(context).colorScheme.onSurfaceVariant, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 10,
+                color: isSelected ? color : Theme.of(context).colorScheme.onSurface,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
+
 }
 

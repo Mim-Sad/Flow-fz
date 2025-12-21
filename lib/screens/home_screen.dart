@@ -552,23 +552,31 @@ class TaskListTile extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'تغییر وضعیت',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('تغییر وضعیت تسک', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              alignment: WrapAlignment.center,
-              children: [
-                _buildStatusOptionForTask(context, ref, task, TaskStatus.success, 'انجام شده', Colors.green, Icons.check_circle_rounded),
-                _buildStatusOptionForTask(context, ref, task, TaskStatus.failed, 'انجام نشده', Colors.red, Icons.cancel_rounded),
-                _buildStatusOptionForTask(context, ref, task, TaskStatus.cancelled, 'لغو شده', Colors.grey, Icons.block_rounded),
-                _buildStatusOptionForTask(context, ref, task, TaskStatus.deferred, 'موکول به بعد', Colors.orange, Icons.history_rounded),
-                _buildStatusOptionForTask(context, ref, task, TaskStatus.pending, 'در جریان', Colors.blue, Icons.radio_button_unchecked_rounded),
-              ],
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  const SizedBox(width: 16),
+                  _buildStatusOptionForTask(context, ref, task, TaskStatus.success, 'انجام شده', Colors.green, Icons.check_circle_rounded),
+                  const SizedBox(width: 8),
+                  _buildStatusOptionForTask(context, ref, task, TaskStatus.failed, 'انجام نشده', Colors.red, Icons.cancel_rounded),
+                  const SizedBox(width: 8),
+                  _buildStatusOptionForTask(context, ref, task, TaskStatus.cancelled, 'لغو شده', Colors.grey, Icons.block_rounded),
+                  const SizedBox(width: 8),
+                  _buildStatusOptionForTask(context, ref, task, TaskStatus.deferred, 'موکول به بعد', Colors.orange, Icons.history_rounded),
+                  const SizedBox(width: 8),
+                  _buildStatusOptionForTask(context, ref, task, TaskStatus.pending, 'در جریان', Colors.blue, Icons.radio_button_unchecked_rounded),
+                  const SizedBox(width: 16),
+                ],
+              ),
             ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
