@@ -21,6 +21,7 @@ class Task {
   final TaskPriority priority;
   final String? category;
   final DateTime createdAt;
+  final int position;
 
   Task({
     this.id,
@@ -31,6 +32,7 @@ class Task {
     this.priority = TaskPriority.medium,
     this.category,
     DateTime? createdAt,
+    this.position = 0,
   }) : createdAt = createdAt ?? DateTime.now();
 
   Map<String, dynamic> toMap() {
@@ -43,6 +45,7 @@ class Task {
       'priority': priority.index,
       'category': category,
       'createdAt': createdAt.toIso8601String(),
+      'position': position,
     };
   }
 
@@ -56,6 +59,7 @@ class Task {
       priority: TaskPriority.values[map['priority']],
       category: map['category'],
       createdAt: DateTime.parse(map['createdAt']),
+      position: map['position'] ?? 0,
     );
   }
 
@@ -68,6 +72,7 @@ class Task {
     TaskPriority? priority,
     String? category,
     DateTime? createdAt,
+    int? position,
   }) {
     return Task(
       id: id ?? this.id,
@@ -78,6 +83,7 @@ class Task {
       priority: priority ?? this.priority,
       category: category ?? this.category,
       createdAt: createdAt ?? this.createdAt,
+      position: position ?? this.position,
     );
   }
 }

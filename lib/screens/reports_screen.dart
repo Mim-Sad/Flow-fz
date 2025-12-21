@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart' as intl;
+import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import '../providers/task_provider.dart';
 import '../models/task.dart';
-import 'package:shamsi_date/shamsi_date.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
@@ -17,6 +17,38 @@ class ReportsScreen extends ConsumerStatefulWidget {
 class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   DateTime _selectedDate = DateTime.now();
   int _viewMode = 0; // 0: Daily, 1: Weekly, 2: Monthly
+
+  String _toPersianDigit(String input) {
+    const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    String result = input;
+    for (int i = 0; i < englishDigits.length; i++) {
+      result = result.replaceAll(englishDigits[i], persianDigits[i]);
+    }
+    return result;
+  }
+
+  String _formatJalali(Jalali j) {
+    return _toPersianDigit('${j.day} ${j.formatter.mN} ${j.year}');
+  }
+
+  String _formatMiladiSmall(DateTime dt) {
+    return intl.DateFormat('d MMM yyyy').format(dt);
+  }
+
+  Future<void> _selectDate() async {
+    final Jalali? picked = await showPersianDatePicker(
+      context: context,
+      initialDate: Jalali.fromDateTime(_selectedDate),
+      firstDate: Jalali(1300, 1, 1),
+      lastDate: Jalali(1500, 1, 1),
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked.toDateTime();
+      });
+    }
+  }
 
   void _jumpToCurrent() {
     setState(() {
@@ -169,15 +201,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final jalali = Jalali.fromDateTime(_selectedDate);
 
     if (_viewMode == 0) {
-      label = '${jalali.year}/${jalali.month.toString().padLeft(2, '0')}/${jalali.day.toString().padLeft(2, '0')}';
+      label = _formatJalali(jalali);
     } else if (_viewMode == 1) {
       final startOfWeek = _selectedDate.subtract(Duration(days: _selectedDate.weekday % 7));
       final endOfWeek = startOfWeek.add(const Duration(days: 6));
       final jStart = Jalali.fromDateTime(startOfWeek);
       final jEnd = Jalali.fromDateTime(endOfWeek);
-      label = '${jStart.month}/${jStart.day} - ${jEnd.month}/${jEnd.day}';
+      label = _toPersianDigit('${jStart.day} ${jStart.formatter.mN} - ${jEnd.day} ${jEnd.formatter.mN}');
     } else {
-      label = '${jalali.year}/${jalali.month.toString().padLeft(2, '0')}';
+      label = _toPersianDigit('${jalali.formatter.mN} ${jalali.year}');
     }
 
     return Container(
@@ -193,24 +225,37 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             onPressed: () => _changeRange(-1),
             icon: const Icon(Icons.chevron_left_rounded),
           ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              if (!_isCurrentRange())
-                TextButton(
-                  onPressed: _jumpToCurrent,
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(0, 30),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Text(
-                    _viewMode == 0 ? 'امروز' : (_viewMode == 1 ? 'هفته جاری' : 'ماه جاری'),
-                    style: const TextStyle(fontSize: 12),
+          InkWell(
+            onTap: _selectDate,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text(
+                  _formatMiladiSmall(_selectedDate),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                   ),
                 ),
-            ],
+                if (!_isCurrentRange())
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: TextButton(
+                      onPressed: _jumpToCurrent,
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(0, 30),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        _viewMode == 0 ? 'برو به امروز' : (_viewMode == 1 ? 'برو به هفته جاری' : 'برو به ماه جاری'),
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
           IconButton(
             onPressed: () => _changeRange(1),

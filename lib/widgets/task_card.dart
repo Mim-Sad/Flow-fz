@@ -87,7 +87,7 @@ class TaskCard extends ConsumerWidget {
                         child: Row(
                           children: [
                             Icon(Icons.edit_outlined, size: 18),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             Text('ویرایش'),
                           ],
                         ),
@@ -97,7 +97,7 @@ class TaskCard extends ConsumerWidget {
                         child: Row(
                           children: [
                             Icon(Icons.checklist_rounded, size: 18),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             Text('تغییر وضعیت'),
                           ],
                         ),
@@ -264,19 +264,6 @@ class TaskCard extends ConsumerWidget {
         ref.read(tasksProvider.notifier).updateStatus(task.id!, status);
         Navigator.pop(context);
       },
-    );
-  }
-
-  PopupMenuItem<String> _buildStatusMenuItem(TaskStatus status, String label, IconData icon, Color onCardColor) {
-    return PopupMenuItem(
-      value: 'status_${status.index}',
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: onCardColor),
-          const SizedBox(width: 8),
-          Text(label, style: TextStyle(color: onCardColor)),
-        ],
-      ),
     );
   }
 }

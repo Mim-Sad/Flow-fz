@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import '../models/task.dart';
 import '../providers/task_provider.dart';
 import 'package:intl/intl.dart' as intl;
@@ -18,6 +19,24 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   late DateTime _selectedDate;
   late TaskPriority _priority;
   String? _category;
+
+  String _toPersianDigit(String input) {
+    const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    String result = input;
+    for (int i = 0; i < englishDigits.length; i++) {
+      result = result.replaceAll(englishDigits[i], persianDigits[i]);
+    }
+    return result;
+  }
+
+  String _formatJalali(Jalali j) {
+    return _toPersianDigit('${j.day} ${j.formatter.mN} ${j.year}');
+  }
+
+  String _formatMiladiSmall(DateTime dt) {
+    return intl.DateFormat('d MMM yyyy').format(dt);
+  }
 
   @override
   void initState() {
@@ -81,20 +100,30 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.calendar_today),
+              leading: const Icon(Icons.calendar_today_rounded),
               title: const Text('زمان انجام'),
-              subtitle: Text(
-                intl.DateFormat('yyyy/MM/dd').format(_selectedDate),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(_formatJalali(Jalali.fromDateTime(_selectedDate))),
+                  Text(
+                    _formatMiladiSmall(_selectedDate),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
               ),
               onTap: () async {
-                final picked = await showDatePicker(
+                final picked = await showPersianDatePicker(
                   context: context,
-                  initialDate: _selectedDate,
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                  initialDate: Jalali.fromDateTime(_selectedDate),
+                  firstDate: Jalali.fromDateTime(DateTime.now().subtract(const Duration(days: 365))),
+                  lastDate: Jalali.fromDateTime(DateTime.now().add(const Duration(days: 365))),
                 );
                 if (picked != null) {
-                  setState(() => _selectedDate = picked);
+                  setState(() => _selectedDate = picked.toDateTime());
                 }
               },
             ),

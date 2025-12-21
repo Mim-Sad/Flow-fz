@@ -44,9 +44,10 @@ class NavigationWrapper extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 70, // Further increased height
         backgroundColor: navigationBarColor,
         surfaceTintColor: Colors.transparent,
-        leadingWidth: showLogo ? 48 : 0,
+        leadingWidth: showLogo ? 52 : 0,
         leading: showLogo 
             ? Padding(
                 padding: const EdgeInsets.only(right: 12.0),
@@ -61,7 +62,7 @@ class NavigationWrapper extends StatelessWidget {
                       : const ColorFilter.mode(Colors.transparent, BlendMode.dst),
                   child: Image.asset(
                     'assets/images/flow-logo.png',
-                    height: 24,
+                    height: 28, // Slightly larger logo
                     errorBuilder: (context, error, stackTrace) => const Icon(Icons.auto_graph),
                   ),
                 ),
@@ -70,20 +71,31 @@ class NavigationWrapper extends StatelessWidget {
         title: Text(
           title,
           style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w900,
+            fontSize: 14, // Even smaller font size
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.menu),
+            icon: const Icon(Icons.apps_rounded),
             onPressed: () => context.push('/settings'),
           ),
           const SizedBox(width: 8),
         ],
       ),
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: currentIndex,
+      bottomNavigationBar: NavigationBarTheme(
+        data: NavigationBarThemeData(
+          height: 70, // Further reduced height
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const TextStyle(fontSize: 9, fontWeight: FontWeight.bold);
+            }
+            return const TextStyle(fontSize: 9);
+          }),
+        ),
+        child: NavigationBar(
+          selectedIndex: currentIndex,
         onDestinationSelected: (index) {
           switch (index) {
             case 0:
@@ -112,7 +124,8 @@ class NavigationWrapper extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 

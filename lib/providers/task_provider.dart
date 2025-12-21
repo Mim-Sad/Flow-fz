@@ -40,4 +40,13 @@ class TasksNotifier extends StateNotifier<List<Task>> {
     await _dbService.updateTaskStatus(id, status);
     await loadTasks();
   }
+
+  Future<void> reorderTasks(List<Task> reorderedTasks) async {
+    state = reorderedTasks;
+    for (int i = 0; i < reorderedTasks.length; i++) {
+      final task = reorderedTasks[i].copyWith(position: i);
+      await _dbService.updateTask(task);
+    }
+    await loadTasks();
+  }
 }
