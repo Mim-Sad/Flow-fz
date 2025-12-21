@@ -46,7 +46,7 @@ class SettingsScreen extends ConsumerWidget {
                         ? Border.all(color: Theme.of(context).colorScheme.outline, width: 3)
                         : null,
                     boxShadow: isSelected
-                        ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 8, spreadRadius: 2)]
+                        ? [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 8, spreadRadius: 2)]
                         : null,
                   ),
                   child: isSelected

@@ -47,12 +47,10 @@ class TaskCard extends ConsumerWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            useSafeArea: true,
-            builder: (context) => AddTaskScreen(task: task),
-          );
+          ref.read(tasksProvider.notifier).updateStatus(
+                task.id!,
+                task.status == TaskStatus.success ? TaskStatus.pending : TaskStatus.success,
+              );
         },
         onLongPress: () => _showStatusPicker(context, ref),
         child: Padding(
@@ -79,6 +77,8 @@ class TaskCard extends ConsumerWidget {
                         );
                       } else if (value == 'delete') {
                         ref.read(tasksProvider.notifier).deleteTask(task.id!);
+                      } else if (value == 'status_sheet') {
+                        _showStatusPicker(context, ref);
                       }
                     },
                     itemBuilder: (context) => [
@@ -87,11 +87,22 @@ class TaskCard extends ConsumerWidget {
                         child: Row(
                           children: [
                             Icon(Icons.edit_outlined, size: 18),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Text('ویرایش'),
                           ],
                         ),
                       ),
+                      const PopupMenuItem(
+                        value: 'status_sheet',
+                        child: Row(
+                          children: [
+                            Icon(Icons.checklist_rounded, size: 18),
+                            const SizedBox(width: 8),
+                            Text('تغییر وضعیت'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuDivider(),
                       PopupMenuItem(
                         value: 'delete',
                         child: Row(
@@ -253,6 +264,19 @@ class TaskCard extends ConsumerWidget {
         ref.read(tasksProvider.notifier).updateStatus(task.id!, status);
         Navigator.pop(context);
       },
+    );
+  }
+
+  PopupMenuItem<String> _buildStatusMenuItem(TaskStatus status, String label, IconData icon, Color onCardColor) {
+    return PopupMenuItem(
+      value: 'status_${status.index}',
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: onCardColor),
+          const SizedBox(width: 8),
+          Text(label, style: TextStyle(color: onCardColor)),
+        ],
+      ),
     );
   }
 }

@@ -2,100 +2,235 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:intl/intl.dart' as intl;
 import '../providers/task_provider.dart';
 import '../models/task.dart';
+import 'package:shamsi_date/shamsi_date.dart';
 
-class ReportsScreen extends ConsumerWidget {
+class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tasks = ref.watch(tasksProvider);
+  ConsumerState<ReportsScreen> createState() => _ReportsScreenState();
+}
 
-    final successCount = tasks.where((t) => t.status == TaskStatus.success).length;
-    final failedCount = tasks.where((t) => t.status == TaskStatus.failed).length;
-    final cancelledCount = tasks.where((t) => t.status == TaskStatus.cancelled).length;
-    final pendingCount = tasks.where((t) => t.status == TaskStatus.pending).length;
+class _ReportsScreenState extends ConsumerState<ReportsScreen> {
+  DateTime _selectedDate = DateTime.now();
+  int _viewMode = 0; // 0: Daily, 1: Weekly, 2: Monthly
+
+  void _jumpToCurrent() {
+    setState(() {
+      _selectedDate = DateTime.now();
+    });
+  }
+
+  bool _isCurrentRange() {
+    final now = DateTime.now();
+    if (_viewMode == 0) {
+      return DateUtils.isSameDay(_selectedDate, now);
+    } else if (_viewMode == 1) {
+      final startOfSelected = _selectedDate.subtract(Duration(days: _selectedDate.weekday % 7));
+      final startOfNow = now.subtract(Duration(days: now.weekday % 7));
+      return DateUtils.isSameDay(startOfSelected, startOfNow);
+    } else {
+      return _selectedDate.year == now.year && _selectedDate.month == now.month;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tasks = ref.watch(tasksProvider);
+    
+    final filteredTasks = tasks.where((t) {
+      if (_viewMode == 0) {
+        return DateUtils.isSameDay(t.dueDate, _selectedDate);
+      } else if (_viewMode == 1) {
+        final startOfWeek = _selectedDate.subtract(Duration(days: _selectedDate.weekday % 7));
+        final endOfWeek = startOfWeek.add(const Duration(days: 6));
+        return t.dueDate.isAfter(startOfWeek.subtract(const Duration(seconds: 1))) && 
+               t.dueDate.isBefore(endOfWeek.add(const Duration(days: 1)));
+      } else {
+        return t.dueDate.year == _selectedDate.year && t.dueDate.month == _selectedDate.month;
+      }
+    }).toList();
+
+    final successCount = filteredTasks.where((t) => t.status == TaskStatus.success).length;
+    final failedCount = filteredTasks.where((t) => t.status == TaskStatus.failed).length;
+    final cancelledCount = filteredTasks.where((t) => t.status == TaskStatus.cancelled).length;
+    final pendingCount = filteredTasks.where((t) => t.status == TaskStatus.pending).length;
+    final deferredCount = filteredTasks.where((t) => t.status == TaskStatus.deferred).length;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('گزارشات و آمار'),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildStatSummary(context, successCount, tasks.length)
-                .animate()
-                .fadeIn(duration: 600.ms)
-                .slideX(begin: 0.1),
-            const SizedBox(height: 32),
-            Text(
-              'وضعیت کلی تسک‌ها',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ).animate().fadeIn(delay: 200.ms),
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 250,
-              child: PieChart(
-                PieChartData(
-                  sectionsSpace: 4,
-                  centerSpaceRadius: 60,
-                  sections: [
-                    PieChartSectionData(
-                      value: successCount.toDouble(),
-                      title: 'موفق',
-                      color: Colors.greenAccent,
-                      radius: 50,
-                      titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
-                    PieChartSectionData(
-                      value: failedCount.toDouble(),
-                      title: 'ناموفق',
-                      color: Colors.redAccent,
-                      radius: 50,
-                      titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
-                    PieChartSectionData(
-                      value: cancelledCount.toDouble(),
-                      title: 'لغو شده',
-                      color: Colors.grey,
-                      radius: 50,
-                      titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
-                    PieChartSectionData(
-                      value: pendingCount.toDouble(),
-                      title: 'در انتظار',
-                      color: Colors.blueAccent,
-                      radius: 50,
-                      titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(value: 0, label: Text('روزانه')),
+                ButtonSegment(value: 1, label: Text('هفتگی')),
+                ButtonSegment(value: 2, label: Text('ماهانه')),
+              ],
+              selected: {_viewMode},
+              onSelectionChanged: (val) => setState(() => _viewMode = val.first),
             ),
-            const SizedBox(height: 32),
-            _buildLegendItem(context, 'موفقیت‌آمیز', Colors.greenAccent, successCount)
-                .animate()
-                .fadeIn(delay: 400.ms)
-                .slideY(begin: 0.5),
-            _buildLegendItem(context, 'انجام نشده', Colors.redAccent, failedCount)
-                .animate()
-                .fadeIn(delay: 500.ms)
-                .slideY(begin: 0.5),
-            _buildLegendItem(context, 'لغو شده', Colors.grey, cancelledCount)
-                .animate()
-                .fadeIn(delay: 600.ms)
-                .slideY(begin: 0.5),
-            _buildLegendItem(context, 'در جریان', Colors.blueAccent, pendingCount)
-                .animate()
-                .fadeIn(delay: 700.ms)
-                .slideY(begin: 0.5),
-          ],
-        ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildStatSummary(context, successCount, filteredTasks.length)
+                      .animate()
+                      .fadeIn(duration: 600.ms)
+                      .slideX(begin: 0.1),
+                  const SizedBox(height: 32),
+                  Text(
+                    'وضعیت کلی تسک‌ها',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  ).animate().fadeIn(delay: 200.ms),
+                  const SizedBox(height: 24),
+                  if (filteredTasks.isNotEmpty)
+                    SizedBox(
+                      height: 250,
+                      child: PieChart(
+                        PieChartData(
+                          sectionsSpace: 4,
+                          centerSpaceRadius: 60,
+                          sections: [
+                            if (successCount > 0)
+                              PieChartSectionData(
+                                value: successCount.toDouble(),
+                                title: 'موفق',
+                                color: Colors.greenAccent,
+                                radius: 50,
+                                titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            if (failedCount > 0)
+                              PieChartSectionData(
+                                value: failedCount.toDouble(),
+                                title: 'ناموفق',
+                                color: Colors.redAccent,
+                                radius: 50,
+                                titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            if (cancelledCount > 0)
+                              PieChartSectionData(
+                                value: cancelledCount.toDouble(),
+                                title: 'لغو شده',
+                                color: Colors.grey,
+                                radius: 50,
+                                titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            if (pendingCount > 0)
+                              PieChartSectionData(
+                                value: pendingCount.toDouble(),
+                                title: 'در جریان',
+                                color: Colors.blueAccent,
+                                radius: 50,
+                                titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            if (deferredCount > 0)
+                              PieChartSectionData(
+                                value: deferredCount.toDouble(),
+                                title: 'تعویق',
+                                color: Colors.orangeAccent,
+                                radius: 50,
+                                titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                          ],
+                        ),
+                      ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack),
+                    )
+                  else
+                    const SizedBox(
+                      height: 250,
+                      child: Center(child: Text('تسک برای این بازه وجود ندارد')),
+                    ),
+                  const SizedBox(height: 32),
+                  _buildLegendItem(context, 'موفقیت‌آمیز', Colors.greenAccent, successCount),
+                  _buildLegendItem(context, 'انجام نشده', Colors.redAccent, failedCount),
+                  _buildLegendItem(context, 'لغو شده', Colors.grey, cancelledCount),
+                  _buildLegendItem(context, 'در جریان', Colors.blueAccent, pendingCount),
+                  _buildLegendItem(context, 'تعویق شده', Colors.orangeAccent, deferredCount),
+                ],
+              ),
+            ),
+          ),
+          _buildRangePicker(),
+        ],
       ),
     );
+  }
+
+  Widget _buildRangePicker() {
+    String label = '';
+    final jalali = Jalali.fromDateTime(_selectedDate);
+
+    if (_viewMode == 0) {
+      label = '${jalali.year}/${jalali.month.toString().padLeft(2, '0')}/${jalali.day.toString().padLeft(2, '0')}';
+    } else if (_viewMode == 1) {
+      final startOfWeek = _selectedDate.subtract(Duration(days: _selectedDate.weekday % 7));
+      final endOfWeek = startOfWeek.add(const Duration(days: 6));
+      final jStart = Jalali.fromDateTime(startOfWeek);
+      final jEnd = Jalali.fromDateTime(endOfWeek);
+      label = '${jStart.month}/${jStart.day} - ${jEnd.month}/${jEnd.day}';
+    } else {
+      label = '${jalali.year}/${jalali.month.toString().padLeft(2, '0')}';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            onPressed: () => _changeRange(-1),
+            icon: const Icon(Icons.chevron_left_rounded),
+          ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              if (!_isCurrentRange())
+                TextButton(
+                  onPressed: _jumpToCurrent,
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 30),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    _viewMode == 0 ? 'امروز' : (_viewMode == 1 ? 'هفته جاری' : 'ماه جاری'),
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+            ],
+          ),
+          IconButton(
+            onPressed: () => _changeRange(1),
+            icon: const Icon(Icons.chevron_right_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _changeRange(int delta) {
+    setState(() {
+      if (_viewMode == 0) {
+        _selectedDate = _selectedDate.add(Duration(days: delta));
+      } else if (_viewMode == 1) {
+        _selectedDate = _selectedDate.add(Duration(days: delta * 7));
+      } else {
+        _selectedDate = DateTime(_selectedDate.year, _selectedDate.month + delta, 1);
+      }
+    });
   }
 
   Widget _buildStatSummary(BuildContext context, int success, int total) {

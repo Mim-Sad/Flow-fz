@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../providers/task_provider.dart';
 import '../models/task.dart';
 import '../widgets/task_card.dart';
@@ -19,28 +18,13 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            expandedHeight: 80,
-            floating: true,
-            pinned: true,
-            flexibleSpace: const FlexibleSpaceBar(
-              titlePadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              title: null,
-            ),
-          ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (importantTasks.isNotEmpty) ...[
-                    Text(
-                      'اولویت‌های بالا 🔥',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
                     const SizedBox(height: 16),
                     MasonryGridView.count(
                       shrinkWrap: true,
@@ -53,15 +37,9 @@ class HomeScreen extends ConsumerWidget {
                         return TaskCard(task: importantTasks[index]);
                       },
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                   ],
-                  Text(
-                    'برنامه امروز 📅',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
@@ -147,29 +125,33 @@ class TaskListTile extends ConsumerWidget {
           return false;
         }
       },
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        decoration: BoxDecoration(
-          color: Colors.green.shade400,
-          borderRadius: BorderRadius.circular(16),
+      background: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20),
+          decoration: BoxDecoration(
+            color: Colors.green.shade400,
+          ),
+          child: const Icon(Icons.check_circle_outline, color: Colors.white),
         ),
-        child: const Icon(Icons.check_circle_outline, color: Colors.white),
       ),
-      secondaryBackground: Container(
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(left: 20),
-        decoration: BoxDecoration(
-          color: Colors.orange.shade400,
-          borderRadius: BorderRadius.circular(16),
+      secondaryBackground: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.only(left: 20),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade400,
+          ),
+          child: const Icon(Icons.history_rounded, color: Colors.white),
         ),
-        child: const Icon(Icons.history_rounded, color: Colors.white),
       ),
       child: Card(
         margin: EdgeInsets.zero,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           side: BorderSide(
             color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
             width: 1,
@@ -177,19 +159,19 @@ class TaskListTile extends ConsumerWidget {
         ),
         child: InkWell(
           onLongPress: () => _showStatusPicker(context, ref),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           onTap: () {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              useSafeArea: true,
-              builder: (context) => AddTaskScreen(task: task),
-            );
+            ref.read(tasksProvider.notifier).updateStatus(
+                  task.id!,
+                  task.status == TaskStatus.success ? TaskStatus.pending : TaskStatus.success,
+                );
           },
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
+                _getStatusIconForTile(task.status, context),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,49 +212,64 @@ class TaskListTile extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                _getStatusIconForTile(task.status, context),
-                const SizedBox(width: 4),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert_rounded, size: 22),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        useSafeArea: true,
+                        builder: (context) => AddTaskScreen(task: task),
+                      );
+                    } else if (value == 'delete') {
+                      ref.read(tasksProvider.notifier).deleteTask(task.id!);
+                    } else if (value == 'status_sheet') {
+                      _showStatusPicker(context, ref);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_outlined, size: 18),
+                          const SizedBox(width: 8),
+                          Text('ویرایش'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'status_sheet',
+                      child: Row(
+                        children: [
+                          Icon(Icons.checklist_rounded, size: 18),
+                          const SizedBox(width: 8),
+                          Text('تغییر وضعیت'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuDivider(),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                          const SizedBox(width: 8),
+                          const Text('حذف', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
                 ReorderableDragStartListener(
                   index: index,
-                  child: PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert_rounded, size: 22),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          useSafeArea: true,
-                          builder: (context) => AddTaskScreen(task: task),
-                        );
-                      } else if (value == 'delete') {
-                        ref.read(tasksProvider.notifier).deleteTask(task.id!);
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit_outlined, size: 18),
-                            SizedBox(width: 8),
-                            Text('ویرایش'),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
-                            const SizedBox(width: 8),
-                            const Text('حذف', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
+                  child: const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Icon(Icons.drag_indicator_rounded, size: 22, color: Colors.grey),
                   ),
                 ),
               ],
@@ -311,6 +308,26 @@ class TaskListTile extends ConsumerWidget {
       child: Text(
         label,
         style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color),
+      ),
+    );
+  }
+
+  Widget _buildCategoryCapsule(BuildContext context) {
+    if (task.category == null || task.category!.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        task.category!,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: Theme.of(context).colorScheme.onSecondaryContainer,
+        ),
       ),
     );
   }
@@ -359,10 +376,23 @@ class TaskListTile extends ConsumerWidget {
       case TaskStatus.deferred:
         return Icon(Icons.history_rounded, size: 28, color: Colors.orange.shade400);
       case TaskStatus.pending:
-        return Icon(Icons.check_box_outline_blank_rounded,
-          size: 28,
+        return Icon(Icons.check_box_outline_blank_rounded, 
+          size: 28, 
           color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
         );
     }
+  }
+
+  PopupMenuItem<String> _buildStatusMenuItem(TaskStatus status, String label, IconData icon, [Color? color]) {
+    return PopupMenuItem(
+      value: 'status_${status.index}',
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 8),
+          Text(label, style: TextStyle(color: color)),
+        ],
+      ),
+    );
   }
 }
