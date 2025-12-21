@@ -61,8 +61,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     if (_viewMode == 0) {
       return DateUtils.isSameDay(_selectedDate, now);
     } else if (_viewMode == 1) {
-      final startOfSelected = _selectedDate.subtract(Duration(days: _selectedDate.weekday % 7));
-      final startOfNow = now.subtract(Duration(days: now.weekday % 7));
+      final startOfSelected = _selectedDate.subtract(Duration(days: (_selectedDate.weekday + 1) % 7));
+      final startOfNow = now.subtract(Duration(days: (now.weekday + 1) % 7));
       return DateUtils.isSameDay(startOfSelected, startOfNow);
     } else {
       return _selectedDate.year == now.year && _selectedDate.month == now.month;
@@ -77,10 +77,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       if (_viewMode == 0) {
         return DateUtils.isSameDay(t.dueDate, _selectedDate);
       } else if (_viewMode == 1) {
-        final startOfWeek = _selectedDate.subtract(Duration(days: _selectedDate.weekday % 7));
+        final startOfWeek = _selectedDate.subtract(Duration(days: (_selectedDate.weekday + 1) % 7));
         final endOfWeek = startOfWeek.add(const Duration(days: 6));
-        return t.dueDate.isAfter(startOfWeek.subtract(const Duration(seconds: 1))) && 
-               t.dueDate.isBefore(endOfWeek.add(const Duration(days: 1)));
+        // Ensure we cover the full range including time
+        final startRange = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+        final endRange = DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day, 23, 59, 59);
+        return t.dueDate.isAfter(startRange.subtract(const Duration(seconds: 1))) && 
+               t.dueDate.isBefore(endRange.add(const Duration(seconds: 1)));
       } else {
         return t.dueDate.year == _selectedDate.year && t.dueDate.month == _selectedDate.month;
       }
@@ -105,6 +108,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               ],
               selected: {_viewMode},
               onSelectionChanged: (val) => setState(() => _viewMode = val.first),
+              style: ButtonStyle(
+                backgroundColor: WidgetStateProperty.resolveWith<Color?>(
+                  (states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return Theme.of(context).colorScheme.secondaryContainer;
+                    }
+                    return Colors.transparent;
+                  },
+                ),
+                side: WidgetStateProperty.all(BorderSide(
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
+                )),
+              ),
             ),
           ),
           Expanded(
@@ -233,7 +249,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     if (_viewMode == 0) {
       label = _formatJalali(jalali);
     } else if (_viewMode == 1) {
-      final startOfWeek = _selectedDate.subtract(Duration(days: _selectedDate.weekday % 7));
+      final startOfWeek = _selectedDate.subtract(Duration(days: (_selectedDate.weekday + 1) % 7));
       final endOfWeek = startOfWeek.add(const Duration(days: 6));
       final jStart = Jalali.fromDateTime(startOfWeek);
       final jEnd = Jalali.fromDateTime(endOfWeek);
@@ -433,7 +449,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     if (_viewMode == 1) {
       // Weekly
-      final startOfWeek = _selectedDate.subtract(Duration(days: _selectedDate.weekday % 7));
+      final startOfWeek = _selectedDate.subtract(Duration(days: (_selectedDate.weekday + 1) % 7));
       for (int i = 0; i < 7; i++) {
         final day = startOfWeek.add(Duration(days: i));
         final dayTasks = filteredTasks.where((t) => DateUtils.isSameDay(t.dueDate, day)).toList();

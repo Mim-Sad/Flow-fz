@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+
 import '../models/task.dart';
+import '../models/category_data.dart';
 import '../providers/task_provider.dart';
+import '../providers/category_provider.dart';
 import 'package:intl/intl.dart' as intl;
 
 class AddTaskScreen extends ConsumerStatefulWidget {
@@ -18,7 +26,15 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   late TextEditingController _descController;
   late DateTime _selectedDate;
   late TaskPriority _priority;
-  String? _category;
+  List<String> _selectedCategories = [];
+  String? _selectedEmoji;
+  List<String> _attachments = [];
+  RecurrenceConfig? _recurrence;
+  bool _isDetailsExpanded = false;
+  
+  // Audio Recording
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  bool _isRecording = false;
 
   String _toPersianDigit(String input) {
     const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -34,10 +50,6 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     return _toPersianDigit('${j.day} ${j.formatter.mN} ${j.year}');
   }
 
-  String _formatMiladiSmall(DateTime dt) {
-    return intl.DateFormat('d MMM yyyy').format(dt);
-  }
-
   @override
   void initState() {
     super.initState();
@@ -45,7 +57,19 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     _descController = TextEditingController(text: widget.task?.description);
     _selectedDate = widget.task?.dueDate ?? DateTime.now();
     _priority = widget.task?.priority ?? TaskPriority.medium;
-    _category = widget.task?.category;
+    _selectedCategories = widget.task?.categories ?? 
+        (widget.task?.category != null ? [widget.task!.category!] : []);
+    _selectedEmoji = widget.task?.taskEmoji;
+    _attachments = widget.task?.attachments ?? [];
+    _recurrence = widget.task?.recurrence;
+  }
+
+  @override
+  void dispose() {
+    _audioRecorder.dispose();
+    _titleController.dispose();
+    _descController.dispose();
+    super.dispose();
   }
 
   @override
@@ -55,19 +79,20 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
         left: 20,
         right: 20,
-        top: 20,
+        top: 24,
       ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  widget.task == null ? 'تسک جدید ✨' : 'ویرایش تسک ✏️',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  widget.task == null ? 'تسک جدید' : 'ویرایش تسک',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                 ),
@@ -77,110 +102,288 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _titleController,
-              decoration: InputDecoration(
-                hintText: 'عنوان تسک چیه؟',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _descController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'توضیحات بیشتر (اختیاری)',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.calendar_today_rounded),
-              title: const Text('زمان انجام'),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(_formatJalali(Jalali.fromDateTime(_selectedDate))),
-                  Text(
-                    _formatMiladiSmall(_selectedDate),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+            const SizedBox(height: 24),
+
+            // Title and Emoji
+            Row(
+              children: [
+                GestureDetector(
+                  onTap: _showEmojiPicker,
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _selectedEmoji ?? '😀',
+                      style: const TextStyle(fontSize: 24),
                     ),
                   ),
-                ],
-              ),
-              onTap: () async {
-                final picked = await showPersianDatePicker(
-                  context: context,
-                  initialDate: Jalali.fromDateTime(_selectedDate),
-                  firstDate: Jalali.fromDateTime(DateTime.now().subtract(const Duration(days: 365))),
-                  lastDate: Jalali.fromDateTime(DateTime.now().add(const Duration(days: 365))),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _titleController,
+                    decoration: InputDecoration(
+                      hintText: 'عنوان تسک',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Categories
+            const Text('دسته‌بندی', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            const SizedBox(height: 8),
+            Consumer(
+              builder: (context, ref, child) {
+                final categoriesAsync = ref.watch(categoryProvider);
+                
+                return categoriesAsync.when(
+                  data: (categories) {
+                    final cats = categories.isEmpty ? defaultCategories : categories;
+                    return Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: cats.map((cat) {
+                        final isSelected = _selectedCategories.contains(cat.id);
+                        return FilterChip(
+                          label: Text('${cat.emoji} ${cat.label}'),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            setState(() {
+                              if (selected) {
+                                _selectedCategories.add(cat.id);
+                              } else {
+                                _selectedCategories.remove(cat.id);
+                              }
+                            });
+                          },
+                          backgroundColor: Theme.of(context).colorScheme.surface,
+                          selectedColor: cat.color.withValues(alpha: 0.2),
+                          labelStyle: TextStyle(
+                            color: isSelected ? cat.color : Theme.of(context).colorScheme.onSurface,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
+                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          showCheckmark: false,
+                        );
+                      }).toList(),
+                    );
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (err, stack) => Text('خطا در بارگذاری دسته‌بندی‌ها: $err'),
                 );
-                if (picked != null) {
-                  setState(() => _selectedDate = picked.toDateTime());
-                }
               },
             ),
             const SizedBox(height: 16),
-            const Text('اولویت چطوره؟', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            SegmentedButton<TaskPriority>(
-              segments: const [
-                ButtonSegment(value: TaskPriority.low, label: Text('کم')),
-                ButtonSegment(value: TaskPriority.medium, label: Text('متوسط')),
-                ButtonSegment(value: TaskPriority.high, label: Text('بالا')),
-              ],
-              selected: {_priority},
-              onSelectionChanged: (val) {
-                setState(() => _priority = val.first);
-              },
+
+            // Collapsible Details Section
+            Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                title: Text(
+                  'جزئیات بیشتر',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                tilePadding: EdgeInsets.zero,
+                initiallyExpanded: _isDetailsExpanded,
+                onExpansionChanged: (val) => setState(() => _isDetailsExpanded = val),
+                children: [
+                  // Description
+                  TextField(
+                    controller: _descController,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: 'توضیحات بیشتر...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Date & Time
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.calendar_today_rounded, size: 20),
+                    ),
+                    title: const Text('زمان انجام', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    subtitle: Text(
+                      '${_formatJalali(Jalali.fromDateTime(_selectedDate))} • ${_toPersianDigit(intl.DateFormat('HH:mm').format(_selectedDate))}',
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    ),
+                    trailing: TextButton(
+                      onPressed: () async {
+                        final pickedDate = await showPersianDatePicker(
+                          context: context,
+                          initialDate: Jalali.fromDateTime(_selectedDate),
+                          firstDate: Jalali.fromDateTime(DateTime.now().subtract(const Duration(days: 365))),
+                          lastDate: Jalali.fromDateTime(DateTime.now().add(const Duration(days: 365 * 2))),
+                        );
+                        if (pickedDate != null) {
+                          if (!context.mounted) return;
+                          final pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(_selectedDate),
+                          );
+                          
+                          if (pickedTime != null) {
+                            final dt = pickedDate.toDateTime();
+                            setState(() {
+                              _selectedDate = DateTime(
+                                dt.year,
+                                dt.month,
+                                dt.day,
+                                pickedTime.hour,
+                                pickedTime.minute,
+                              );
+                            });
+                          }
+                        }
+                      },
+                      child: const Text('تغییر'),
+                    ),
+                  ),
+                  
+                  // Recurrence
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.repeat_rounded, size: 20, color: Colors.orange),
+                    ),
+                    title: const Text('تکرار', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    subtitle: Text(
+                      _getRecurrenceText(),
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    ),
+                    trailing: TextButton(
+                      onPressed: _showRecurrencePicker,
+                      child: const Text('تنظیم'),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Priority
+                  const Text('اولویت', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<TaskPriority>(
+                      segments: const [
+                        ButtonSegment(
+                          value: TaskPriority.low, 
+                          label: Text('کم'), 
+                          icon: Icon(Icons.arrow_downward_rounded, color: Colors.green)
+                        ),
+                        ButtonSegment(
+                          value: TaskPriority.medium, 
+                          label: Text('متوسط'),
+                          icon: Icon(Icons.remove_rounded, color: Colors.orange)
+                        ),
+                        ButtonSegment(
+                          value: TaskPriority.high, 
+                          label: Text('بالا'),
+                          icon: Icon(Icons.priority_high_rounded, color: Colors.red)
+                        ),
+                      ],
+                      selected: {_priority},
+                      onSelectionChanged: (val) {
+                        setState(() => _priority = val.first);
+                      },
+                      style: ButtonStyle(
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Attachments
+                  Row(
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: _pickFile,
+                        icon: const Icon(Icons.attach_file_rounded, size: 18),
+                        label: const Text('پیوست فایل'),
+                      ),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        onPressed: _toggleRecording,
+                        icon: Icon(
+                          _isRecording ? Icons.stop_rounded : Icons.mic_rounded, 
+                          size: 18,
+                          color: _isRecording ? Colors.red : null,
+                        ),
+                        label: Text(_isRecording ? 'توقف ضبط' : 'ضبط صدا'),
+                        style: _isRecording ? OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          side: const BorderSide(color: Colors.red),
+                        ) : null,
+                      ),
+                    ],
+                  ),
+                  if (_attachments.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _attachments.map((att) {
+                        final name = att.split('/').last;
+                        final isVoice = name.startsWith('voice_') || att.endsWith('.m4a');
+                        return Chip(
+                          label: Text(name.length > 20 ? '${name.substring(0, 20)}...' : name),
+                          avatar: Icon(
+                            isVoice ? Icons.mic : Icons.insert_drive_file, 
+                            size: 16
+                          ),
+                          onDeleted: () {
+                            setState(() {
+                              _attachments.remove(att);
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ]
+                ],
+              ),
             ),
-            const Text('دسته‌بندی چیه؟', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: [
-                'کار', 'شخصی', 'ورزش', 'مطالعه', 'خرید'
-              ].map((cat) => ChoiceChip(
-                label: Text(cat),
-                selected: _category == cat,
-                onSelected: (selected) {
-                  setState(() => _category = selected ? cat : null);
-                },
-              )).toList(),
-            ),
+
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               height: 55,
               child: FilledButton(
-                onPressed: () {
-                  if (_titleController.text.isEmpty) return;
-                  
-                  final task = Task(
-                    id: widget.task?.id,
-                    title: _titleController.text,
-                    description: _descController.text,
-                    dueDate: _selectedDate,
-                    priority: _priority,
-                    category: _category,
-                    status: widget.task?.status ?? TaskStatus.pending,
-                    createdAt: widget.task?.createdAt,
-                  );
-                  
-                  if (widget.task == null) {
-                    ref.read(tasksProvider.notifier).addTask(task);
-                  } else {
-                    ref.read(tasksProvider.notifier).updateTask(task);
-                  }
-                  Navigator.pop(context);
-                },
+                onPressed: _saveTask,
                 child: Text(widget.task == null ? 'ثبت و شروع کار' : 'ذخیره تغییرات'),
               ),
             ),
@@ -189,5 +392,294 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
         ),
       ),
     );
+  }
+
+  void _showEmojiPicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SizedBox(
+        height: 350,
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text('انتخاب ایموجی', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() => _selectedEmoji = null);
+                    Navigator.pop(context);
+                  },
+                  child: const Text('حذف ایموجی'),
+                ),
+              ],
+            ),
+            Expanded(
+              child: EmojiPicker(
+                onEmojiSelected: (category, emoji) {
+                  setState(() => _selectedEmoji = emoji.emoji);
+                  Navigator.pop(context);
+                },
+                config: Config(
+                  height: 256,
+                  checkPlatformCompatibility: true,
+                  emojiViewConfig: EmojiViewConfig(
+                    columns: 7,
+                    emojiSizeMax: 28,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getRecurrenceText() {
+    if (_recurrence == null || _recurrence!.type == RecurrenceType.none) {
+      return 'بدون تکرار';
+    }
+    String endDateText = '';
+    if (_recurrence!.endDate != null) {
+      final jEndDate = Jalali.fromDateTime(_recurrence!.endDate!);
+      endDateText = ' (تا ${_formatJalali(jEndDate)})';
+    }
+
+    String baseText = '';
+    switch (_recurrence!.type) {
+      case RecurrenceType.hourly: baseText = 'ساعتی'; break;
+      case RecurrenceType.daily: baseText = 'روزانه'; break;
+      case RecurrenceType.weekly: baseText = 'هفتگی'; break;
+      case RecurrenceType.monthly: baseText = 'ماهانه'; break;
+      case RecurrenceType.yearly: baseText = 'سالانه'; break;
+      case RecurrenceType.custom: baseText = 'هر ${_recurrence!.interval} روز'; break;
+      case RecurrenceType.specificDays: 
+        final days = _recurrence!.daysOfWeek?.map((d) => _getDayName(d)).join('، ') ?? '';
+        baseText = 'روزهای $days'; 
+        break;
+      default: baseText = 'سفارشی';
+    }
+    return baseText + endDateText;
+  }
+  
+  String _getDayName(int weekday) {
+    switch (weekday) {
+      case DateTime.saturday: return 'شنبه';
+      case DateTime.sunday: return '۱شنبه';
+      case DateTime.monday: return '۲شنبه';
+      case DateTime.tuesday: return '۳شنبه';
+      case DateTime.wednesday: return '۴شنبه';
+      case DateTime.thursday: return '۵شنبه';
+      case DateTime.friday: return 'جمعه';
+      default: return '';
+    }
+  }
+
+  void _showRecurrencePicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('تنظیمات تکرار', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                const SizedBox(height: 16),
+                _buildRecurrenceOption(RecurrenceType.none, 'بدون تکرار', setSheetState),
+                _buildRecurrenceOption(RecurrenceType.daily, 'روزانه', setSheetState),
+                _buildRecurrenceOption(RecurrenceType.weekly, 'هفتگی', setSheetState),
+                _buildRecurrenceOption(RecurrenceType.monthly, 'ماهانه', setSheetState),
+                _buildRecurrenceOption(RecurrenceType.yearly, 'سالانه', setSheetState),
+                _buildRecurrenceOption(RecurrenceType.specificDays, 'روزهای خاص هفته', setSheetState),
+                
+                if (_recurrence?.type == RecurrenceType.specificDays)
+                   _buildSpecifiDaysSelector(setSheetState),
+                   
+                const Divider(),
+                ListTile(
+                  title: const Text('تاریخ پایان تکرار'),
+                  subtitle: Text(_recurrence?.endDate != null 
+                    ? _formatJalali(Jalali.fromDateTime(_recurrence!.endDate!))
+                    : 'نامحدود'
+                  ),
+                  trailing: TextButton(
+                    onPressed: () async {
+                      final picked = await showPersianDatePicker(
+                        context: context,
+                        initialDate: Jalali.fromDateTime(_recurrence?.endDate ?? DateTime.now().add(const Duration(days: 30))),
+                        firstDate: Jalali.fromDateTime(DateTime.now()),
+                        lastDate: Jalali(1500, 1, 1),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          // Update recurrence with new end date
+                          _recurrence = RecurrenceConfig(
+                            type: _recurrence?.type ?? RecurrenceType.daily,
+                            interval: _recurrence?.interval,
+                            daysOfWeek: _recurrence?.daysOfWeek,
+                            specificDates: _recurrence?.specificDates,
+                            dayOfMonth: _recurrence?.dayOfMonth,
+                            endDate: picked.toDateTime(),
+                          );
+                        });
+                        setSheetState(() {});
+                      }
+                    },
+                    child: const Text('تغییر'),
+                  ),
+                ),
+                
+                const SizedBox(height: 20),
+              ],
+            ),
+          );
+        }
+      ),
+    );
+  }
+  
+  Widget _buildSpecifiDaysSelector(StateSetter setSheetState) {
+    // 1 = Monday, 7 = Sunday in DateTime standard. But Jalali might be different visually.
+    // Let's stick to DateTime standard: Mon=1...Sun=7. 
+    // In Iran: Sat=6, Sun=7, Mon=1... wait.
+    // DateTime: Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6, Sun=7.
+    final days = [
+      {'val': DateTime.saturday, 'label': 'ش'},
+      {'val': DateTime.sunday, 'label': '۱ش'},
+      {'val': DateTime.monday, 'label': '۲ش'},
+      {'val': DateTime.tuesday, 'label': '۳ش'},
+      {'val': DateTime.wednesday, 'label': '۴ش'},
+      {'val': DateTime.thursday, 'label': '۵ش'},
+      {'val': DateTime.friday, 'label': 'ج'},
+    ];
+    
+    final currentDays = _recurrence?.daysOfWeek ?? [];
+    
+    return Wrap(
+      spacing: 8,
+      children: days.map((d) {
+        final val = d['val'] as int;
+        final label = d['label'] as String;
+        final isSelected = currentDays.contains(val);
+        
+        return FilterChip(
+          label: Text(label),
+          selected: isSelected,
+          onSelected: (selected) {
+            List<int> newDays = List.from(currentDays);
+            if (selected) {
+              newDays.add(val);
+            } else {
+              newDays.remove(val);
+            }
+            setState(() {
+              _recurrence = RecurrenceConfig(
+                type: RecurrenceType.specificDays,
+                daysOfWeek: newDays,
+                endDate: _recurrence?.endDate,
+              );
+            });
+            setSheetState(() {});
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildRecurrenceOption(RecurrenceType type, String label, StateSetter setSheetState) {
+    final isSelected = (_recurrence?.type ?? RecurrenceType.none) == type;
+    return ListTile(
+      title: Text(label),
+      leading: Icon(
+        isSelected ? Icons.check_circle : Icons.circle_outlined,
+        color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey,
+      ),
+      onTap: () {
+        setState(() {
+          if (type == RecurrenceType.none) {
+            _recurrence = null;
+          } else {
+            // Preserve end date if switching types
+            _recurrence = RecurrenceConfig(
+              type: type,
+              endDate: _recurrence?.endDate,
+              // Default specific days to current day if switching to specificDays
+              daysOfWeek: type == RecurrenceType.specificDays ? [_selectedDate.weekday] : null,
+            );
+          }
+        });
+        setSheetState(() {});
+        // Don't close immediately if selecting specific days, let user pick days
+        if (type != RecurrenceType.specificDays) {
+           Navigator.pop(context);
+        }
+      },
+    );
+  }
+
+  Future<void> _pickFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+    if (result != null) {
+      File file = File(result.files.single.path!);
+      setState(() {
+        _attachments.add(file.path);
+      });
+    }
+  }
+  
+  Future<void> _toggleRecording() async {
+    if (_isRecording) {
+      final path = await _audioRecorder.stop();
+      if (path != null) {
+        setState(() {
+          _attachments.add(path);
+        });
+      }
+      setState(() => _isRecording = false);
+    } else {
+      if (await _audioRecorder.hasPermission()) {
+        final directory = await getApplicationDocumentsDirectory();
+        final path = '${directory.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+        
+        await _audioRecorder.start(const RecordConfig(), path: path);
+        setState(() => _isRecording = true);
+      }
+    }
+  }
+
+  void _saveTask() {
+    if (_titleController.text.isEmpty) return;
+    
+    final task = Task(
+      id: widget.task?.id,
+      title: _titleController.text,
+      description: _descController.text,
+      dueDate: _selectedDate,
+      priority: _priority,
+      categories: _selectedCategories,
+      category: _selectedCategories.isNotEmpty ? _selectedCategories.first : null,
+      status: widget.task?.status ?? TaskStatus.pending,
+      createdAt: widget.task?.createdAt,
+      taskEmoji: _selectedEmoji,
+      attachments: _attachments,
+      recurrence: _recurrence,
+    );
+    
+    if (widget.task == null) {
+      ref.read(tasksProvider.notifier).addTask(task);
+    } else {
+      ref.read(tasksProvider.notifier).updateTask(task);
+    }
+    Navigator.pop(context);
   }
 }

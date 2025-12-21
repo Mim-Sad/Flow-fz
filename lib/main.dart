@@ -98,6 +98,11 @@ class FlowApp extends ConsumerWidget {
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         ),
+        segmentedButtonTheme: SegmentedButtonThemeData(
+          style: ButtonStyle(
+            padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
+          ),
+        ),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
@@ -120,6 +125,11 @@ class FlowApp extends ConsumerWidget {
             fontWeight: FontWeight.w700,
             fontSize: 20,
             color: Colors.white,
+          ),
+        ),
+        segmentedButtonTheme: SegmentedButtonThemeData(
+          style: ButtonStyle(
+            padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
           ),
         ),
       ),

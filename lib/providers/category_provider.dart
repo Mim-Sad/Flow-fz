@@ -1,0 +1,43 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/category_data.dart';
+import '../services/database_service.dart';
+
+class CategoryNotifier extends AsyncNotifier<List<CategoryData>> {
+  @override
+  Future<List<CategoryData>> build() async {
+    return await _loadCategories();
+  }
+
+  Future<List<CategoryData>> _loadCategories() async {
+    final categories = await DatabaseService().getAllCategories();
+    if (categories.isEmpty) {
+      // If DB is empty, it might be first run or cleared. 
+      // The DatabaseService._createCategoriesTable handles defaults on creation.
+      // But if we are here and it's empty, maybe we should re-insert defaults?
+      // For now, assume DB service handles defaults on create/upgrade.
+      // If it returns empty, it means no categories.
+      // But we know we inserted defaults in DB service.
+      return [];
+    }
+    return categories;
+  }
+
+  Future<void> addCategory(CategoryData category) async {
+    await DatabaseService().insertCategory(category);
+    state = AsyncValue.data(await _loadCategories());
+  }
+
+  Future<void> updateCategory(CategoryData category) async {
+    await DatabaseService().updateCategory(category);
+    state = AsyncValue.data(await _loadCategories());
+  }
+
+  Future<void> deleteCategory(String id) async {
+    await DatabaseService().deleteCategory(id);
+    state = AsyncValue.data(await _loadCategories());
+  }
+}
+
+final categoryProvider = AsyncNotifierProvider<CategoryNotifier, List<CategoryData>>(() {
+  return CategoryNotifier();
+});

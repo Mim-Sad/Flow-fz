@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/task.dart';
+import '../models/category_data.dart';
 import '../providers/task_provider.dart';
+import '../providers/category_provider.dart';
 import '../screens/add_task_screen.dart';
 
 class TaskCard extends ConsumerWidget {
@@ -147,8 +149,8 @@ class TaskCard extends ConsumerWidget {
                 runSpacing: 4,
                 children: [
                   _buildPriorityCapsule(context, onCardColor),
-                  if (task.category != null && task.category!.isNotEmpty)
-                    _buildCategoryCapsule(onCardColor),
+                  if (task.categories.isNotEmpty || (task.category != null && task.category!.isNotEmpty))
+                    _buildCategoryCapsule(onCardColor, ref),
                 ],
               ),
             ],
@@ -190,7 +192,15 @@ class TaskCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildCategoryCapsule(Color onCardColor) {
+  Widget _buildCategoryCapsule(Color onCardColor, WidgetRef ref) {
+    final categories = task.categories.isNotEmpty 
+        ? task.categories 
+        : (task.category != null ? [task.category!] : []);
+    
+    final firstCatId = categories.first;
+    final allCategories = ref.watch(categoryProvider).valueOrNull ?? defaultCategories;
+    final catData = getCategoryById(firstCatId, allCategories);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
@@ -198,13 +208,20 @@ class TaskCard extends ConsumerWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: onCardColor.withValues(alpha: 0.1)),
       ),
-      child: Text(
-        task.category!,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          color: onCardColor,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(catData.emoji, style: const TextStyle(fontSize: 10)),
+          const SizedBox(width: 4),
+          Text(
+            catData.label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: onCardColor,
+            ),
+          ),
+        ],
       ),
     );
   }

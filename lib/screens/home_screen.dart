@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:text_scroll/text_scroll.dart';
+import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import '../providers/task_provider.dart';
+import '../providers/category_provider.dart';
 import '../models/task.dart';
+import '../models/category_data.dart';
 import 'add_task_screen.dart';
 
 enum SortMode { manual, defaultSort }
@@ -36,6 +40,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         // High priority first
         if (a.priority != b.priority) {
           return b.priority.index.compareTo(a.priority.index);
+        }
+        // Then by Category
+        final catA = a.categories.isNotEmpty ? a.categories.first : (a.category ?? '');
+        final catB = b.categories.isNotEmpty ? b.categories.first : (b.category ?? '');
+        if (catA != catB) {
+            return catA.compareTo(catB);
         }
         // Then by creation date (old to new)
         return a.createdAt.compareTo(b.createdAt);
@@ -152,7 +162,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       style: ButtonStyle(
         visualDensity: VisualDensity.compact,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        textStyle: MaterialStateProperty.all(const TextStyle(fontFamily: 'IRANSansX')),
+        textStyle: WidgetStateProperty.all(const TextStyle(fontFamily: 'IRANSansX')),
       ),
       showSelectedIcon: false,
     );
@@ -228,16 +238,32 @@ class TaskListTile extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      task.title,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                        decoration: task.status == TaskStatus.success ? TextDecoration.lineThrough : null,
-                        color: task.status == TaskStatus.success
-                            ? Theme.of(context).colorScheme.onSurfaceVariant
-                            : Theme.of(context).colorScheme.onSurface,
-                      ),
+                    Row(
+                      children: [
+                        if (task.taskEmoji != null) ...[
+                          Text(task.taskEmoji!, style: const TextStyle(fontSize: 16)),
+                          const SizedBox(width: 6),
+                        ],
+                        Expanded(
+                          child: TextScroll(
+                            task.title,
+                            mode: TextScrollMode.endless,
+                            velocity: const Velocity(pixelsPerSecond: Offset(30, 0)),
+                            delayBefore: const Duration(seconds: 2),
+                            pauseBetween: const Duration(seconds: 2),
+                            textDirection: TextDirection.rtl,
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                              decoration: task.status == TaskStatus.success ? TextDecoration.lineThrough : null,
+                              color: task.status == TaskStatus.success
+                                  ? Theme.of(context).colorScheme.onSurfaceVariant
+                                  : Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     if (task.description != null && task.description!.isNotEmpty)
                       Text(
@@ -255,8 +281,10 @@ class TaskListTile extends ConsumerWidget {
                       runSpacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        _buildCategoryCapsule(context),
+                        _buildCategoryCapsule(context, ref),
                         _buildPriorityCapsule(context),
+                        if (task.recurrence != null && task.recurrence!.type != RecurrenceType.none)
+                          Icon(Icons.repeat_rounded, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ],
                     ),
                   ],
@@ -337,11 +365,11 @@ class TaskListTile extends ConsumerWidget {
           } else {
             // Swipe Left: Defer
             HapticFeedback.mediumImpact();
-            final DateTime? picked = await showDatePicker(
+            final Jalali? picked = await showPersianDatePicker(
               context: context,
-              initialDate: task.dueDate.add(const Duration(days: 1)),
-              firstDate: DateTime.now().subtract(const Duration(days: 365)),
-              lastDate: DateTime.now().add(const Duration(days: 365)),
+              initialDate: Jalali.fromDateTime(task.dueDate.add(const Duration(days: 1))),
+              firstDate: Jalali.fromDateTime(DateTime.now().subtract(const Duration(days: 365))),
+              lastDate: Jalali.fromDateTime(DateTime.now().add(const Duration(days: 365))),
               helpText: 'انتخاب تاریخ تعویق',
             );
 
@@ -350,7 +378,7 @@ class TaskListTile extends ConsumerWidget {
               final newTask = Task(
                 title: task.title,
                 description: task.description,
-                dueDate: picked,
+                dueDate: picked.toDateTime(),
                 status: TaskStatus.pending,
                 priority: task.priority,
                 category: task.category,
@@ -391,10 +419,23 @@ class TaskListTile extends ConsumerWidget {
   Widget _buildPriorityCapsule(BuildContext context) {
     Color color;
     String label;
+    IconData icon;
     switch (task.priority) {
-      case TaskPriority.high: color = Colors.red; label = 'بالا'; break;
-      case TaskPriority.medium: color = Colors.blue; label = 'متوسط'; break;
-      case TaskPriority.low: color = Colors.green; label = 'کم'; break;
+      case TaskPriority.high: 
+        color = Colors.red; 
+        label = 'بالا'; 
+        icon = Icons.priority_high_rounded;
+        break;
+      case TaskPriority.medium: 
+        color = Colors.blue; 
+        label = 'متوسط'; 
+        icon = Icons.remove_rounded;
+        break;
+      case TaskPriority.low: 
+        color = Colors.green; 
+        label = 'کم'; 
+        icon = Icons.arrow_downward_rounded;
+        break;
     }
 
     return Container(
@@ -404,9 +445,16 @@ class TaskListTile extends ConsumerWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Text(
-        _toPersianDigit(label),
-        style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10, color: color),
+          const SizedBox(width: 4),
+          Text(
+            _toPersianDigit(label),
+            style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold),
+          ),
+        ],
       ),
     );
   }
@@ -421,24 +469,64 @@ class TaskListTile extends ConsumerWidget {
     return result;
   }
 
-  Widget _buildCategoryCapsule(BuildContext context) {
-    if (task.category == null || task.category!.isEmpty) return const SizedBox.shrink();
+  Widget _buildCategoryCapsule(BuildContext context, WidgetRef ref) {
+    if (task.categories.isEmpty && (task.category == null || task.category!.isEmpty)) return const SizedBox.shrink();
+    
+    // Use categories list if available, otherwise fallback to legacy category
+    final categories = task.categories.isNotEmpty 
+        ? task.categories 
+        : (task.category != null ? [task.category!] : []);
+    
+    // Show first category + count if more
+    final firstCatId = categories.first;
+    final allCategories = ref.watch(categoryProvider).valueOrNull ?? defaultCategories;
+    final catData = getCategoryById(firstCatId, allCategories);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      constraints: const BoxConstraints(maxWidth: 100), // Limit width for marquee
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.tertiaryContainer.withValues(alpha: 0.5),
+        color: catData.color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.3),
+          color: catData.color.withValues(alpha: 0.3),
         ),
       ),
-      child: Text(
-        _toPersianDigit(task.category!),
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).colorScheme.tertiary,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(catData.emoji, style: const TextStyle(fontSize: 10)),
+          const SizedBox(width: 4),
+          Flexible(
+            child: TextScroll(
+              _toPersianDigit(catData.label),
+              mode: TextScrollMode.endless,
+              velocity: const Velocity(pixelsPerSecond: Offset(20, 0)),
+              delayBefore: const Duration(seconds: 2),
+              pauseBetween: const Duration(seconds: 2),
+              textDirection: TextDirection.rtl,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: catData.color,
+              ),
+            ),
+          ),
+          if (categories.length > 1) ...[
+            const SizedBox(width: 4),
+            Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: catData.color,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                _toPersianDigit('+${categories.length - 1}'),
+                style: const TextStyle(fontSize: 8, color: Colors.white),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
