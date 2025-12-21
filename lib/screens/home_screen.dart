@@ -228,6 +228,7 @@ class TaskListTile extends ConsumerWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: onStatusToggle,
+        onLongPress: () => _showTaskOptions(context, ref, task), // Also trigger on long press
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
@@ -291,59 +292,11 @@ class TaskListTile extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              PopupMenuButton<String>(
+              IconButton(
                 icon: const Icon(Icons.more_vert_rounded, size: 22),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                onSelected: (value) {
-                  HapticFeedback.selectionClick();
-                  if (value == 'edit') {
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      useSafeArea: true,
-                      builder: (context) => AddTaskScreen(task: task),
-                    );
-                  } else if (value == 'delete') {
-                    ref.read(tasksProvider.notifier).deleteTask(task.id!);
-                  } else if (value == 'status_sheet') {
-                    _showStatusPicker(context, ref);
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit_outlined, size: 18),
-                        SizedBox(width: 8),
-                        Text('ویرایش'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'status_sheet',
-                    child: Row(
-                      children: [
-                        Icon(Icons.checklist_rounded, size: 18),
-                        SizedBox(width: 8),
-                        Text('تغییر وضعیت'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuDivider(),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('حذف', style: TextStyle(color: Colors.red)),
-                      ],
-                    ),
-                  ),
-                ],
+                onPressed: () => _showTaskOptions(context, ref, task),
               ),
             ],
           ),
@@ -532,6 +485,62 @@ class TaskListTile extends ConsumerWidget {
   }
 
   void _showStatusPicker(BuildContext context, WidgetRef ref) {
+    _showTaskStatusPicker(context, ref, task);
+  }
+
+  void _showTaskOptions(BuildContext context, WidgetRef ref, Task task) {
+    HapticFeedback.selectionClick();
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'تنظیمات تسک',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('ویرایش'),
+              onTap: () {
+                Navigator.pop(context);
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  useSafeArea: true,
+                  builder: (context) => AddTaskScreen(task: task),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.checklist_rounded),
+              title: const Text('تغییر وضعیت'),
+              onTap: () {
+                Navigator.pop(context);
+                _showTaskStatusPicker(context, ref, task);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+              title: const Text('حذف', style: TextStyle(color: Colors.red)),
+              onTap: () {
+                Navigator.pop(context);
+                ref.read(tasksProvider.notifier).deleteTask(task.id!);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showTaskStatusPicker(BuildContext context, WidgetRef ref, Task task) {
     HapticFeedback.heavyImpact();
     showModalBottomSheet(
       context: context,
@@ -544,17 +553,20 @@ class TaskListTile extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'تغییر وضعیت تسک',
+              'تغییر وضعیت',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              alignment: WrapAlignment.center,
               children: [
-                _statusIcon(context, ref, TaskStatus.success, Icons.check_circle_rounded, 'موفق', Colors.green),
-                _statusIcon(context, ref, TaskStatus.failed, Icons.cancel_rounded, 'ناموفق', Colors.red),
-                _statusIcon(context, ref, TaskStatus.deferred, Icons.history_rounded, 'تعویق', Colors.orange),
-                _statusIcon(context, ref, TaskStatus.cancelled, Icons.block_rounded, 'لغو', Colors.grey),
+                _buildStatusOptionForTask(context, ref, task, TaskStatus.success, 'انجام شده', Colors.green, Icons.check_circle_rounded),
+                _buildStatusOptionForTask(context, ref, task, TaskStatus.failed, 'انجام نشده', Colors.red, Icons.cancel_rounded),
+                _buildStatusOptionForTask(context, ref, task, TaskStatus.cancelled, 'لغو شده', Colors.grey, Icons.block_rounded),
+                _buildStatusOptionForTask(context, ref, task, TaskStatus.deferred, 'موکول به بعد', Colors.orange, Icons.history_rounded),
+                _buildStatusOptionForTask(context, ref, task, TaskStatus.pending, 'در جریان', Colors.blue, Icons.radio_button_unchecked_rounded),
               ],
             ),
           ],
@@ -563,42 +575,67 @@ class TaskListTile extends ConsumerWidget {
     );
   }
 
-  Widget _statusIcon(BuildContext context, WidgetRef ref, TaskStatus status, IconData icon, String label, Color color) {
+  Widget _buildStatusOptionForTask(BuildContext context, WidgetRef ref, Task task, TaskStatus status, String label, Color color, IconData icon) {
+    final isSelected = task.status == status;
     return InkWell(
       onTap: () async {
+        Navigator.pop(context);
         HapticFeedback.mediumImpact();
         if (status == TaskStatus.deferred) {
-          Navigator.pop(context);
-          final DateTime? picked = await showDatePicker(
+          final Jalali? picked = await showPersianDatePicker(
             context: context,
-            initialDate: task.dueDate.add(const Duration(days: 1)),
-            firstDate: DateTime.now().subtract(const Duration(days: 365)),
-            lastDate: DateTime.now().add(const Duration(days: 365)),
+            initialDate: Jalali.fromDateTime(task.dueDate.add(const Duration(days: 1))),
+            firstDate: Jalali.fromDateTime(DateTime.now().subtract(const Duration(days: 365))),
+            lastDate: Jalali.fromDateTime(DateTime.now().add(const Duration(days: 365))),
             helpText: 'انتخاب تاریخ تعویق',
           );
+          
           if (picked != null) {
-            await ref.read(tasksProvider.notifier).updateStatus(task.id!, TaskStatus.deferred);
-            final newTask = Task(
-              title: task.title,
-              description: task.description,
-              dueDate: picked,
-              status: TaskStatus.pending,
-              priority: task.priority,
-              category: task.category,
-            );
-            await ref.read(tasksProvider.notifier).addTask(newTask);
+             await ref.read(tasksProvider.notifier).updateStatus(task.id!, TaskStatus.deferred);
+             final newTask = Task(
+                title: task.title,
+                description: task.description,
+                dueDate: picked.toDateTime(),
+                status: TaskStatus.pending,
+                priority: task.priority,
+                category: task.category,
+              );
+              await ref.read(tasksProvider.notifier).addTask(newTask);
           }
         } else {
-          ref.read(tasksProvider.notifier).updateStatus(task.id!, status);
-          Navigator.pop(context);
+          ref.read(tasksProvider.notifier).updateStatus(
+            task.id!,
+            status,
+          );
         }
       },
-      child: Column(
-        children: [
-          Icon(icon, size: 40, color: color),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontSize: 12)),
-        ],
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 90,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
+          border: Border.all(
+            color: isSelected ? color : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: isSelected ? color : Theme.of(context).colorScheme.onSurfaceVariant, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: isSelected ? color : Theme.of(context).colorScheme.onSurface,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

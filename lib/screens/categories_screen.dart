@@ -132,28 +132,70 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           if (categories.isEmpty) {
             return const Center(child: Text('هیچ دسته‌بندی وجود ندارد'));
           }
-          return ListView.builder(
+          // Sort explicitly just in case, though provider returns sorted list from DB
+          final sortedCategories = List<CategoryData>.from(categories)
+            ..sort((a, b) => a.position.compareTo(b.position));
+
+          return ReorderableListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: categories.length,
+            itemCount: sortedCategories.length,
+            onReorder: (oldIndex, newIndex) {
+               if (newIndex > oldIndex) newIndex -= 1;
+               final items = List<CategoryData>.from(sortedCategories);
+               final item = items.removeAt(oldIndex);
+               items.insert(newIndex, item);
+               ref.read(categoryProvider.notifier).reorderCategories(items);
+            },
             itemBuilder: (context, index) {
-              final category = categories[index];
-              return Card(
+              final category = sortedCategories[index];
+              return Container(
+                key: ValueKey(category.id),
                 margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: category.color.withValues(alpha: 0.2),
-                    child: Text(category.emoji, style: const TextStyle(fontSize: 20)),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
                   ),
-                  title: Text(category.label),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  leading: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: category.color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: category.color.withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(category.emoji, style: const TextStyle(fontSize: 24)),
+                  ),
+                  title: Text(
+                    category.label,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        icon: const Icon(Icons.edit_outlined),
+                        color: Theme.of(context).colorScheme.primary,
                         onPressed: () => _showCategoryDialog(category),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
+                        icon: const Icon(Icons.delete_outline),
+                        color: Theme.of(context).colorScheme.error,
                         onPressed: () {
                           showDialog(
                             context: context,
@@ -177,6 +219,14 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                             ),
                           );
                         },
+                      ),
+                      const SizedBox(width: 8),
+                      ReorderableDragStartListener(
+                        index: index,
+                        child: Icon(
+                          Icons.drag_handle_rounded,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),

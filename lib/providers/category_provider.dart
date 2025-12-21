@@ -32,6 +32,22 @@ class CategoryNotifier extends AsyncNotifier<List<CategoryData>> {
     state = AsyncValue.data(await _loadCategories());
   }
 
+  Future<void> reorderCategories(List<CategoryData> reorderedCategories) async {
+    // Update positions
+    final updatedCategories = <CategoryData>[];
+    for (int i = 0; i < reorderedCategories.length; i++) {
+      updatedCategories.add(reorderedCategories[i].copyWith(position: i));
+    }
+    
+    // Optimistic update
+    state = AsyncValue.data(updatedCategories);
+    
+    // Persist
+    for (var cat in updatedCategories) {
+      await DatabaseService().updateCategory(cat);
+    }
+  }
+
   Future<void> deleteCategory(String id) async {
     await DatabaseService().deleteCategory(id);
     state = AsyncValue.data(await _loadCategories());

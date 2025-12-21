@@ -21,7 +21,7 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'flow_database.db');
     return await openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -50,6 +50,15 @@ class DatabaseService {
           UNIQUE(taskId, date)
         )
       ''');
+    }
+    if (oldVersion < 6) {
+      // Check if position column exists in categories (it might not if created in v4)
+      // Actually we are just adding it now.
+      // But sqlite doesn't support IF NOT EXISTS for column.
+      // We can just try adding it, but safer to assume it's needed if version < 6.
+      // However, if table was created in v4 (before this change), it won't have position.
+      // We need to alter table.
+      await db.execute('ALTER TABLE categories ADD COLUMN position INTEGER NOT NULL DEFAULT 0');
     }
   }
 
@@ -89,7 +98,8 @@ class DatabaseService {
         id TEXT PRIMARY KEY,
         label TEXT NOT NULL,
         emoji TEXT NOT NULL,
-        color INTEGER NOT NULL
+        color INTEGER NOT NULL,
+        position INTEGER NOT NULL DEFAULT 0
       )
     ''');
     
@@ -104,7 +114,7 @@ class DatabaseService {
   // Categories CRUD
   Future<List<CategoryData>> getAllCategories() async {
     Database db = await database;
-    List<Map<String, dynamic>> maps = await db.query('categories');
+    List<Map<String, dynamic>> maps = await db.query('categories', orderBy: 'position ASC');
     if (maps.isEmpty) return [];
     return List.generate(maps.length, (i) => CategoryData.fromMap(maps[i]));
   }

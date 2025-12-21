@@ -117,9 +117,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     return Colors.transparent;
                   },
                 ),
-                side: WidgetStateProperty.all(BorderSide(
-                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
-                )),
+                side: WidgetStateProperty.all(BorderSide.none), // Remove border
+                elevation: WidgetStateProperty.all(0),
               ),
             ),
           ),

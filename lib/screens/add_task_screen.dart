@@ -1,3 +1,4 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
@@ -36,6 +37,10 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   final AudioRecorder _audioRecorder = AudioRecorder();
   bool _isRecording = false;
 
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  String? _playingFilePath;
+  bool _isPlaying = false;
+
   String _toPersianDigit(String input) {
     const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
     const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
@@ -64,9 +69,43 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     _recurrence = widget.task?.recurrence;
   }
 
+  Future<void> _playVoice(String path) async {
+    try {
+      if (_isPlaying && _playingFilePath == path) {
+        await _audioPlayer.stop();
+        setState(() {
+          _isPlaying = false;
+          _playingFilePath = null;
+        });
+      } else {
+        await _audioPlayer.play(DeviceFileSource(path));
+        setState(() {
+          _isPlaying = true;
+          _playingFilePath = path;
+        });
+        
+        _audioPlayer.onPlayerComplete.listen((event) {
+          if (mounted) {
+            setState(() {
+              _isPlaying = false;
+              _playingFilePath = null;
+            });
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error playing audio: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('خطا در پخش صدا')),
+      );
+    }
+  }
+
   @override
   void dispose() {
     _audioRecorder.dispose();
+    _audioPlayer.dispose();
     _titleController.dispose();
     _descController.dispose();
     super.dispose();
@@ -359,13 +398,24 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                       children: _attachments.map((att) {
                         final name = att.split('/').last;
                         final isVoice = name.startsWith('voice_') || att.endsWith('.m4a');
-                        return Chip(
+                        final isPlayingThis = _isPlaying && _playingFilePath == att;
+                        
+                        return InputChip(
                           label: Text(name.length > 20 ? '${name.substring(0, 20)}...' : name),
-                          avatar: Icon(
-                            isVoice ? Icons.mic : Icons.insert_drive_file, 
-                            size: 16
-                          ),
+                          avatar: isVoice 
+                              ? (isPlayingThis 
+                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) 
+                                  : Icon(Icons.play_arrow_rounded, size: 18))
+                              : const Icon(Icons.insert_drive_file, size: 16),
+                          onPressed: isVoice ? () => _playVoice(att) : null,
                           onDeleted: () {
+                            if (isPlayingThis) {
+                              _audioPlayer.stop();
+                              setState(() {
+                                _isPlaying = false;
+                                _playingFilePath = null;
+                              });
+                            }
                             setState(() {
                               _attachments.remove(att);
                             });
@@ -444,27 +494,32 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     if (_recurrence == null || _recurrence!.type == RecurrenceType.none) {
       return 'بدون تکرار';
     }
+    
+    // Use start date (dueDate) as base
+    final jStartDate = Jalali.fromDateTime(_selectedDate);
+    String baseDateText = 'شروع: ${_formatJalali(jStartDate)}';
+
     String endDateText = '';
     if (_recurrence!.endDate != null) {
       final jEndDate = Jalali.fromDateTime(_recurrence!.endDate!);
       endDateText = ' (تا ${_formatJalali(jEndDate)})';
     }
 
-    String baseText = '';
+    String typeText = '';
     switch (_recurrence!.type) {
-      case RecurrenceType.hourly: baseText = 'ساعتی'; break;
-      case RecurrenceType.daily: baseText = 'روزانه'; break;
-      case RecurrenceType.weekly: baseText = 'هفتگی'; break;
-      case RecurrenceType.monthly: baseText = 'ماهانه'; break;
-      case RecurrenceType.yearly: baseText = 'سالانه'; break;
-      case RecurrenceType.custom: baseText = 'هر ${_recurrence!.interval} روز'; break;
+      case RecurrenceType.hourly: typeText = 'ساعتی'; break;
+      case RecurrenceType.daily: typeText = 'روزانه'; break;
+      case RecurrenceType.weekly: typeText = 'هفتگی'; break;
+      case RecurrenceType.monthly: typeText = 'ماهانه'; break;
+      case RecurrenceType.yearly: typeText = 'سالانه'; break;
+      case RecurrenceType.custom: typeText = 'هر ${_recurrence!.interval} روز'; break;
       case RecurrenceType.specificDays: 
         final days = _recurrence!.daysOfWeek?.map((d) => _getDayName(d)).join('، ') ?? '';
-        baseText = 'روزهای $days'; 
+        typeText = 'روزهای $days'; 
         break;
-      default: baseText = 'سفارشی';
+      default: typeText = 'سفارشی';
     }
-    return baseText + endDateText;
+    return '$typeText - $baseDateText$endDateText';
   }
   
   String _getDayName(int weekday) {
@@ -548,9 +603,6 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   }
   
   Widget _buildSpecifiDaysSelector(StateSetter setSheetState) {
-    // 1 = Monday, 7 = Sunday in DateTime standard. But Jalali might be different visually.
-    // Let's stick to DateTime standard: Mon=1...Sun=7. 
-    // In Iran: Sat=6, Sun=7, Mon=1... wait.
     // DateTime: Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6, Sun=7.
     final days = [
       {'val': DateTime.saturday, 'label': 'ش'},
@@ -564,34 +616,57 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     
     final currentDays = _recurrence?.daysOfWeek ?? [];
     
-    return Wrap(
-      spacing: 8,
-      children: days.map((d) {
-        final val = d['val'] as int;
-        final label = d['label'] as String;
-        final isSelected = currentDays.contains(val);
-        
-        return FilterChip(
-          label: Text(label),
-          selected: isSelected,
-          onSelected: (selected) {
-            List<int> newDays = List.from(currentDays);
-            if (selected) {
-              newDays.add(val);
-            } else {
-              newDays.remove(val);
-            }
-            setState(() {
-              _recurrence = RecurrenceConfig(
-                type: RecurrenceType.specificDays,
-                daysOfWeek: newDays,
-                endDate: _recurrence?.endDate,
-              );
-            });
-            setSheetState(() {});
-          },
-        );
-      }).toList(),
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      height: 50,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: days.map((d) {
+          final val = d['val'] as int;
+          final label = d['label'] as String;
+          final isSelected = currentDays.contains(val);
+          
+          return GestureDetector(
+            onTap: () {
+              List<int> newDays = List.from(currentDays);
+              if (isSelected) {
+                newDays.remove(val);
+              } else {
+                newDays.add(val);
+              }
+              setState(() {
+                _recurrence = RecurrenceConfig(
+                  type: RecurrenceType.specificDays,
+                  daysOfWeek: newDays,
+                  endDate: _recurrence?.endDate,
+                );
+              });
+              setSheetState(() {});
+            },
+            child: Container(
+              width: 36,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey.withValues(alpha: 0.5),
+                  width: 1.5,
+                ),
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 

@@ -1,6 +1,4 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/theme_provider.dart';
 import 'categories_screen.dart';
@@ -13,42 +11,13 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  final GlobalKey _globalKey = GlobalKey();
-
   Future<void> _handleThemeChange({
     required VoidCallback updateTheme,
     required Offset tapPosition,
   }) async {
-    final boundary = _globalKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-    if (boundary == null) {
-      updateTheme();
-      return;
-    }
-
-    try {
-      final image = await boundary.toImage(pixelRatio: View.of(context).devicePixelRatio);
-      
-      if (!context.mounted) return;
-      final overlay = Overlay.of(context);
-      late OverlayEntry overlayEntry;
-      
-      overlayEntry = OverlayEntry(
-        builder: (context) => _ThemeTransitionOverlay(
-          image: image,
-          center: tapPosition,
-          onFinish: () {
-            overlayEntry.remove();
-          },
-        ),
-      );
-
-      overlay.insert(overlayEntry);
-      updateTheme();
-      
-    } catch (e) {
-      debugPrint('Error capturing screenshot: $e');
-      updateTheme();
-    }
+    // Simply update theme without overlay animation for now as requested
+    // "Revert to simple state"
+    updateTheme();
   }
 
   @override
@@ -56,16 +25,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final themeState = ref.watch(themeProvider);
     final themeNotifier = ref.read(themeProvider.notifier);
 
-    return RepaintBoundary(
-      key: _globalKey,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('تنظیمات'),
-          centerTitle: true,
-        ),
-        body: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('تنظیمات'),
+        centerTitle: true,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
             // Categories Management
             ListTile(
               title: const Text('مدیریت دسته‌بندی‌ها', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -176,98 +143,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _ThemeTransitionOverlay extends StatefulWidget {
-  final ui.Image image;
-  final Offset center;
-  final VoidCallback onFinish;
-
-  const _ThemeTransitionOverlay({
-    required this.image,
-    required this.center,
-    required this.onFinish,
-  });
-
-  @override
-  State<_ThemeTransitionOverlay> createState() => _ThemeTransitionOverlayState();
-}
-
-class _ThemeTransitionOverlayState extends State<_ThemeTransitionOverlay> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    )..addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          widget.onFinish();
-        }
-      });
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return CustomPaint(
-          painter: _ThemeTransitionPainter(
-            image: widget.image,
-            center: widget.center,
-            progress: _controller.value,
-          ),
-          child: Container(),
-        );
-      },
-    );
-  }
-}
-
-class _ThemeTransitionPainter extends CustomPainter {
-  final ui.Image image;
-  final Offset center;
-  final double progress;
-
-  _ThemeTransitionPainter({
-    required this.image,
-    required this.center,
-    required this.progress,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint();
-    
-    // Draw the original image
-    canvas.drawImage(image, Offset.zero, paint);
-    
-    // Draw a circular reveal that clears the image
-    final maxRadius = size.longestSide * 1.5;
-    final radius = maxRadius * progress;
-    
-    paint.blendMode = BlendMode.clear;
-    canvas.saveLayer(Offset.zero & size, Paint());
-    canvas.drawImage(image, Offset.zero, Paint());
-    canvas.drawCircle(center, radius, paint);
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _ThemeTransitionPainter oldDelegate) {
-    return oldDelegate.progress != progress;
+      );
   }
 }
