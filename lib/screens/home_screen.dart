@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:text_scroll/text_scroll.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import '../providers/task_provider.dart';
@@ -132,39 +133,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             builder: (context) => const AddTaskScreen(),
           );
         },
-        icon: const Icon(Icons.add_rounded),
+        icon: const HugeIcon(icon: HugeIcons.strokeRoundedAdd01, size: 24),
         label: const Text('تسک جدید', style: TextStyle(fontWeight: FontWeight.w700)),
       ),
     );
   }
 
   Widget _buildSortToggle() {
-    return SegmentedButton<SortMode>(
-      segments: const [
-        ButtonSegment<SortMode>(
-          value: SortMode.manual,
-          label: Text('دستی', style: TextStyle(fontSize: 12)),
-          icon: Icon(Icons.drag_indicator_rounded, size: 16),
-        ),
-        ButtonSegment<SortMode>(
-          value: SortMode.defaultSort,
-          label: Text('پیش‌فرض', style: TextStyle(fontSize: 12)),
-          icon: Icon(Icons.sort_rounded, size: 16),
-        ),
-      ],
-      selected: {_sortMode},
-      onSelectionChanged: (Set<SortMode> newSelection) {
-        setState(() {
-          _sortMode = newSelection.first;
-        });
-        HapticFeedback.selectionClick();
-      },
-      style: ButtonStyle(
-        visualDensity: VisualDensity.compact,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        textStyle: WidgetStateProperty.all(const TextStyle(fontFamily: 'IRANSansX')),
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(12),
       ),
-      showSelectedIcon: false,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildSortOption(SortMode.manual, HugeIcons.strokeRoundedSorting05),
+          _buildSortOption(SortMode.defaultSort, HugeIcons.strokeRoundedFilter),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSortOption(SortMode mode, dynamic icon) {
+    final isSelected = _sortMode == mode;
+    return GestureDetector(
+      onTap: () => setState(() => _sortMode = mode),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: HugeIcon(
+          icon: icon,
+          size: 18,
+          color: isSelected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
     );
   }
 
@@ -285,7 +291,7 @@ class TaskListTile extends ConsumerWidget {
                         _buildCategoryCapsule(context, ref),
                         _buildPriorityCapsule(context),
                         if (task.recurrence != null && task.recurrence!.type != RecurrenceType.none)
-                          Icon(Icons.repeat_rounded, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                          HugeIcon(icon: HugeIcons.strokeRoundedRepeat, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ],
                     ),
                   ],
@@ -293,7 +299,7 @@ class TaskListTile extends ConsumerWidget {
               ),
               const SizedBox(width: 4),
               IconButton(
-                icon: const Icon(Icons.more_vert_rounded, size: 22),
+                icon: const HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical, size: 22, color: Colors.grey),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
                 onPressed: () => _showTaskOptions(context, ref, task),
@@ -347,7 +353,7 @@ class TaskListTile extends ConsumerWidget {
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.only(right: 20),
             decoration: BoxDecoration(color: Colors.green.shade400),
-            child: const Icon(Icons.check_circle_outline, color: Colors.white),
+            child: const HugeIcon(icon: HugeIcons.strokeRoundedTick01, size: 24, color: Colors.white),
           ),
         ),
         secondaryBackground: ClipRRect(
@@ -356,7 +362,7 @@ class TaskListTile extends ConsumerWidget {
             alignment: Alignment.centerLeft,
             padding: const EdgeInsets.only(left: 20),
             decoration: BoxDecoration(color: Colors.orange.shade400),
-            child: const Icon(Icons.history_rounded, color: Colors.white),
+            child: const HugeIcon(icon: HugeIcons.strokeRoundedClock01, size: 24, color: Colors.white),
           ),
         ),
         child: isReorderEnabled
@@ -370,24 +376,25 @@ class TaskListTile extends ConsumerWidget {
   }
 
   Widget _buildPriorityCapsule(BuildContext context) {
+    dynamic icon;
     Color color;
     String label;
-    IconData icon;
+
     switch (task.priority) {
-      case TaskPriority.high: 
-        color = Colors.red; 
-        label = 'بالا'; 
-        icon = Icons.priority_high_rounded;
+      case TaskPriority.low:
+        icon = HugeIcons.strokeRoundedArrowDown01;
+        color = Colors.green;
+        label = 'کم';
         break;
-      case TaskPriority.medium: 
-        color = Colors.blue; 
-        label = 'متوسط'; 
-        icon = Icons.remove_rounded;
+      case TaskPriority.medium:
+        icon = HugeIcons.strokeRoundedMinusSign;
+        color = Colors.orange;
+        label = 'متوسط';
         break;
-      case TaskPriority.low: 
-        color = Colors.green; 
-        label = 'کم'; 
-        icon = Icons.arrow_downward_rounded;
+      case TaskPriority.high:
+        icon = HugeIcons.strokeRoundedAlertCircle;
+        color = Colors.red;
+        label = 'بالا';
         break;
     }
 
@@ -401,7 +408,7 @@ class TaskListTile extends ConsumerWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 10, color: color),
+          HugeIcon(icon: icon, size: 10, color: color),
           const SizedBox(width: 4),
           Text(
             _toPersianDigit(label),
@@ -506,7 +513,7 @@ class TaskListTile extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.edit_outlined),
+              leading: const HugeIcon(icon: HugeIcons.strokeRoundedEdit02, color: Colors.blue),
               title: const Text('ویرایش'),
               onTap: () {
                 Navigator.pop(context);
@@ -519,7 +526,7 @@ class TaskListTile extends ConsumerWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.checklist_rounded),
+              leading: const HugeIcon(icon: HugeIcons.strokeRoundedTask01, color: Colors.blue),
               title: const Text('تغییر وضعیت'),
               onTap: () {
                 Navigator.pop(context);
@@ -527,7 +534,7 @@ class TaskListTile extends ConsumerWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+              leading: const HugeIcon(icon: HugeIcons.strokeRoundedDelete02, color: Colors.red),
               title: const Text('حذف', style: TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.pop(context);
@@ -563,15 +570,15 @@ class TaskListTile extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   const SizedBox(width: 16),
-                  _buildStatusOptionForTask(context, ref, task, TaskStatus.success, 'انجام شده', Colors.green, Icons.check_circle_rounded),
+                  _buildStatusOptionForTask(context, ref, task, TaskStatus.success, 'انجام شده', Colors.green, HugeIcons.strokeRoundedTick01),
                   const SizedBox(width: 8),
-                  _buildStatusOptionForTask(context, ref, task, TaskStatus.failed, 'انجام نشده', Colors.red, Icons.cancel_rounded),
+                  _buildStatusOptionForTask(context, ref, task, TaskStatus.failed, 'انجام نشده', Colors.red, HugeIcons.strokeRoundedCancel01),
                   const SizedBox(width: 8),
-                  _buildStatusOptionForTask(context, ref, task, TaskStatus.cancelled, 'لغو شده', Colors.grey, Icons.block_rounded),
+                  _buildStatusOptionForTask(context, ref, task, TaskStatus.cancelled, 'لغو شده', Colors.grey, HugeIcons.strokeRoundedCancel01),
                   const SizedBox(width: 8),
-                  _buildStatusOptionForTask(context, ref, task, TaskStatus.deferred, 'موکول به بعد', Colors.orange, Icons.history_rounded),
+                  _buildStatusOptionForTask(context, ref, task, TaskStatus.deferred, 'تعویق شده', Colors.orange, HugeIcons.strokeRoundedClock01),
                   const SizedBox(width: 8),
-                  _buildStatusOptionForTask(context, ref, task, TaskStatus.pending, 'در جریان', Colors.blue, Icons.radio_button_unchecked_rounded),
+                  _buildStatusOptionForTask(context, ref, task, TaskStatus.pending, 'در جریان', Colors.blue, HugeIcons.strokeRoundedCircle),
                   const SizedBox(width: 16),
                 ],
               ),
@@ -583,7 +590,7 @@ class TaskListTile extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatusOptionForTask(BuildContext context, WidgetRef ref, Task task, TaskStatus status, String label, Color color, IconData icon) {
+  Widget _buildStatusOptionForTask(BuildContext context, WidgetRef ref, Task task, TaskStatus status, String label, Color color, dynamic icon) {
     final isSelected = task.status == status;
     return InkWell(
       onTap: () async {
@@ -631,7 +638,7 @@ class TaskListTile extends ConsumerWidget {
         ),
         child: Column(
           children: [
-            Icon(icon, color: isSelected ? color : Theme.of(context).colorScheme.onSurfaceVariant, size: 28),
+            HugeIcon(icon: icon, color: isSelected ? color : Theme.of(context).colorScheme.onSurfaceVariant, size: 28),
             const SizedBox(height: 8),
             Text(
               label,
@@ -649,15 +656,15 @@ class TaskListTile extends ConsumerWidget {
   }
 
   Widget _getStatusIconForTile(TaskStatus status, BuildContext context, WidgetRef ref, VoidCallback onToggle) {
-    IconData icon;
+    dynamic icon;
     Color color;
 
     switch (status) {
-      case TaskStatus.success: icon = Icons.check_circle_rounded; color = Colors.green; break;
-      case TaskStatus.failed: icon = Icons.cancel_rounded; color = Colors.red; break;
-      case TaskStatus.cancelled: icon = Icons.block_rounded; color = Colors.grey; break;
-      case TaskStatus.deferred: icon = Icons.history_rounded; color = Colors.orange; break;
-      case TaskStatus.pending: icon = Icons.radio_button_unchecked_rounded; color = Theme.of(context).colorScheme.outline; break;
+      case TaskStatus.success: icon = HugeIcons.strokeRoundedTick01; color = Colors.green; break;
+      case TaskStatus.failed: icon = HugeIcons.strokeRoundedCancel01; color = Colors.red; break;
+      case TaskStatus.cancelled: icon = HugeIcons.strokeRoundedCancel01; color = Colors.grey; break;
+      case TaskStatus.deferred: icon = HugeIcons.strokeRoundedClock01; color = Colors.orange; break;
+      case TaskStatus.pending: icon = HugeIcons.strokeRoundedCircle; color = Theme.of(context).colorScheme.outline; break;
     }
 
     return InkWell(
@@ -665,7 +672,7 @@ class TaskListTile extends ConsumerWidget {
       onLongPress: () => _showStatusPicker(context, ref),
       child: Padding(
         padding: const EdgeInsets.all(4.0),
-        child: Icon(icon, size: 28, color: color),
+        child: HugeIcon(icon: icon, size: 28, color: color),
       ),
     );
   }

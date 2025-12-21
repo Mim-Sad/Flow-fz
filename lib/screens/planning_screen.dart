@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import 'package:text_scroll/text_scroll.dart';
 import '../providers/task_provider.dart';
@@ -127,22 +128,22 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                       ),
                       child: SegmentedButton<int>(
                       segments: const [
-                        ButtonSegment(
-                          value: 0,
-                          label: Text('روزانه'),
-                          icon: Icon(Icons.today),
-                        ),
-                        ButtonSegment(
-                          value: 1,
-                          label: Text('هفتگی'),
-                          icon: Icon(Icons.view_week),
-                        ),
-                        ButtonSegment(
-                          value: 2,
-                          label: Text('ماهانه'),
-                          icon: Icon(Icons.calendar_month),
-                        ),
-                      ],
+                      ButtonSegment(
+                        value: 0,
+                        label: Text('روزانه'),
+                        icon: HugeIcon(icon: HugeIcons.strokeRoundedCalendar03, size: 18),
+                      ),
+                      ButtonSegment(
+                        value: 1,
+                        label: Text('هفتگی'),
+                        icon: HugeIcon(icon: HugeIcons.strokeRoundedCalendar02, size: 18),
+                      ),
+                      ButtonSegment(
+                        value: 2,
+                        label: Text('ماهانه'),
+                        icon: HugeIcon(icon: HugeIcons.strokeRoundedCalendar01, size: 18),
+                      ),
+                    ],
                       selected: {_viewMode},
                       onSelectionChanged: (Set<int> newSelection) {
                         setState(() {
@@ -230,8 +231,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             break;
           case RecurrenceType.yearly:
             if (date.month == task.dueDate.month &&
-                date.day == task.dueDate.day)
+                date.day == task.dueDate.day) {
               include = true;
+            }
             break;
           case RecurrenceType.specificDays:
             if (task.recurrence!.daysOfWeek != null &&
@@ -303,17 +305,15 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            onPressed: () {
-              HapticFeedback.selectionClick();
-              _changeRange(-1);
-            },
-            icon: const Icon(Icons.chevron_left_rounded),
+            onPressed: () => _changeRange(-1),
+            icon: const HugeIcon(
+              icon: HugeIcons.strokeRoundedArrowLeft01,
+              size: 24,
+              color: Colors.grey,
+            ),
           ),
           InkWell(
-            onTap: () {
-              HapticFeedback.lightImpact();
-              _selectDate();
-            },
+            onTap: _selectDate,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -337,10 +337,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: TextButton(
-                      onPressed: () {
-                        HapticFeedback.mediumImpact();
-                        _jumpToCurrent();
-                      },
+                      onPressed: _jumpToCurrent,
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.zero,
                         minimumSize: const Size(0, 30),
@@ -360,11 +357,12 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             ),
           ),
           IconButton(
-            onPressed: () {
-              HapticFeedback.selectionClick();
-              _changeRange(1);
-            },
-            icon: const Icon(Icons.chevron_right_rounded),
+            onPressed: () => _changeRange(1),
+            icon: const HugeIcon(
+              icon: HugeIcons.strokeRoundedArrowRight01,
+              size: 24,
+              color: Colors.grey,
+            ),
           ),
         ],
       ),
@@ -787,11 +785,13 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       list.sort((a, b) {
         // Move cancelled to bottom
         if (a.status == TaskStatus.cancelled &&
-            b.status != TaskStatus.cancelled)
+            b.status != TaskStatus.cancelled) {
           return 1;
+        }
         if (a.status != TaskStatus.cancelled &&
-            b.status == TaskStatus.cancelled)
+            b.status == TaskStatus.cancelled) {
           return -1;
+        }
 
         // Priority sort
         if (a.priority != b.priority) {
@@ -941,9 +941,26 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             ),
             if (task.recurrence != null &&
                 task.recurrence!.type != RecurrenceType.none)
-              const Padding(
-                padding: EdgeInsets.only(left: 6),
-                child: Icon(Icons.repeat_rounded, size: 14, color: Colors.grey),
+              Padding(
+                padding: const EdgeInsets.only(left: 6),
+                child: Row(
+                  children: [
+                    const HugeIcon(
+                      icon: HugeIcons.strokeRoundedRepeat,
+                      size: 14,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _toPersianDigit(
+                        task.recurrence!.type == RecurrenceType.daily
+                            ? 'هر روز'
+                            : 'هفتگی',
+                      ),
+                      style: const TextStyle(fontSize: 10, color: Colors.grey),
+                    ),
+                  ],
+                ),
               ),
             _buildPriorityDot(task.priority),
           ],
@@ -970,7 +987,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.edit_outlined),
+              leading: const HugeIcon(icon: HugeIcons.strokeRoundedEdit02, size: 24),
               title: const Text('ویرایش'),
               onTap: () {
                 Navigator.pop(context);
@@ -983,7 +1000,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.checklist_rounded),
+              leading: const HugeIcon(icon: HugeIcons.strokeRoundedTask01, size: 24),
               title: const Text('تغییر وضعیت'),
               onTap: () {
                 Navigator.pop(context);
@@ -991,8 +1008,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(
-                Icons.delete_outline_rounded,
+              leading: const HugeIcon(
+                icon: HugeIcons.strokeRoundedDelete02,
+                size: 24,
                 color: Colors.red,
               ),
               title: const Text('حذف', style: TextStyle(color: Colors.red)),
@@ -1008,28 +1026,28 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   }
 
   Widget _getStatusIconForTile(Task task) {
-    IconData icon;
+    dynamic icon;
     Color color;
 
     switch (task.status) {
       case TaskStatus.success:
-        icon = Icons.check_circle_rounded;
+        icon = HugeIcons.strokeRoundedTick01;
         color = Colors.green;
         break;
       case TaskStatus.failed:
-        icon = Icons.cancel_rounded;
+        icon = HugeIcons.strokeRoundedCancel01;
         color = Colors.red;
         break;
       case TaskStatus.cancelled:
-        icon = Icons.block_rounded;
+        icon = HugeIcons.strokeRoundedCancel01;
         color = Colors.grey;
         break;
       case TaskStatus.deferred:
-        icon = Icons.history_rounded;
+        icon = HugeIcons.strokeRoundedClock01;
         color = Colors.orange;
         break;
       case TaskStatus.pending:
-        icon = Icons.radio_button_unchecked_rounded;
+        icon = HugeIcons.strokeRoundedCircle;
         color = Theme.of(
           context,
         ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4);
@@ -1042,31 +1060,17 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         // If it's a recurring task (virtual instance), we must pass the date
         if (task.recurrence != null &&
             task.recurrence!.type != RecurrenceType.none) {
-          ref
-              .read(tasksProvider.notifier)
-              .updateStatus(
-                task.id!,
-                task.status == TaskStatus.success
-                    ? TaskStatus.pending
-                    : TaskStatus.success,
-                date: task.dueDate, // Use the virtual date
-              );
+          final currentStatus = ref.read(tasksProvider.notifier).getStatusForDate(task.id!, task.dueDate);
+          final nextStatus = currentStatus == TaskStatus.success ? TaskStatus.pending : TaskStatus.success;
+          ref.read(tasksProvider.notifier).updateStatus(task.id!, nextStatus, date: task.dueDate);
         } else {
-          ref
-              .read(tasksProvider.notifier)
-              .updateStatus(
-                task.id!,
-                task.status == TaskStatus.success
-                    ? TaskStatus.pending
-                    : TaskStatus.success,
-              );
+          ref.read(tasksProvider.notifier).updateStatus(
+            task.id!,
+            task.status == TaskStatus.success ? TaskStatus.pending : TaskStatus.success,
+          );
         }
       },
-      onLongPress: () => _showStatusPicker(context, task),
-      child: Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: Icon(icon, size: 20, color: color),
-      ),
+      child: HugeIcon(icon: icon, size: 24, color: color),
     );
   }
 
@@ -1094,7 +1098,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   context,
                   task,
                   TaskStatus.success,
-                  Icons.check_circle_rounded,
+                  HugeIcons.strokeRoundedTick01,
                   'موفق',
                   Colors.green,
                 ),
@@ -1102,7 +1106,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   context,
                   task,
                   TaskStatus.failed,
-                  Icons.cancel_rounded,
+                  HugeIcons.strokeRoundedCancel01,
                   'ناموفق',
                   Colors.red,
                 ),
@@ -1110,7 +1114,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   context,
                   task,
                   TaskStatus.deferred,
-                  Icons.history_rounded,
+                  HugeIcons.strokeRoundedClock01,
                   'تعویق',
                   Colors.orange,
                 ),
@@ -1118,7 +1122,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   context,
                   task,
                   TaskStatus.cancelled,
-                  Icons.block_rounded,
+                  HugeIcons.strokeRoundedCancel01,
                   'لغو',
                   Colors.grey,
                 ),
@@ -1134,7 +1138,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     BuildContext context,
     Task task,
     TaskStatus status,
-    IconData icon,
+    dynamic icon,
     String label,
     Color color,
   ) {
@@ -1200,8 +1204,8 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         ),
         child: Column(
           children: [
-            Icon(
-              icon,
+            HugeIcon(
+              icon: icon,
               size: 28,
               color: isSelected
                   ? color

@@ -36,6 +36,7 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   flutter_riverpod: ^2.5.1
+  hugeicons: ^1.1.4
   sqflite: ^2.3.0
   path: ^1.9.0
   path_provider: ^2.1.5

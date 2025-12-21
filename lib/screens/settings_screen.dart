@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hugeicons/hugeicons.dart';
 import '../providers/theme_provider.dart';
 import 'categories_screen.dart';
 
@@ -37,8 +38,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ListTile(
               title: const Text('مدیریت دسته‌بندی‌ها', style: TextStyle(fontWeight: FontWeight.bold)),
               subtitle: const Text('افزودن، ویرایش و حذف دسته‌بندی‌ها'),
-              leading: const Icon(Icons.category_rounded),
-              trailing: const Icon(Icons.chevron_right_rounded),
+              leading: const HugeIcon(icon: HugeIcons.strokeRoundedCircle, color: Colors.blue),
+              trailing: const HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: Colors.grey, size: 20),
               onTap: () {
                 Navigator.push(
                   context,
@@ -96,53 +97,105 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ],
                       ),
                       child: isSelected
-                          ? const Icon(Icons.check, color: Colors.white, size: 24)
+                          ? const HugeIcon(icon: HugeIcons.strokeRoundedTick01, color: Colors.white, size: 24)
                           : null,
                     ),
                   );
                 },
               ),
             ),
-  
             const SizedBox(height: 32),
   
-            // Theme Mode
+            // Mode Selection (Light/Dark)
             const Text(
               'حالت نمایش',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            SegmentedButton<ThemeMode>(
-              segments: const [
-                ButtonSegment(
-                  value: ThemeMode.light,
-                  label: Text('روشن'),
-                  icon: Icon(Icons.light_mode),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildModeCard(
+                    context,
+                    ref,
+                    title: 'روشن',
+                    icon: HugeIcons.strokeRoundedSun01,
+                    isSelected: themeState.themeMode == ThemeMode.light,
+                    onTap: () => themeNotifier.setThemeMode(ThemeMode.light),
+                  ),
                 ),
-                ButtonSegment(
-                  value: ThemeMode.system,
-                  label: Text('خودکار'),
-                  icon: Icon(Icons.settings_brightness),
-                ),
-                ButtonSegment(
-                  value: ThemeMode.dark,
-                  label: Text('تاریک'),
-                  icon: Icon(Icons.dark_mode),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildModeCard(
+                    context,
+                    ref,
+                    title: 'تاریک',
+                    icon: HugeIcons.strokeRoundedMoon02,
+                    isSelected: themeState.themeMode == ThemeMode.dark,
+                    onTap: () => themeNotifier.setThemeMode(ThemeMode.dark),
+                  ),
                 ),
               ],
-              selected: {themeState.themeMode},
-              onSelectionChanged: (Set<ThemeMode> newSelection) {
-                _handleThemeChange(
-                  updateTheme: () => themeNotifier.setThemeMode(newSelection.first),
-                  tapPosition: Offset(
-                    MediaQuery.of(context).size.width / 2,
-                    MediaQuery.of(context).size.height / 2,
-                  ),
-                );
-              },
+            ),
+            const SizedBox(height: 16),
+            _buildModeCard(
+              context,
+              ref,
+              title: 'هماهنگ با سیستم',
+              icon: HugeIcons.strokeRoundedSettings01,
+              isSelected: themeState.themeMode == ThemeMode.system,
+              onTap: () => themeNotifier.setThemeMode(ThemeMode.system),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModeCard(
+    BuildContext context,
+    WidgetRef ref, {
+    required String title,
+    required dynamic icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Theme.of(context).colorScheme.primaryContainer
+              : Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.outlineVariant,
+            width: 2,
+          ),
+        ),
+        child: Column(
+          children: [
+            HugeIcon(
+              icon: icon,
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
-      );
+      ),
+    );
   }
 }

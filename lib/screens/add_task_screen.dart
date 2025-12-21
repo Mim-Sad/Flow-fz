@@ -1,6 +1,7 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:file_picker/file_picker.dart';
@@ -137,7 +138,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
+                  icon: const HugeIcon(icon: HugeIcons.strokeRoundedCancel01, size: 24, color: Colors.grey),
                 ),
               ],
             ),
@@ -266,7 +267,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                         color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.calendar_today_rounded, size: 20),
+                      child: const HugeIcon(icon: HugeIcons.strokeRoundedCalendar03, size: 20),
                     ),
                     title: const Text('زمان انجام', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                     subtitle: Text(
@@ -315,7 +316,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                         color: Colors.orange.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.repeat_rounded, size: 20, color: Colors.orange),
+                      child: const HugeIcon(icon: HugeIcons.strokeRoundedRepeat, size: 20, color: Colors.orange),
                     ),
                     title: const Text('تکرار', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                     subtitle: Text(
@@ -340,17 +341,17 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                         ButtonSegment(
                           value: TaskPriority.low, 
                           label: Text('کم'), 
-                          icon: Icon(Icons.arrow_downward_rounded, color: Colors.green)
+                          icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowDown01, color: Colors.green, size: 18)
                         ),
                         ButtonSegment(
                           value: TaskPriority.medium, 
                           label: Text('متوسط'),
-                          icon: Icon(Icons.remove_rounded, color: Colors.orange)
+                          icon: HugeIcon(icon: HugeIcons.strokeRoundedMinusSign, color: Colors.orange, size: 18)
                         ),
                         ButtonSegment(
                           value: TaskPriority.high, 
                           label: Text('بالا'),
-                          icon: Icon(Icons.priority_high_rounded, color: Colors.red)
+                          icon: HugeIcon(icon: HugeIcons.strokeRoundedAlertCircle, color: Colors.red, size: 18)
                         ),
                       ],
                       selected: {_priority},
@@ -371,14 +372,14 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                     children: [
                       OutlinedButton.icon(
                         onPressed: _pickFile,
-                        icon: const Icon(Icons.attach_file_rounded, size: 18),
+                        icon: const HugeIcon(icon: HugeIcons.strokeRoundedAttachment01, size: 18),
                         label: const Text('پیوست فایل'),
                       ),
                       const SizedBox(width: 12),
                       OutlinedButton.icon(
                         onPressed: _toggleRecording,
-                        icon: Icon(
-                          _isRecording ? Icons.stop_rounded : Icons.mic_rounded, 
+                        icon: HugeIcon(
+                          icon: _isRecording ? HugeIcons.strokeRoundedSquare01 : HugeIcons.strokeRoundedMic01, 
                           size: 18,
                           color: _isRecording ? Colors.red : null,
                         ),
@@ -405,8 +406,8 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                           avatar: isVoice 
                               ? (isPlayingThis 
                                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) 
-                                  : Icon(Icons.play_arrow_rounded, size: 18))
-                              : const Icon(Icons.insert_drive_file, size: 16),
+                                  : const HugeIcon(icon: HugeIcons.strokeRoundedPlay, size: 18))
+                              : const HugeIcon(icon: HugeIcons.strokeRoundedFile01, size: 16),
                           onPressed: isVoice ? () => _playVoice(att) : null,
                           onDeleted: () {
                             if (isPlayingThis) {
@@ -603,67 +604,42 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   }
   
   Widget _buildSpecifiDaysSelector(StateSetter setSheetState) {
-    // DateTime: Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6, Sun=7.
     final days = [
-      {'val': DateTime.saturday, 'label': 'ش'},
-      {'val': DateTime.sunday, 'label': '۱ش'},
-      {'val': DateTime.monday, 'label': '۲ش'},
-      {'val': DateTime.tuesday, 'label': '۳ش'},
-      {'val': DateTime.wednesday, 'label': '۴ش'},
-      {'val': DateTime.thursday, 'label': '۵ش'},
-      {'val': DateTime.friday, 'label': 'ج'},
+      {'id': DateTime.saturday, 'label': 'ش'},
+      {'id': DateTime.sunday, 'label': '۱ش'},
+      {'id': DateTime.monday, 'label': '۲ش'},
+      {'id': DateTime.tuesday, 'label': '۳ش'},
+      {'id': DateTime.wednesday, 'label': '۴ش'},
+      {'id': DateTime.thursday, 'label': '۵ش'},
+      {'id': DateTime.friday, 'label': 'ج'},
     ];
-    
-    final currentDays = _recurrence?.daysOfWeek ?? [];
-    
-    return Container(
-      margin: const EdgeInsets.only(top: 12),
-      height: 50,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: days.map((d) {
-          final val = d['val'] as int;
-          final label = d['label'] as String;
-          final isSelected = currentDays.contains(val);
-          
-          return GestureDetector(
-            onTap: () {
-              List<int> newDays = List.from(currentDays);
-              if (isSelected) {
-                newDays.remove(val);
-              } else {
-                newDays.add(val);
-              }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Wrap(
+        spacing: 8,
+        children: days.map((day) {
+          final dayId = day['id'] as int;
+          final isSelected = _recurrence?.daysOfWeek?.contains(dayId) ?? false;
+          return ChoiceChip(
+            label: Text(day['label'] as String),
+            selected: isSelected,
+            onSelected: (selected) {
               setState(() {
+                final currentDays = List<int>.from(_recurrence?.daysOfWeek ?? []);
+                if (selected) {
+                  currentDays.add(dayId);
+                } else {
+                  currentDays.remove(dayId);
+                }
                 _recurrence = RecurrenceConfig(
                   type: RecurrenceType.specificDays,
-                  daysOfWeek: newDays,
+                  daysOfWeek: currentDays,
                   endDate: _recurrence?.endDate,
                 );
               });
               setSheetState(() {});
             },
-            child: Container(
-              width: 36,
-              height: 36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey.withValues(alpha: 0.5),
-                  width: 1.5,
-                ),
-              ),
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  fontSize: 12,
-                ),
-              ),
-            ),
           );
         }).toList(),
       ),
@@ -674,9 +650,10 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     final isSelected = (_recurrence?.type ?? RecurrenceType.none) == type;
     return ListTile(
       title: Text(label),
-      leading: Icon(
-        isSelected ? Icons.check_circle : Icons.circle_outlined,
+      leading: HugeIcon(
+        icon: isSelected ? HugeIcons.strokeRoundedTick01 : HugeIcons.strokeRoundedCircle,
         color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey,
+        size: 24,
       ),
       onTap: () {
         setState(() {
@@ -686,6 +663,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
             // Preserve end date if switching types
             _recurrence = RecurrenceConfig(
               type: type,
+              interval: 1,
               endDate: _recurrence?.endDate,
               // Default specific days to current day if switching to specificDays
               daysOfWeek: type == RecurrenceType.specificDays ? [_selectedDate.weekday] : null,
@@ -695,7 +673,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
         setSheetState(() {});
         // Don't close immediately if selecting specific days, let user pick days
         if (type != RecurrenceType.specificDays) {
-           Navigator.pop(context);
+          Navigator.pop(context);
         }
       },
     );

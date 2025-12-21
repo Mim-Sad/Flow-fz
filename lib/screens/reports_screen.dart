@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import '../providers/task_provider.dart';
@@ -311,22 +312,22 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       ),
                       child: SegmentedButton<int>(
                         segments: const [
-                          ButtonSegment(
-                            value: 0,
-                            label: Text('روزانه'),
-                            icon: Icon(Icons.today),
-                          ),
-                          ButtonSegment(
-                            value: 1,
-                            label: Text('هفتگی'),
-                            icon: Icon(Icons.view_week),
-                          ),
-                          ButtonSegment(
-                            value: 2,
-                            label: Text('ماهانه'),
-                            icon: Icon(Icons.calendar_month),
-                          ),
-                        ],
+                            ButtonSegment(
+                              value: 0,
+                              label: Text('روزانه'),
+                              icon: HugeIcon(icon: HugeIcons.strokeRoundedCalendar03, size: 18),
+                            ),
+                            ButtonSegment(
+                              value: 1,
+                              label: Text('هفتگی'),
+                              icon: HugeIcon(icon: HugeIcons.strokeRoundedCalendar02, size: 18),
+                            ),
+                            ButtonSegment(
+                              value: 2,
+                              label: Text('ماهانه'),
+                              icon: HugeIcon(icon: HugeIcons.strokeRoundedCalendar01, size: 18),
+                            ),
+                          ],
                         selected: {_viewMode},
                         onSelectionChanged: (val) =>
                             setState(() => _viewMode = val.first),
@@ -394,7 +395,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         children: [
           IconButton(
             onPressed: () => _changeRange(-1),
-            icon: const Icon(Icons.chevron_left_rounded),
+            icon: const HugeIcon(
+              icon: HugeIcons.strokeRoundedArrowLeft01,
+              size: 24,
+              color: Colors.grey,
+            ),
           ),
           InkWell(
             onTap: _selectDate,
@@ -442,7 +447,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
           IconButton(
             onPressed: () => _changeRange(1),
-            icon: const Icon(Icons.chevron_right_rounded),
+            icon: const HugeIcon(
+              icon: HugeIcons.strokeRoundedArrowRight01,
+              size: 24,
+              color: Colors.grey,
+            ),
           ),
         ],
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hugeicons/hugeicons.dart';
 import '../models/task.dart';
 import '../models/category_data.dart';
 import '../providers/task_provider.dart';
@@ -65,7 +66,7 @@ class TaskCard extends ConsumerWidget {
                 children: [
                   Expanded(child: _getStatusIconForCard(task.status, onCardColor)),
                   PopupMenuButton<String>(
-                    icon: Icon(Icons.more_horiz_rounded, size: 20, color: onCardColor),
+                    icon: HugeIcon(icon: HugeIcons.strokeRoundedMoreHorizontal, size: 20, color: onCardColor),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -88,7 +89,7 @@ class TaskCard extends ConsumerWidget {
                         value: 'edit',
                         child: Row(
                           children: [
-                            Icon(Icons.edit_outlined, size: 18),
+                            HugeIcon(icon: HugeIcons.strokeRoundedEdit02, size: 18),
                             SizedBox(width: 8),
                             Text('ویرایش'),
                           ],
@@ -98,7 +99,7 @@ class TaskCard extends ConsumerWidget {
                         value: 'status_sheet',
                         child: Row(
                           children: [
-                            Icon(Icons.checklist_rounded, size: 18),
+                            HugeIcon(icon: HugeIcons.strokeRoundedTask01, size: 18),
                             SizedBox(width: 8),
                             Text('تغییر وضعیت'),
                           ],
@@ -109,7 +110,7 @@ class TaskCard extends ConsumerWidget {
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                            HugeIcon(icon: HugeIcons.strokeRoundedDelete02, size: 18, color: Colors.red),
                             const SizedBox(width: 8),
                             const Text('حذف', style: TextStyle(color: Colors.red)),
                           ],
@@ -227,27 +228,27 @@ class TaskCard extends ConsumerWidget {
   }
 
   Widget _getStatusIconForCard(TaskStatus status, Color color) {
-    IconData iconData;
+    dynamic iconData;
     switch (status) {
       case TaskStatus.success:
-        iconData = Icons.check_circle;
+        iconData = HugeIcons.strokeRoundedTick01;
         break;
       case TaskStatus.failed:
-        iconData = Icons.cancel;
+        iconData = HugeIcons.strokeRoundedCancel01;
         break;
       case TaskStatus.cancelled:
-        iconData = Icons.block;
+        iconData = HugeIcons.strokeRoundedCancel01;
         break;
       case TaskStatus.deferred:
-        iconData = Icons.history_rounded;
+        iconData = HugeIcons.strokeRoundedClock01;
         break;
       case TaskStatus.pending:
-        iconData = Icons.check_box_outline_blank_rounded;
+        iconData = HugeIcons.strokeRoundedCircle;
         break;
     }
     return Align(
       alignment: Alignment.centerRight,
-      child: Icon(iconData, size: 24, color: color.withValues(alpha: 0.8)),
+      child: HugeIcon(icon: iconData, size: 24, color: color.withValues(alpha: 0.8)),
     );
   }
 
@@ -269,15 +270,15 @@ class TaskCard extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   const SizedBox(width: 16),
-                  _buildStatusAction(context, ref, task, TaskStatus.success, 'انجام شده', Icons.check_circle_rounded, Colors.green),
+                  _buildStatusAction(context, ref, task, TaskStatus.success, 'انجام شده', HugeIcons.strokeRoundedTick01, Colors.green),
                   const SizedBox(width: 16),
-                  _buildStatusAction(context, ref, task, TaskStatus.failed, 'انجام نشده', Icons.cancel_rounded, Colors.red),
+                  _buildStatusAction(context, ref, task, TaskStatus.failed, 'انجام نشده', HugeIcons.strokeRoundedCancel01, Colors.red),
                   const SizedBox(width: 16),
-                  _buildStatusAction(context, ref, task, TaskStatus.cancelled, 'لغو شده', Icons.block_rounded, Colors.grey),
+                  _buildStatusAction(context, ref, task, TaskStatus.cancelled, 'لغو شده', HugeIcons.strokeRoundedCancel01, Colors.grey),
                   const SizedBox(width: 16),
-                  _buildStatusAction(context, ref, task, TaskStatus.deferred, 'تعویق شده', Icons.history_rounded, Colors.orange),
+                  _buildStatusAction(context, ref, task, TaskStatus.deferred, 'تعویق شده', HugeIcons.strokeRoundedClock01, Colors.orange),
                   const SizedBox(width: 16),
-                  _buildStatusAction(context, ref, task, TaskStatus.pending, 'در جریان', Icons.radio_button_unchecked_rounded, Colors.blue),
+                  _buildStatusAction(context, ref, task, TaskStatus.pending, 'در جریان', HugeIcons.strokeRoundedCircle, Colors.blue),
                   const SizedBox(width: 16),
                 ],
               ),
@@ -289,7 +290,7 @@ class TaskCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatusAction(BuildContext context, WidgetRef ref, Task task, TaskStatus status, String label, IconData icon, Color color) {
+  Widget _buildStatusAction(BuildContext context, WidgetRef ref, Task task, TaskStatus status, String label, dynamic icon, Color color) {
     final isSelected = task.status == status;
     return InkWell(
       onTap: () {
@@ -310,7 +311,7 @@ class TaskCard extends ConsumerWidget {
         ),
         child: Column(
           children: [
-            Icon(icon, color: isSelected ? color : Theme.of(context).colorScheme.onSurfaceVariant, size: 28),
+            HugeIcon(icon: icon, color: isSelected ? color : Theme.of(context).colorScheme.onSurfaceVariant, size: 28),
             const SizedBox(height: 8),
             Text(
               label,

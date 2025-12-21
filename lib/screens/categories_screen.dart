@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:uuid/uuid.dart';
 import '../models/category_data.dart';
 import '../providers/category_provider.dart';
@@ -78,7 +79,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                                 : null,
                           ),
                           child: selectedColor == color
-                              ? const Icon(Icons.check, size: 20, color: Colors.white)
+                              ? const HugeIcon(icon: HugeIcons.strokeRoundedTick01, size: 20, color: Colors.white)
                               : null,
                         ),
                       );
@@ -110,7 +111,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                     Navigator.pop(context);
                   }
                 },
-                child: Text(isEditing ? 'ذخیره' : 'افزودن'),
+                child: Text(isEditing ? 'بروزرسانی' : 'افزودن'),
               ),
             ],
           );
@@ -126,6 +127,12 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('مدیریت دسته‌بندی‌ها'),
+        actions: [
+          IconButton(
+            icon: const HugeIcon(icon: HugeIcons.strokeRoundedAdd01, color: Colors.blue),
+            onPressed: () => _showCategoryDialog(),
+          ),
+        ],
       ),
       body: categoriesAsync.when(
         data: (categories) {
@@ -189,13 +196,11 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.edit_outlined),
-                        color: Theme.of(context).colorScheme.primary,
+                        icon: const HugeIcon(icon: HugeIcons.strokeRoundedEdit02, size: 20, color: Colors.blue),
                         onPressed: () => _showCategoryDialog(category),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        color: Theme.of(context).colorScheme.error,
+                        icon: const HugeIcon(icon: HugeIcons.strokeRoundedDelete02, size: 20, color: Colors.red),
                         onPressed: () {
                           showDialog(
                             context: context,
@@ -223,9 +228,10 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                       const SizedBox(width: 8),
                       ReorderableDragStartListener(
                         index: index,
-                        child: Icon(
-                          Icons.drag_handle_rounded,
+                        child: HugeIcon(
+                          icon: HugeIcons.strokeRoundedMenuSquare,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          size: 20,
                         ),
                       ),
                     ],
@@ -236,11 +242,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showCategoryDialog(),
-        child: const Icon(Icons.add),
+        error: (err, stack) => Center(child: Text('خطا: $err')),
       ),
     );
   }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 class NavigationWrapper extends StatelessWidget {
   final Widget child;
@@ -63,7 +63,7 @@ class NavigationWrapper extends StatelessWidget {
                   child: Image.asset(
                     'assets/images/flow-logo.png',
                     height: 24, // Slightly larger logo
-                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.auto_graph),
+                    errorBuilder: (context, error, stackTrace) => const HugeIcon(icon: HugeIcons.strokeRoundedAnalytics01, color: Colors.blue),
                   ),
                 ),
               )
@@ -77,7 +77,7 @@ class NavigationWrapper extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.apps_rounded),
+            icon: const HugeIcon(icon: HugeIcons.strokeRoundedMenuSquare, color: Colors.grey),
             onPressed: () => context.push('/settings'),
           ),
           const SizedBox(width: 8),
@@ -111,15 +111,18 @@ class NavigationWrapper extends StatelessWidget {
         },
         destinations: const [
           NavigationDestination(
-            icon: FaIcon(FontAwesomeIcons.house),
+            icon: HugeIcon(icon: HugeIcons.strokeRoundedHome01, color: Colors.grey),
+            selectedIcon: HugeIcon(icon: HugeIcons.strokeRoundedHome01, color: Colors.blue),
             label: 'خانه',
           ),
           NavigationDestination(
-            icon: FaIcon(FontAwesomeIcons.calendarCheck),
+            icon: HugeIcon(icon: HugeIcons.strokeRoundedCalendarCheckIn01, color: Colors.grey),
+            selectedIcon: HugeIcon(icon: HugeIcons.strokeRoundedCalendarCheckIn01, color: Colors.blue),
             label: 'برنامه‌ریزی',
           ),
           NavigationDestination(
-            icon: FaIcon(FontAwesomeIcons.chartLine),
+            icon: HugeIcon(icon: HugeIcons.strokeRoundedChartLineData01, color: Colors.grey),
+            selectedIcon: HugeIcon(icon: HugeIcons.strokeRoundedChartLineData01, color: Colors.blue),
             label: 'گزارشات',
           ),
         ],
