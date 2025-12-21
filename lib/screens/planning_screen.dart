@@ -553,23 +553,23 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     );
   }
 
-  Widget _getStatusIconSmall(TaskStatus status) {
-    switch (status) {
-      case TaskStatus.success:
-        return Icon(Icons.check_circle_rounded, size: 18, color: Colors.green.shade400);
-      case TaskStatus.failed:
-        return Icon(Icons.cancel_rounded, size: 18, color: Colors.red.shade400);
-      case TaskStatus.cancelled:
-        return Icon(Icons.block_rounded, size: 18, color: Colors.grey.shade400);
-      case TaskStatus.deferred:
-        return Icon(Icons.history_rounded, size: 18, color: Colors.orange.shade400);
-      case TaskStatus.pending:
-        return Icon(Icons.radio_button_unchecked_rounded, 
-          size: 18, 
-          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4)
-        );
-    }
-  }
+  // Widget _getStatusIconSmall(TaskStatus status) {
+  //   switch (status) {
+  //     case TaskStatus.success:
+  //       return Icon(Icons.check_circle_rounded, size: 18, color: Colors.green.shade400);
+  //     case TaskStatus.failed:
+  //       return Icon(Icons.cancel_rounded, size: 18, color: Colors.red.shade400);
+  //     case TaskStatus.cancelled:
+  //       return Icon(Icons.block_rounded, size: 18, color: Colors.grey.shade400);
+  //     case TaskStatus.deferred:
+  //       return Icon(Icons.history_rounded, size: 18, color: Colors.orange.shade400);
+  //     case TaskStatus.pending:
+  //       return Icon(Icons.radio_button_unchecked_rounded, 
+  //         size: 18, 
+  //         color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4)
+  //       );
+  //   }
+  // }
 
   bool _isSameDay(DateTime date1, DateTime date2) {
     return date1.year == date2.year &&

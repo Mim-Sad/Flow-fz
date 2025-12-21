@@ -99,9 +99,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: SegmentedButton<int>(
               segments: const [
-                ButtonSegment(value: 0, label: Text('روزانه')),
-                ButtonSegment(value: 1, label: Text('هفتگی')),
-                ButtonSegment(value: 2, label: Text('ماهانه')),
+                ButtonSegment(value: 0, label: Text('روزانه'), icon: Icon(Icons.today)),
+                ButtonSegment(value: 1, label: Text('هفتگی'), icon: Icon(Icons.view_week)),
+                ButtonSegment(value: 2, label: Text('ماهانه'), icon: Icon(Icons.calendar_month)),
               ],
               selected: {_viewMode},
               onSelectionChanged: (val) => setState(() => _viewMode = val.first),
@@ -113,10 +113,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildStatSummary(context, successCount, filteredTasks.length)
-                      .animate()
-                      .fadeIn(duration: 600.ms)
-                      .slideX(begin: 0.1),
+                  _buildStatSummary(context, successCount, filteredTasks.length),
                   const SizedBox(height: 32),
                   Text(
                     'وضعیت کلی تسک‌ها',
@@ -124,68 +121,101 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ).animate().fadeIn(delay: 200.ms),
                   const SizedBox(height: 24),
                   if (filteredTasks.isNotEmpty)
-                    SizedBox(
-                      height: 250,
-                      child: PieChart(
-                        PieChartData(
-                          sectionsSpace: 4,
-                          centerSpaceRadius: 60,
-                          sections: [
-                            if (successCount > 0)
-                              PieChartSectionData(
-                                value: successCount.toDouble(),
-                                title: 'موفق',
-                                color: Colors.greenAccent,
-                                radius: 50,
-                                titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                    Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 5,
+                                child: SizedBox(
+                                  height: 180,
+                                  child: PieChart(
+                                    PieChartData(
+                                      sectionsSpace: 4,
+                                      centerSpaceRadius: 40,
+                                      sections: [
+                                        if (successCount > 0)
+                                          PieChartSectionData(
+                                            value: successCount.toDouble(),
+                                            title: '',
+                                            color: Colors.greenAccent,
+                                            radius: 35,
+                                          ),
+                                        if (failedCount > 0)
+                                          PieChartSectionData(
+                                            value: failedCount.toDouble(),
+                                            title: '',
+                                            color: Colors.redAccent,
+                                            radius: 35,
+                                          ),
+                                        if (cancelledCount > 0)
+                                          PieChartSectionData(
+                                            value: cancelledCount.toDouble(),
+                                            title: '',
+                                            color: Colors.grey,
+                                            radius: 35,
+                                          ),
+                                        if (pendingCount > 0)
+                                          PieChartSectionData(
+                                            value: pendingCount.toDouble(),
+                                            title: '',
+                                            color: Colors.blueAccent,
+                                            radius: 35,
+                                          ),
+                                        if (deferredCount > 0)
+                                          PieChartSectionData(
+                                            value: deferredCount.toDouble(),
+                                            title: '',
+                                            color: Colors.orangeAccent,
+                                            radius: 35,
+                                          ),
+                                      ],
+                                    ),
+                                  ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack),
+                                ),
                               ),
-                            if (failedCount > 0)
-                              PieChartSectionData(
-                                value: failedCount.toDouble(),
-                                title: 'ناموفق',
-                                color: Colors.redAccent,
-                                radius: 50,
-                                titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                flex: 5,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _buildLegendItem(context, 'موفق', Colors.greenAccent, successCount),
+                                    _buildLegendItem(context, 'ناموفق', Colors.redAccent, failedCount),
+                                    _buildLegendItem(context, 'لغو شده', Colors.grey, cancelledCount),
+                                    _buildLegendItem(context, 'در جریان', Colors.blueAccent, pendingCount),
+                                    _buildLegendItem(context, 'تعویق', Colors.orangeAccent, deferredCount),
+                                  ],
+                                ),
                               ),
-                            if (cancelledCount > 0)
-                              PieChartSectionData(
-                                value: cancelledCount.toDouble(),
-                                title: 'لغو شده',
-                                color: Colors.grey,
-                                radius: 50,
-                                titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-                              ),
-                            if (pendingCount > 0)
-                              PieChartSectionData(
-                                value: pendingCount.toDouble(),
-                                title: 'در جریان',
-                                color: Colors.blueAccent,
-                                radius: 50,
-                                titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-                              ),
-                            if (deferredCount > 0)
-                              PieChartSectionData(
-                                value: deferredCount.toDouble(),
-                                title: 'تعویق',
-                                color: Colors.orangeAccent,
-                                radius: 50,
-                                titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack),
+                        if (_viewMode != 0) ...[
+                          const SizedBox(height: 32),
+                          Text(
+                            'روند موفقیت',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                          ).animate().fadeIn(delay: 400.ms),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            height: 200,
+                            child: _buildSuccessRateChart(filteredTasks),
+                          ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
+                        ],
+                      ],
                     )
                   else
                     const SizedBox(
                       height: 250,
                       child: Center(child: Text('تسک برای این بازه وجود ندارد')),
                     ),
-                  const SizedBox(height: 32),
-                  _buildLegendItem(context, 'موفقیت‌آمیز', Colors.greenAccent, successCount),
-                  _buildLegendItem(context, 'انجام نشده', Colors.redAccent, failedCount),
-                  _buildLegendItem(context, 'لغو شده', Colors.grey, cancelledCount),
-                  _buildLegendItem(context, 'در جریان', Colors.blueAccent, pendingCount),
-                  _buildLegendItem(context, 'تعویق شده', Colors.orangeAccent, deferredCount),
                 ],
               ),
             ),
@@ -280,40 +310,251 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   Widget _buildStatSummary(BuildContext context, int success, int total) {
     double percentage = total == 0 ? 0 : (success / total) * 100;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).colorScheme.primary,
-            Theme.of(context).colorScheme.secondary,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
+        color: isDark ? theme.colorScheme.surfaceContainerHighest : theme.colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'میزان بهره‌وری تو',
-                  style: TextStyle(color: Colors.white70, fontSize: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'بهره‌وری شما',
+                style: TextStyle(
+                  color: isDark ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  '${percentage.toStringAsFixed(1)}%',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${_toPersianDigit(percentage.toStringAsFixed(1))}%',
+                style: TextStyle(
+                  color: _getSpectrumColor(percentage),
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  height: 1,
                 ),
-              ],
+              ),
+            ],
+          ),
+          Icon(
+            Icons.insights_rounded,
+            color: _getSpectrumColor(percentage),
+            size: 40,
+          ),
+        ],
+      ),
+    )
+    .animate()
+    .fadeIn(duration: 400.ms)
+    .slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic)
+    .blur(begin: const Offset(4, 4), end: Offset.zero);
+  }
+
+  Color _getSpectrumColor(double value) {
+    // Clamp value between 0 and 100
+    double t = value.clamp(0, 100);
+    
+    // Define stops and colors
+    final stops = [0, 25, 50, 75, 100];
+    final colors = [
+      Colors.redAccent,
+      Colors.orangeAccent,
+      Colors.blueAccent,
+      Colors.cyanAccent,
+      Colors.greenAccent,
+    ];
+
+    // Find the segment
+    for (int i = 0; i < stops.length - 1; i++) {
+      if (t >= stops[i] && t <= stops[i + 1]) {
+        double localT = (t - stops[i]) / (stops[i + 1] - stops[i]);
+        return Color.lerp(colors[i], colors[i + 1], localT)!;
+      }
+    }
+    return colors.last;
+  }
+
+  LinearGradient _calculateGradient(List<FlSpot> spots) {
+    if (spots.isEmpty) {
+      return const LinearGradient(colors: [Colors.blue, Colors.blue]);
+    }
+
+    double minY = spots.map((e) => e.y).reduce((a, b) => a < b ? a : b);
+    double maxY = spots.map((e) => e.y).reduce((a, b) => a > b ? a : b);
+
+    // If flat line, handle gracefully
+    if ((maxY - minY).abs() < 0.1) {
+      Color c = _getSpectrumColor(maxY);
+      return LinearGradient(colors: [c, c]);
+    }
+
+    // Spectrum stops
+    final spectrumStops = [0, 25, 50, 75, 100];
+    
+    List<Color> gradientColors = [];
+    List<double> gradientStops = [];
+
+    // Add start point
+    gradientColors.add(_getSpectrumColor(minY));
+    gradientStops.add(0.0);
+
+    // Add intermediate spectrum stops that fall within range
+    for (var stop in spectrumStops) {
+      if (stop > minY && stop < maxY) {
+        gradientColors.add(_getSpectrumColor(stop.toDouble()));
+        gradientStops.add((stop - minY) / (maxY - minY));
+      }
+    }
+
+    // Add end point
+    gradientColors.add(_getSpectrumColor(maxY));
+    gradientStops.add(1.0);
+
+    return LinearGradient(
+      colors: gradientColors,
+      stops: gradientStops,
+      begin: Alignment.bottomCenter,
+      end: Alignment.topCenter,
+    );
+  }
+
+  Widget _buildSuccessRateChart(List<Task> filteredTasks) {
+    List<FlSpot> spots = [];
+    List<String> labels = [];
+
+    if (_viewMode == 1) {
+      // Weekly
+      final startOfWeek = _selectedDate.subtract(Duration(days: _selectedDate.weekday % 7));
+      for (int i = 0; i < 7; i++) {
+        final day = startOfWeek.add(Duration(days: i));
+        final dayTasks = filteredTasks.where((t) => DateUtils.isSameDay(t.dueDate, day)).toList();
+        final success = dayTasks.where((t) => t.status == TaskStatus.success).length;
+        final total = dayTasks.length;
+        double rate = total == 0 ? 0 : (success / total) * 100;
+        spots.add(FlSpot(i.toDouble(), rate));
+        final j = Jalali.fromDateTime(day);
+        labels.add('${j.formatter.wN.substring(0, 1)} ${j.day}');
+      }
+    } else if (_viewMode == 2) {
+      // Monthly
+      final jalali = Jalali.fromDateTime(_selectedDate);
+      final daysInMonth = jalali.monthLength;
+      for (int i = 1; i <= daysInMonth; i++) {
+        final day = Jalali(jalali.year, jalali.month, i).toDateTime();
+        final dayTasks = filteredTasks.where((t) => DateUtils.isSameDay(t.dueDate, day)).toList();
+        final success = dayTasks.where((t) => t.status == TaskStatus.success).length;
+        final total = dayTasks.length;
+        double rate = total == 0 ? 0 : (success / total) * 100;
+        spots.add(FlSpot(i.toDouble(), rate));
+        if (i % 5 == 0 || i == 1 || i == daysInMonth) {
+          labels.add(i.toString());
+        } else {
+          labels.add('');
+        }
+      }
+    }
+
+    return LineChart(
+      LineChartData(
+        minY: -10,
+        maxY: 110,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: true,
+          horizontalInterval: 25,
+          verticalInterval: 1,
+          getDrawingVerticalLine: (value) {
+            return FlLine(
+              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.2),
+              strokeWidth: 1,
+            );
+          },
+          getDrawingHorizontalLine: (value) {
+            return FlLine(
+              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.2),
+              strokeWidth: 1,
+            );
+          },
+        ),
+        titlesData: FlTitlesData(
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 25,
+              getTitlesWidget: (value, meta) {
+                if (value < 0 || value > 100) return const SizedBox.shrink();
+                return Text('${value.toInt()}%', style: const TextStyle(fontSize: 9));
+              },
+              reservedSize: 30,
             ),
           ),
-          const Icon(Icons.trending_up, color: Colors.white, size: 48),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 1,
+              getTitlesWidget: (value, meta) {
+                int index = value.toInt();
+                if (_viewMode == 1) {
+                  if (index >= 0 && index < labels.length) {
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        _toPersianDigit(labels[index]),
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                    );
+                  }
+                } else {
+                  if (index >= 1 && index <= labels.length) {
+                    final label = labels[index - 1];
+                    if (label.isEmpty) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        _toPersianDigit(label),
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                    );
+                  }
+                }
+                return const SizedBox.shrink();
+              },
+              reservedSize: 30,
+            ),
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            gradient: _calculateGradient(spots),
+            barWidth: 4,
+            isStrokeCapRound: true,
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                colors: [
+                  _calculateGradient(spots).colors.first.withValues(alpha: 0.1),
+                  _calculateGradient(spots).colors.last.withValues(alpha: 0.1),
+                ],
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -321,23 +562,28 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   Widget _buildLegendItem(BuildContext context, String label, Color color, int count) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Container(
-            width: 16,
-            height: 16,
+            width: 10,
+            height: 10,
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: 12),
-          Text(label),
-          const Spacer(),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 12),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
           Text(
-            count.toString(),
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            _toPersianDigit(count.toString()),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
           ),
         ],
       ),

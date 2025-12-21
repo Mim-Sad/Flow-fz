@@ -18,6 +18,9 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   SortMode _sortMode = SortMode.manual;
 
+  // Set to track animated task IDs to prevent re-animation
+  final Set<int> _animatedTaskIds = {};
+
   @override
   Widget build(BuildContext context) {
     final tasks = ref.watch(tasksProvider);
@@ -49,7 +52,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -67,14 +70,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             sliver: SliverReorderableList(
               itemBuilder: (context, index) {
                 final task = todayTasks[index];
+                bool shouldAnimate = !_animatedTaskIds.contains(task.id);
+                if (shouldAnimate) {
+                  _animatedTaskIds.add(task.id!);
+                }
+
                 return Padding(
                   key: ValueKey(task.id),
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: TaskListTile(
-                    task: task, 
-                    index: index,
-                    onStatusToggle: () => _handleStatusToggle(task),
-                  ).animate().fadeIn(duration: 400.ms, delay: (index * 50).ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic).blur(begin: const Offset(4, 4), end: Offset.zero),
+                  child: shouldAnimate 
+                    ? FadeInOnce(
+                        delay: (index * 50).ms,
+                        child: TaskListTile(
+                          task: task, 
+                          index: index,
+                          onStatusToggle: () => _handleStatusToggle(task),
+                          isReorderEnabled: _sortMode == SortMode.manual,
+                        ),
+                      )
+                    : TaskListTile(
+                        task: task, 
+                        index: index,
+                        onStatusToggle: () => _handleStatusToggle(task),
+                        isReorderEnabled: _sortMode == SortMode.manual,
+                      ),
                 );
               },
               itemCount: todayTasks.length,
@@ -110,44 +129,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildSortToggle() {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _sortButton('دستی', SortMode.manual),
-          _sortButton('پیش‌فرض', SortMode.defaultSort),
-        ],
-      ),
-    );
-  }
-
-  Widget _sortButton(String label, SortMode mode) {
-    final isSelected = _sortMode == mode;
-    return GestureDetector(
-      onTap: () {
-        setState(() => _sortMode = mode);
+    return SegmentedButton<SortMode>(
+      segments: const [
+        ButtonSegment<SortMode>(
+          value: SortMode.manual,
+          label: Text('دستی', style: TextStyle(fontSize: 12)),
+          icon: Icon(Icons.drag_indicator_rounded, size: 16),
+        ),
+        ButtonSegment<SortMode>(
+          value: SortMode.defaultSort,
+          label: Text('پیش‌فرض', style: TextStyle(fontSize: 12)),
+          icon: Icon(Icons.sort_rounded, size: 16),
+        ),
+      ],
+      selected: {_sortMode},
+      onSelectionChanged: (Set<SortMode> newSelection) {
+        setState(() {
+          _sortMode = newSelection.first;
+        });
         HapticFeedback.selectionClick();
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
+      style: ButtonStyle(
+        visualDensity: VisualDensity.compact,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        textStyle: MaterialStateProperty.all(const TextStyle(fontFamily: 'IRANSansX')),
       ),
+      showSelectedIcon: false,
     );
   }
 
@@ -160,15 +167,161 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
+class FadeInOnce extends StatefulWidget {
+  final Widget child;
+  final Duration delay;
+  const FadeInOnce({super.key, required this.child, required this.delay});
+
+  @override
+  State<FadeInOnce> createState() => _FadeInOnceState();
+}
+
+class _FadeInOnceState extends State<FadeInOnce> with AutomaticKeepAliveClientMixin {
+  bool _hasAnimated = false;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    if (_hasAnimated) return widget.child;
+
+    return widget.child
+        .animate(onComplete: (controller) => _hasAnimated = true)
+        .fadeIn(duration: 400.ms, delay: widget.delay)
+        .slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic)
+        .blur(begin: const Offset(4, 4), end: Offset.zero);
+  }
+}
+
 class TaskListTile extends ConsumerWidget {
   final Task task;
   final int index;
   final VoidCallback onStatusToggle;
-  const TaskListTile({super.key, required this.task, required this.index, required this.onStatusToggle});
+  final bool isReorderEnabled;
+  const TaskListTile({super.key, required this.task, required this.index, required this.onStatusToggle, this.isReorderEnabled = true});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isCancelled = task.status == TaskStatus.cancelled;
+    final cardContent = Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+          width: 1,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onStatusToggle,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              _getStatusIconForTile(task.status, context, ref, onStatusToggle),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      task.title,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        decoration: task.status == TaskStatus.success ? TextDecoration.lineThrough : null,
+                        color: task.status == TaskStatus.success
+                            ? Theme.of(context).colorScheme.onSurfaceVariant
+                            : Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    if (task.description != null && task.description!.isNotEmpty)
+                      Text(
+                        task.description!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        _buildCategoryCapsule(context),
+                        _buildPriorityCapsule(context),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert_rounded, size: 22),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                onSelected: (value) {
+                  HapticFeedback.selectionClick();
+                  if (value == 'edit') {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      useSafeArea: true,
+                      builder: (context) => AddTaskScreen(task: task),
+                    );
+                  } else if (value == 'delete') {
+                    ref.read(tasksProvider.notifier).deleteTask(task.id!);
+                  } else if (value == 'status_sheet') {
+                    _showStatusPicker(context, ref);
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit_outlined, size: 18),
+                        SizedBox(width: 8),
+                        Text('ویرایش'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'status_sheet',
+                    child: Row(
+                      children: [
+                        Icon(Icons.checklist_rounded, size: 18),
+                        SizedBox(width: 8),
+                        Text('تغییر وضعیت'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuDivider(),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('حذف', style: TextStyle(color: Colors.red)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
 
     return Opacity(
       opacity: isCancelled ? 0.6 : 1.0,
@@ -225,125 +378,12 @@ class TaskListTile extends ConsumerWidget {
             child: const Icon(Icons.history_rounded, color: Colors.white),
           ),
         ),
-        child: ReorderableDelayedDragStartListener(
-          index: index,
-          child: Card(
-            margin: EdgeInsets.zero,
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: BorderSide(
-                color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
-                width: 1,
-              ),
-            ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: onStatusToggle,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    _getStatusIconForTile(task.status, context, ref, onStatusToggle),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            task.title,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15,
-                              decoration: task.status == TaskStatus.success ? TextDecoration.lineThrough : null,
-                              color: task.status == TaskStatus.success
-                                  ? Theme.of(context).colorScheme.onSurfaceVariant
-                                  : Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
-                          if (task.description != null && task.description!.isNotEmpty)
-                            Text(
-                              task.description!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          const SizedBox(height: 6),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 4,
-                            children: [
-                              _buildPriorityCapsule(context),
-                              _buildCategoryCapsule(context),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert_rounded, size: 22),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      onSelected: (value) {
-                        HapticFeedback.selectionClick();
-                        if (value == 'edit') {
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            useSafeArea: true,
-                            builder: (context) => AddTaskScreen(task: task),
-                          );
-                        } else if (value == 'delete') {
-                          ref.read(tasksProvider.notifier).deleteTask(task.id!);
-                        } else if (value == 'status_sheet') {
-                          _showStatusPicker(context, ref);
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit_outlined, size: 18),
-                              SizedBox(width: 8),
-                              Text('ویرایش'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'status_sheet',
-                          child: Row(
-                            children: [
-                              Icon(Icons.checklist_rounded, size: 18),
-                              SizedBox(width: 8),
-                              Text('تغییر وضعیت'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuDivider(),
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
-                              SizedBox(width: 8),
-                              Text('حذف', style: TextStyle(color: Colors.red)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
+        child: isReorderEnabled
+            ? ReorderableDelayedDragStartListener(
+                index: index,
+                child: cardContent,
+              )
+            : cardContent,
       ),
     );
   }
@@ -386,15 +426,18 @@ class TaskListTile extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.5),
+        color: Theme.of(context).colorScheme.tertiaryContainer.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.3),
+        ),
       ),
       child: Text(
         _toPersianDigit(task.category!),
         style: TextStyle(
           fontSize: 10,
-          fontWeight: FontWeight.w600,
-          color: Theme.of(context).colorScheme.onSecondaryContainer,
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.tertiary,
         ),
       ),
     );
@@ -434,10 +477,33 @@ class TaskListTile extends ConsumerWidget {
 
   Widget _statusIcon(BuildContext context, WidgetRef ref, TaskStatus status, IconData icon, String label, Color color) {
     return InkWell(
-      onTap: () {
+      onTap: () async {
         HapticFeedback.mediumImpact();
-        ref.read(tasksProvider.notifier).updateStatus(task.id!, status);
-        Navigator.pop(context);
+        if (status == TaskStatus.deferred) {
+          Navigator.pop(context);
+          final DateTime? picked = await showDatePicker(
+            context: context,
+            initialDate: task.dueDate.add(const Duration(days: 1)),
+            firstDate: DateTime.now().subtract(const Duration(days: 365)),
+            lastDate: DateTime.now().add(const Duration(days: 365)),
+            helpText: 'انتخاب تاریخ تعویق',
+          );
+          if (picked != null) {
+            await ref.read(tasksProvider.notifier).updateStatus(task.id!, TaskStatus.deferred);
+            final newTask = Task(
+              title: task.title,
+              description: task.description,
+              dueDate: picked,
+              status: TaskStatus.pending,
+              priority: task.priority,
+              category: task.category,
+            );
+            await ref.read(tasksProvider.notifier).addTask(newTask);
+          }
+        } else {
+          ref.read(tasksProvider.notifier).updateStatus(task.id!, status);
+          Navigator.pop(context);
+        }
       },
       child: Column(
         children: [

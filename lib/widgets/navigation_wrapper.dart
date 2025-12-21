@@ -44,7 +44,7 @@ class NavigationWrapper extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 70, // Further increased height
+        toolbarHeight: 60, // Further increased height
         backgroundColor: navigationBarColor,
         surfaceTintColor: Colors.transparent,
         leadingWidth: showLogo ? 52 : 0,
@@ -62,7 +62,7 @@ class NavigationWrapper extends StatelessWidget {
                       : const ColorFilter.mode(Colors.transparent, BlendMode.dst),
                   child: Image.asset(
                     'assets/images/flow-logo.png',
-                    height: 28, // Slightly larger logo
+                    height: 24, // Slightly larger logo
                     errorBuilder: (context, error, stackTrace) => const Icon(Icons.auto_graph),
                   ),
                 ),
@@ -71,8 +71,8 @@ class NavigationWrapper extends StatelessWidget {
         title: Text(
           title,
           style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w900,
-            fontSize: 14, // Even smaller font size
+            fontWeight: FontWeight.w800,
+            fontSize: 16, // Even smaller font size
           ),
         ),
         actions: [
