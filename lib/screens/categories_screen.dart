@@ -79,7 +79,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                                 : null,
                           ),
                           child: selectedColor == color
-                              ? const HugeIcon(icon: HugeIcons.strokeRoundedTick01, size: 20, color: Colors.white)
+                              ? const HugeIcon(icon: HugeIcons.strokeRoundedCheckmarkCircle03, size: 20, color: Colors.white)
                               : null,
                         ),
                       );

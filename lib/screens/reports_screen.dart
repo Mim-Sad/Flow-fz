@@ -396,7 +396,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           IconButton(
             onPressed: () => _changeRange(-1),
             icon: const HugeIcon(
-              icon: HugeIcons.strokeRoundedArrowLeft01,
+              icon: HugeIcons.strokeRoundedArrowRight01,
               size: 24,
               color: Colors.grey,
             ),
@@ -448,7 +448,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           IconButton(
             onPressed: () => _changeRange(1),
             icon: const HugeIcon(
-              icon: HugeIcons.strokeRoundedArrowRight01,
+              icon: HugeIcons.strokeRoundedArrowLeft01,
               size: 24,
               color: Colors.grey,
             ),

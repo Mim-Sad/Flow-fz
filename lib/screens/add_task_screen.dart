@@ -138,7 +138,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const HugeIcon(icon: HugeIcons.strokeRoundedCancel01, size: 24, color: Colors.grey),
+                  icon: const HugeIcon(icon: HugeIcons.strokeRoundedCancelCircle, size: 24, color: Colors.grey),
                 ),
               ],
             ),
@@ -651,7 +651,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     return ListTile(
       title: Text(label),
       leading: HugeIcon(
-        icon: isSelected ? HugeIcons.strokeRoundedTick01 : HugeIcons.strokeRoundedCircle,
+        icon: isSelected ? HugeIcons.strokeRoundedCheckmarkCircle03 : HugeIcons.strokeRoundedCircle,
         color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey,
         size: 24,
       ),

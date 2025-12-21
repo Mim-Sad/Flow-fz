@@ -36,10 +36,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         children: [
             // Categories Management
             ListTile(
-              title: const Text('مدیریت دسته‌بندی‌ها', style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: const Text('افزودن، ویرایش و حذف دسته‌بندی‌ها'),
-              leading: const HugeIcon(icon: HugeIcons.strokeRoundedCircle, color: Colors.blue),
-              trailing: const HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: Colors.grey, size: 20),
+              title: const Text('مدیریت دسته‌بندی‌ها', style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16,)),
+              subtitle: const Text('افزودن، ویرایش و حذف دسته‌بندی‌ها',style: TextStyle(fontSize: 14,),),
+              leading: const HugeIcon(icon: HugeIcons.strokeRoundedTag01, color: Colors.blue),
+              trailing: const HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: Colors.grey, size: 20),
               onTap: () {
                 Navigator.push(
                   context,
@@ -97,7 +97,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ],
                       ),
                       child: isSelected
-                          ? const HugeIcon(icon: HugeIcons.strokeRoundedTick01, color: Colors.white, size: 24)
+                          ? const HugeIcon(icon: HugeIcons.strokeRoundedCheckmarkCircle03, color: Colors.white, size: 24)
                           : null,
                     ),
                   );

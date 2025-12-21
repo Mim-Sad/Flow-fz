@@ -149,7 +149,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildSortOption(SortMode.manual, HugeIcons.strokeRoundedSorting05),
-          _buildSortOption(SortMode.defaultSort, HugeIcons.strokeRoundedFilter),
+          _buildSortOption(SortMode.defaultSort, HugeIcons.strokeRoundedSorting19),
         ],
       ),
     );
@@ -353,7 +353,7 @@ class TaskListTile extends ConsumerWidget {
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.only(right: 20),
             decoration: BoxDecoration(color: Colors.green.shade400),
-            child: const HugeIcon(icon: HugeIcons.strokeRoundedTick01, size: 24, color: Colors.white),
+            child: const HugeIcon(icon: HugeIcons.strokeRoundedCheckmarkCircle03, size: 24, color: Colors.white),
           ),
         ),
         secondaryBackground: ClipRRect(
@@ -570,11 +570,11 @@ class TaskListTile extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   const SizedBox(width: 16),
-                  _buildStatusOptionForTask(context, ref, task, TaskStatus.success, 'انجام شده', Colors.green, HugeIcons.strokeRoundedTick01),
+                  _buildStatusOptionForTask(context, ref, task, TaskStatus.success, 'انجام شده', Colors.green, HugeIcons.strokeRoundedCheckmarkCircle03),
                   const SizedBox(width: 8),
-                  _buildStatusOptionForTask(context, ref, task, TaskStatus.failed, 'انجام نشده', Colors.red, HugeIcons.strokeRoundedCancel01),
+                  _buildStatusOptionForTask(context, ref, task, TaskStatus.failed, 'انجام نشده', Colors.red, HugeIcons.strokeRoundedCancelCircle),
                   const SizedBox(width: 8),
-                  _buildStatusOptionForTask(context, ref, task, TaskStatus.cancelled, 'لغو شده', Colors.grey, HugeIcons.strokeRoundedCancel01),
+                  _buildStatusOptionForTask(context, ref, task, TaskStatus.cancelled, 'لغو شده', Colors.grey, HugeIcons.strokeRoundedMinusSignCircle),
                   const SizedBox(width: 8),
                   _buildStatusOptionForTask(context, ref, task, TaskStatus.deferred, 'تعویق شده', Colors.orange, HugeIcons.strokeRoundedClock01),
                   const SizedBox(width: 8),
@@ -660,9 +660,9 @@ class TaskListTile extends ConsumerWidget {
     Color color;
 
     switch (status) {
-      case TaskStatus.success: icon = HugeIcons.strokeRoundedTick01; color = Colors.green; break;
-      case TaskStatus.failed: icon = HugeIcons.strokeRoundedCancel01; color = Colors.red; break;
-      case TaskStatus.cancelled: icon = HugeIcons.strokeRoundedCancel01; color = Colors.grey; break;
+      case TaskStatus.success: icon = HugeIcons.strokeRoundedCheckmarkCircle03; color = Colors.green; break;
+      case TaskStatus.failed: icon = HugeIcons.strokeRoundedCancelCircle; color = Colors.red; break;
+      case TaskStatus.cancelled: icon = HugeIcons.strokeRoundedMinusSignCircle; color = Colors.grey; break;
       case TaskStatus.deferred: icon = HugeIcons.strokeRoundedClock01; color = Colors.orange; break;
       case TaskStatus.pending: icon = HugeIcons.strokeRoundedCircle; color = Theme.of(context).colorScheme.outline; break;
     }

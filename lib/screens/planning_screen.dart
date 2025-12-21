@@ -307,7 +307,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           IconButton(
             onPressed: () => _changeRange(-1),
             icon: const HugeIcon(
-              icon: HugeIcons.strokeRoundedArrowLeft01,
+              icon: HugeIcons.strokeRoundedArrowRight01,
               size: 24,
               color: Colors.grey,
             ),
@@ -359,7 +359,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           IconButton(
             onPressed: () => _changeRange(1),
             icon: const HugeIcon(
-              icon: HugeIcons.strokeRoundedArrowRight01,
+              icon: HugeIcons.strokeRoundedArrowLeft01,
               size: 24,
               color: Colors.grey,
             ),
@@ -1031,15 +1031,15 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
     switch (task.status) {
       case TaskStatus.success:
-        icon = HugeIcons.strokeRoundedTick01;
+        icon = HugeIcons.strokeRoundedCheckmarkCircle03;
         color = Colors.green;
         break;
       case TaskStatus.failed:
-        icon = HugeIcons.strokeRoundedCancel01;
+        icon = HugeIcons.strokeRoundedCancelCircle;
         color = Colors.red;
         break;
       case TaskStatus.cancelled:
-        icon = HugeIcons.strokeRoundedCancel01;
+        icon = HugeIcons.strokeRoundedMinusSignCircle;
         color = Colors.grey;
         break;
       case TaskStatus.deferred:
@@ -1098,7 +1098,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   context,
                   task,
                   TaskStatus.success,
-                  HugeIcons.strokeRoundedTick01,
+                  HugeIcons.strokeRoundedCheckmarkCircle03,
                   'موفق',
                   Colors.green,
                 ),
@@ -1106,7 +1106,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   context,
                   task,
                   TaskStatus.failed,
-                  HugeIcons.strokeRoundedCancel01,
+                  HugeIcons.strokeRoundedCancelCircle,
                   'ناموفق',
                   Colors.red,
                 ),
@@ -1122,7 +1122,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   context,
                   task,
                   TaskStatus.cancelled,
-                  HugeIcons.strokeRoundedCancel01,
+                  HugeIcons.strokeRoundedMinusSignCircle,
                   'لغو',
                   Colors.grey,
                 ),

@@ -231,13 +231,13 @@ class TaskCard extends ConsumerWidget {
     dynamic iconData;
     switch (status) {
       case TaskStatus.success:
-        iconData = HugeIcons.strokeRoundedTick01;
+        iconData = HugeIcons.strokeRoundedCheckmarkCircle03;
         break;
       case TaskStatus.failed:
-        iconData = HugeIcons.strokeRoundedCancel01;
+        iconData = HugeIcons.strokeRoundedCancelCircle;
         break;
       case TaskStatus.cancelled:
-        iconData = HugeIcons.strokeRoundedCancel01;
+        iconData = HugeIcons.strokeRoundedMinusSignCircle;
         break;
       case TaskStatus.deferred:
         iconData = HugeIcons.strokeRoundedClock01;
@@ -270,11 +270,11 @@ class TaskCard extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   const SizedBox(width: 16),
-                  _buildStatusAction(context, ref, task, TaskStatus.success, 'انجام شده', HugeIcons.strokeRoundedTick01, Colors.green),
+                  _buildStatusAction(context, ref, task, TaskStatus.success, 'انجام شده', HugeIcons.strokeRoundedCheckmarkCircle03, Colors.green),
                   const SizedBox(width: 16),
-                  _buildStatusAction(context, ref, task, TaskStatus.failed, 'انجام نشده', HugeIcons.strokeRoundedCancel01, Colors.red),
+                  _buildStatusAction(context, ref, task, TaskStatus.failed, 'انجام نشده', HugeIcons.strokeRoundedCancelCircle, Colors.red),
                   const SizedBox(width: 16),
-                  _buildStatusAction(context, ref, task, TaskStatus.cancelled, 'لغو شده', HugeIcons.strokeRoundedCancel01, Colors.grey),
+                  _buildStatusAction(context, ref, task, TaskStatus.cancelled, 'لغو شده', HugeIcons.strokeRoundedMinusSignCircle, Colors.grey),
                   const SizedBox(width: 16),
                   _buildStatusAction(context, ref, task, TaskStatus.deferred, 'تعویق شده', HugeIcons.strokeRoundedClock01, Colors.orange),
                   const SizedBox(width: 16),
