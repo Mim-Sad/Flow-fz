@@ -73,6 +73,7 @@ class RecurrenceConfig {
 
 class Task {
   final int? id;
+  final int? rootId;
   final String title;
   final String? description;
   final DateTime dueDate;
@@ -81,6 +82,9 @@ class Task {
   final String? category; // Kept for backward compatibility, but we use categories list
   final List<String> categories;
   final DateTime createdAt;
+  final DateTime? updatedAt;
+  final bool isDeleted;
+  final DateTime? deletedAt;
   final int position;
   final String? taskEmoji;
   final List<String> attachments;
@@ -88,6 +92,7 @@ class Task {
 
   Task({
     this.id,
+    this.rootId,
     required this.title,
     this.description,
     required this.dueDate,
@@ -96,17 +101,22 @@ class Task {
     this.category,
     List<String>? categories,
     DateTime? createdAt,
+    DateTime? updatedAt,
+    this.isDeleted = false,
+    this.deletedAt,
     this.position = 0,
     this.taskEmoji,
     this.attachments = const [],
     this.recurrence,
   }) : 
     createdAt = createdAt ?? DateTime.now(),
+    updatedAt = updatedAt ?? (createdAt ?? DateTime.now()),
     categories = categories ?? (category != null ? [category] : []);
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'rootId': rootId,
       'title': title,
       'description': description,
       'dueDate': dueDate.toIso8601String(),
@@ -115,6 +125,9 @@ class Task {
       'category': category, // maintain for compatibility if needed, or update based on categories.first
       'categories': json.encode(categories),
       'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
+      'isDeleted': isDeleted ? 1 : 0,
+      'deletedAt': deletedAt?.toIso8601String(),
       'position': position,
       'taskEmoji': taskEmoji,
       'attachments': json.encode(attachments),
@@ -136,6 +149,7 @@ class Task {
 
     return Task(
       id: map['id'],
+      rootId: map['rootId'],
       title: map['title'],
       description: map['description'],
       dueDate: DateTime.parse(map['dueDate']),
@@ -144,6 +158,9 @@ class Task {
       category: map['category'],
       categories: loadedCategories,
       createdAt: DateTime.parse(map['createdAt']),
+      updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
+      isDeleted: (map['isDeleted'] ?? 0) == 1,
+      deletedAt: map['deletedAt'] != null ? DateTime.parse(map['deletedAt']) : null,
       position: map['position'] ?? 0,
       taskEmoji: map['taskEmoji'],
       attachments: map['attachments'] != null 
@@ -157,6 +174,7 @@ class Task {
 
   Task copyWith({
     int? id,
+    int? rootId,
     String? title,
     String? description,
     DateTime? dueDate,
@@ -165,6 +183,9 @@ class Task {
     String? category,
     List<String>? categories,
     DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isDeleted,
+    DateTime? deletedAt,
     int? position,
     String? taskEmoji,
     List<String>? attachments,
@@ -172,6 +193,7 @@ class Task {
   }) {
     return Task(
       id: id ?? this.id,
+      rootId: rootId ?? this.rootId,
       title: title ?? this.title,
       description: description ?? this.description,
       dueDate: dueDate ?? this.dueDate,
@@ -180,6 +202,9 @@ class Task {
       category: category ?? this.category,
       categories: categories ?? this.categories,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+      deletedAt: deletedAt ?? this.deletedAt,
       position: position ?? this.position,
       taskEmoji: taskEmoji ?? this.taskEmoji,
       attachments: attachments ?? this.attachments,

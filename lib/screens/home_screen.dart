@@ -367,6 +367,7 @@ class TaskListTile extends ConsumerWidget {
                 
                 await ref.read(tasksProvider.notifier).updateStatus(task.id!, TaskStatus.deferred);
                 final newTask = Task(
+                  rootId: task.rootId ?? task.id,
                   title: task.title,
                   description: task.description,
                   dueDate: newDate,

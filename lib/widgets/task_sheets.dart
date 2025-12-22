@@ -163,6 +163,7 @@ class TaskStatusPickerSheet extends ConsumerWidget {
 
               // Create new task
               final newTask = Task(
+                rootId: task.rootId ?? task.id,
                 title: task.title,
                 description: task.description,
                 dueDate: newDate,

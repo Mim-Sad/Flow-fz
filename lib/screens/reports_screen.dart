@@ -97,60 +97,68 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final allTasks = ref.watch(tasksProvider);
-    final tasks = allTasks.where(_isTaskStructurallyValid).toList();
+    final allTasksAsync = ref.watch(allTasksIncludingDeletedProvider);
 
-    final filteredTasks = tasks.where((t) {
-      if (_viewMode == 0) {
-        return DateUtils.isSameDay(t.dueDate, _selectedDate);
-      } else if (_viewMode == 1) {
-        final startOfWeek = _selectedDate.subtract(
-          Duration(days: (_selectedDate.weekday + 1) % 7),
-        );
-        final endOfWeek = startOfWeek.add(const Duration(days: 6));
-        // Ensure we cover the full range including time
-        final startRange = DateTime(
-          startOfWeek.year,
-          startOfWeek.month,
-          startOfWeek.day,
-        );
-        final endRange = DateTime(
-          endOfWeek.year,
-          endOfWeek.month,
-          endOfWeek.day,
-          23,
-          59,
-          59,
-        );
-        return t.dueDate.isAfter(
-              startRange.subtract(const Duration(seconds: 1)),
-            ) &&
-            t.dueDate.isBefore(endRange.add(const Duration(seconds: 1)));
-      } else {
-        final jTask = Jalali.fromDateTime(t.dueDate);
-        final jSelected = Jalali.fromDateTime(_selectedDate);
-        return jTask.year == jSelected.year &&
-            jTask.month == jSelected.month;
-      }
-    }).toList();
+    return allTasksAsync.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => const Scaffold(
+        body: Center(child: Text('خطا در بارگذاری گزارش‌ها')),
+      ),
+      data: (allTasks) {
+        final tasks = allTasks.where(_isTaskStructurallyValid).toList();
 
-    final successCount = filteredTasks
-        .where((t) => t.status == TaskStatus.success)
-        .length;
-    final failedCount = filteredTasks
-        .where((t) => t.status == TaskStatus.failed)
-        .length;
-    final cancelledCount = filteredTasks
-        .where((t) => t.status == TaskStatus.cancelled)
-        .length;
-    final pendingCount = filteredTasks
-        .where((t) => t.status == TaskStatus.pending)
-        .length;
-    final deferredCount = filteredTasks
-        .where((t) => t.status == TaskStatus.deferred)
-        .length;
+        final filteredTasks = tasks.where((t) {
+          if (_viewMode == 0) {
+            return DateUtils.isSameDay(t.dueDate, _selectedDate);
+          } else if (_viewMode == 1) {
+            final startOfWeek = _selectedDate.subtract(
+              Duration(days: (_selectedDate.weekday + 1) % 7),
+            );
+            final endOfWeek = startOfWeek.add(const Duration(days: 6));
+            final startRange = DateTime(
+              startOfWeek.year,
+              startOfWeek.month,
+              startOfWeek.day,
+            );
+            final endRange = DateTime(
+              endOfWeek.year,
+              endOfWeek.month,
+              endOfWeek.day,
+              23,
+              59,
+              59,
+            );
+            return t.dueDate.isAfter(
+                  startRange.subtract(const Duration(seconds: 1)),
+                ) &&
+                t.dueDate.isBefore(endRange.add(const Duration(seconds: 1)));
+          } else {
+            final jTask = Jalali.fromDateTime(t.dueDate);
+            final jSelected = Jalali.fromDateTime(_selectedDate);
+            return jTask.year == jSelected.year &&
+                jTask.month == jSelected.month;
+          }
+        }).toList();
 
-    return Scaffold(
+        final successCount = filteredTasks
+            .where((t) => t.status == TaskStatus.success)
+            .length;
+        final failedCount = filteredTasks
+            .where((t) => t.status == TaskStatus.failed)
+            .length;
+        final cancelledCount = filteredTasks
+            .where((t) => t.status == TaskStatus.cancelled)
+            .length;
+        final pendingCount = filteredTasks
+            .where((t) => t.status == TaskStatus.pending)
+            .length;
+        final deferredCount = filteredTasks
+            .where((t) => t.status == TaskStatus.deferred)
+            .length;
+
+        return Scaffold(
       body: Stack(
         children: [
           Column(
@@ -384,6 +392,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
         ],
       ),
+        );
+      },
     );
   }
 

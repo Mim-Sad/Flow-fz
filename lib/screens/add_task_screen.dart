@@ -723,6 +723,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     
     final task = Task(
       id: widget.task?.id,
+      rootId: widget.task?.rootId,
       title: _titleController.text,
       description: _descController.text,
       dueDate: _selectedDate,
@@ -731,6 +732,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
       category: _selectedCategories.isNotEmpty ? _selectedCategories.first : null,
       status: widget.task?.status ?? TaskStatus.pending,
       createdAt: widget.task?.createdAt,
+      updatedAt: widget.task?.updatedAt,
       taskEmoji: _selectedEmoji,
       attachments: _attachments,
       recurrence: _recurrence,

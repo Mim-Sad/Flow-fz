@@ -9,6 +9,11 @@ final tasksProvider = StateNotifierProvider<TasksNotifier, List<Task>>((ref) {
   return TasksNotifier(dbService);
 });
 
+final allTasksIncludingDeletedProvider = FutureProvider<List<Task>>((ref) async {
+  final dbService = ref.watch(databaseServiceProvider);
+  return dbService.getAllTasks(includeDeleted: true);
+});
+
 // Provider to expose task completion history
 final taskCompletionsProvider = StateProvider<Map<int, Map<String, int>>>((ref) => {});
 
@@ -29,6 +34,14 @@ class TasksNotifier extends StateNotifier<List<Task>> {
   
   Map<int, Map<String, int>> _completions = {};
   Map<int, Map<String, int>> get completions => _completions;
+
+  String _dateKey(DateTime date) {
+    final d = date.toLocal();
+    final y = d.year.toString().padLeft(4, '0');
+    final m = d.month.toString().padLeft(2, '0');
+    final day = d.day.toString().padLeft(2, '0');
+    return '$y-$m-$day';
+  }
 
   TasksNotifier(this._dbService) : super([]) {
     loadTasks();
@@ -57,15 +70,25 @@ class TasksNotifier extends StateNotifier<List<Task>> {
 
   Future<void> updateStatus(int id, TaskStatus status, {DateTime? date}) async {
     if (date != null) {
-      // For recurring tasks on a specific date
-      await _dbService.setTaskCompletion(id, date, status);
-      // Update local cache
-      final dateStr = date.toIso8601String().split('T')[0];
-      if (!_completions.containsKey(id)) _completions[id] = {};
+      final dateStr = _dateKey(date);
+      final previous = _completions[id]?[dateStr];
+
+      _completions.putIfAbsent(id, () => {});
       _completions[id]![dateStr] = status.index;
-      
-      // Force state update to rebuild listeners (even though list might be same)
-      state = [...state]; 
+      state = [...state];
+
+      try {
+        await _dbService.setTaskCompletion(id, date, status);
+      } catch (e) {
+        if (previous == null) {
+          _completions[id]!.remove(dateStr);
+          if (_completions[id]!.isEmpty) _completions.remove(id);
+        } else {
+          _completions[id]![dateStr] = previous;
+        }
+        state = [...state];
+        rethrow;
+      }
     } else {
       // Regular single task - Optimistic Update
       final previousState = [...state];
@@ -101,9 +124,15 @@ class TasksNotifier extends StateNotifier<List<Task>> {
   }
   
   TaskStatus getStatusForDate(int taskId, DateTime date) {
-    final dateStr = date.toIso8601String().split('T')[0];
-    if (_completions.containsKey(taskId) && _completions[taskId]!.containsKey(dateStr)) {
-      return TaskStatus.values[_completions[taskId]![dateStr]!];
+    final dateStr = _dateKey(date);
+    final byDay = _completions[taskId];
+    if (byDay != null) {
+      final stored = byDay[dateStr];
+      if (stored != null) return TaskStatus.values[stored];
+
+      final legacy = date.toIso8601String().split('T')[0];
+      final legacyStored = byDay[legacy];
+      if (legacyStored != null) return TaskStatus.values[legacyStored];
     }
     return TaskStatus.pending; // Default if not found
   }

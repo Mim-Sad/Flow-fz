@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/task.dart';
@@ -11,6 +12,14 @@ class DatabaseService {
 
   DatabaseService._internal();
 
+  String _dateKey(DateTime date) {
+    final d = date.toLocal();
+    final y = d.year.toString().padLeft(4, '0');
+    final m = d.month.toString().padLeft(2, '0');
+    final day = d.day.toString().padLeft(2, '0');
+    return '$y-$m-$day';
+  }
+
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();
@@ -21,7 +30,7 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'flow_database.db');
     return await openDatabase(
       path,
-      version: 6,
+      version: 7,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -60,12 +69,32 @@ class DatabaseService {
       // We need to alter table.
       await db.execute('ALTER TABLE categories ADD COLUMN position INTEGER NOT NULL DEFAULT 0');
     }
+    if (oldVersion < 7) {
+      await db.execute('ALTER TABLE tasks ADD COLUMN rootId INTEGER');
+      await db.execute('ALTER TABLE tasks ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0');
+      await db.execute('ALTER TABLE tasks ADD COLUMN deletedAt TEXT');
+      await db.execute('ALTER TABLE tasks ADD COLUMN updatedAt TEXT');
+
+      await db.execute('''
+        CREATE TABLE task_events(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          taskId INTEGER NOT NULL,
+          rootId INTEGER,
+          type TEXT NOT NULL,
+          occurredAt TEXT NOT NULL,
+          payload TEXT
+        )
+      ''');
+
+      await db.execute('UPDATE tasks SET rootId = id WHERE rootId IS NULL');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
       CREATE TABLE tasks(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        rootId INTEGER,
         title TEXT NOT NULL,
         description TEXT,
         dueDate TEXT NOT NULL,
@@ -77,6 +106,9 @@ class DatabaseService {
         attachments TEXT,
         recurrence TEXT,
         createdAt TEXT NOT NULL,
+        updatedAt TEXT,
+        deletedAt TEXT,
+        isDeleted INTEGER NOT NULL DEFAULT 0,
         position INTEGER NOT NULL DEFAULT 0
       )
     ''');
@@ -88,6 +120,16 @@ class DatabaseService {
         date TEXT NOT NULL,
         status INTEGER NOT NULL,
         UNIQUE(taskId, date)
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE task_events(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        taskId INTEGER NOT NULL,
+        rootId INTEGER,
+        type TEXT NOT NULL,
+        occurredAt TEXT NOT NULL,
+        payload TEXT
       )
     ''');
   }
@@ -145,12 +187,34 @@ class DatabaseService {
 
   Future<int> insertTask(Task task) async {
     Database db = await database;
-    return await db.insert('tasks', task.toMap());
+    final now = DateTime.now().toIso8601String();
+    final map = task.toMap();
+    map['updatedAt'] = now;
+
+    final id = await db.insert('tasks', map);
+    final rootId = task.rootId ?? id;
+    if (task.rootId == null) {
+      await db.update('tasks', {'rootId': rootId}, where: 'id = ?', whereArgs: [id]);
+    }
+
+    await insertTaskEvent(
+      taskId: id,
+      rootId: rootId,
+      type: 'create',
+      payload: {'task': map},
+      occurredAt: DateTime.now(),
+    );
+
+    return id;
   }
 
-  Future<List<Task>> getAllTasks() async {
+  Future<List<Task>> getAllTasks({bool includeDeleted = false}) async {
     Database db = await database;
-    List<Map<String, dynamic>> maps = await db.query('tasks', orderBy: 'dueDate ASC');
+    List<Map<String, dynamic>> maps = await db.query(
+      'tasks',
+      where: includeDeleted ? null : 'isDeleted = 0',
+      orderBy: 'dueDate ASC',
+    );
     return List.generate(maps.length, (i) => Task.fromMap(maps[i]));
   }
 
@@ -172,7 +236,7 @@ class DatabaseService {
 
   Future<void> setTaskCompletion(int taskId, DateTime date, TaskStatus status) async {
     Database db = await database;
-    final dateStr = date.toIso8601String().split('T')[0]; // Store as YYYY-MM-DD
+    final dateStr = _dateKey(date);
     
     await db.insert(
       'task_completions',
@@ -183,32 +247,98 @@ class DatabaseService {
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+
+    await insertTaskEvent(
+      taskId: taskId,
+      rootId: await getTaskRootId(taskId),
+      type: 'completion',
+      payload: {'date': dateStr, 'status': status.index},
+      occurredAt: DateTime.now(),
+    );
   }
 
   Future<int> updateTask(Task task) async {
     Database db = await database;
-    return await db.update(
+    final updatedAt = DateTime.now().toIso8601String();
+    final map = task.toMap();
+    map['updatedAt'] = updatedAt;
+
+    final result = await db.update(
       'tasks',
-      task.toMap(),
+      map,
       where: 'id = ?',
       whereArgs: [task.id],
     );
+
+    if (task.id != null) {
+      await insertTaskEvent(
+        taskId: task.id!,
+        rootId: task.rootId ?? await getTaskRootId(task.id!),
+        type: 'update',
+        payload: {'task': map},
+        occurredAt: DateTime.now(),
+      );
+    }
+
+    return result;
   }
 
-  Future<int> deleteTask(int id) async {
+  Future<int> softDeleteTask(int id) async {
     Database db = await database;
-    return await db.delete(
+    final now = DateTime.now().toIso8601String();
+
+    final rootId = await getTaskRootId(id);
+    final result = await db.update(
       'tasks',
+      {'isDeleted': 1, 'deletedAt': now, 'updatedAt': now},
       where: 'id = ?',
       whereArgs: [id],
     );
+
+    await insertTaskEvent(
+      taskId: id,
+      rootId: rootId,
+      type: 'delete',
+      payload: {'deletedAt': now},
+      occurredAt: DateTime.now(),
+    );
+
+    return result;
+  }
+
+  Future<int> deleteTask(int id) async {
+    return softDeleteTask(id);
+  }
+
+  Future<int> restoreTask(int id) async {
+    Database db = await database;
+    final now = DateTime.now().toIso8601String();
+    final rootId = await getTaskRootId(id);
+    final result = await db.update(
+      'tasks',
+      {'isDeleted': 0, 'deletedAt': null, 'updatedAt': now},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    await insertTaskEvent(
+      taskId: id,
+      rootId: rootId,
+      type: 'restore',
+      payload: {'restoredAt': now},
+      occurredAt: DateTime.now(),
+    );
+
+    return result;
   }
 
   // Export/Import Logic
   Future<Map<String, dynamic>> exportData() async {
-    final tasks = await getAllTasks();
+    final tasks = await getAllTasks(includeDeleted: true);
     final categories = await getAllCategories();
     final completions = await getAllTaskCompletions();
+    final db = await database;
+    final events = await db.query('task_events');
 
     // Convert completions to list for JSON serialization
     // Structure: [{taskId: 1, date: "2023-01-01", status: 1}, ...]
@@ -229,6 +359,7 @@ class DatabaseService {
       'tasks': tasks.map((t) => t.toMap()).toList(),
       'categories': categories.map((c) => c.toMap()).toList(),
       'completions': completionsList,
+      'events': events,
     };
   }
 
@@ -240,6 +371,9 @@ class DatabaseService {
       await txn.delete('tasks');
       await txn.delete('categories');
       await txn.delete('task_completions');
+      try {
+        await txn.delete('task_events');
+      } catch (_) {}
 
       // Import Categories
       final categoriesList = (data['categories'] as List).cast<Map<String, dynamic>>();
@@ -255,6 +389,7 @@ class DatabaseService {
         // If we want to keep relationships (completions), we MUST keep IDs.
         await txn.insert('tasks', taskMap);
       }
+      await txn.execute('UPDATE tasks SET rootId = id WHERE rootId IS NULL');
 
       // Import Completions
       if (data['completions'] != null) {
@@ -263,15 +398,66 @@ class DatabaseService {
           await txn.insert('task_completions', compMap);
         }
       }
+
+      if (data['events'] != null) {
+        final eventsList = (data['events'] as List).cast<Map<String, dynamic>>();
+        for (var eventMap in eventsList) {
+          await txn.insert('task_events', eventMap);
+        }
+      }
     });
   }
   Future<int> updateTaskStatus(int id, TaskStatus status) async {
     Database db = await database;
-    return await db.update(
+    final now = DateTime.now().toIso8601String();
+    final rootId = await getTaskRootId(id);
+    final result = await db.update(
       'tasks',
-      {'status': status.index},
+      {'status': status.index, 'updatedAt': now},
       where: 'id = ?',
       whereArgs: [id],
     );
+
+    await insertTaskEvent(
+      taskId: id,
+      rootId: rootId,
+      type: 'status',
+      payload: {'status': status.index},
+      occurredAt: DateTime.now(),
+    );
+
+    return result;
+  }
+
+  Future<int?> getTaskRootId(int taskId) async {
+    Database db = await database;
+    final rows = await db.query(
+      'tasks',
+      columns: ['rootId', 'id'],
+      where: 'id = ?',
+      whereArgs: [taskId],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    final row = rows.first;
+    final rootId = row['rootId'] as int?;
+    return rootId ?? (row['id'] as int?);
+  }
+
+  Future<void> insertTaskEvent({
+    required int taskId,
+    int? rootId,
+    required String type,
+    Map<String, dynamic>? payload,
+    DateTime? occurredAt,
+  }) async {
+    Database db = await database;
+    await db.insert('task_events', {
+      'taskId': taskId,
+      'rootId': rootId,
+      'type': type,
+      'occurredAt': (occurredAt ?? DateTime.now()).toIso8601String(),
+      'payload': payload == null ? null : jsonEncode(payload),
+    });
   }
 }
