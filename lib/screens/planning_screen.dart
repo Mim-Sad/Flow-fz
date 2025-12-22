@@ -323,70 +323,53 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     }
   }
 
+  bool _isTaskActiveOnDate(Task task, DateTime date) {
+    if (task.recurrence == null ||
+        task.recurrence!.type == RecurrenceType.none) {
+      return _isSameDay(task.dueDate, date);
+    }
+
+    // Check end date
+    if (task.recurrence!.endDate != null &&
+        date.isAfter(task.recurrence!.endDate!)) {
+      return false;
+    }
+
+    // Check start date (task shouldn't appear before it was created/due)
+    if (date.isBefore(
+      DateTime(task.dueDate.year, task.dueDate.month, task.dueDate.day),
+    )) {
+      return false;
+    }
+
+    switch (task.recurrence!.type) {
+      case RecurrenceType.daily:
+        return true;
+      case RecurrenceType.weekly:
+        return date.weekday == task.dueDate.weekday;
+      case RecurrenceType.monthly:
+        return date.day == task.dueDate.day;
+      case RecurrenceType.yearly:
+        return date.month == task.dueDate.month &&
+            date.day == task.dueDate.day;
+      case RecurrenceType.specificDays:
+        return task.recurrence!.daysOfWeek != null &&
+            task.recurrence!.daysOfWeek!.contains(date.weekday);
+      case RecurrenceType.custom:
+        final diff = date.difference(task.dueDate).inDays;
+        return task.recurrence!.interval != null &&
+            diff % task.recurrence!.interval! == 0;
+      default:
+        return false;
+    }
+  }
+
   // Logic to expand recurring tasks
   List<Task> _getTasksForDate(List<Task> allTasks, DateTime date) {
     final tasksForDate = <Task>[];
 
     for (var task in allTasks) {
-      bool include = false;
-
-      // 1. Regular task on this day
-      if (task.recurrence == null ||
-          task.recurrence!.type == RecurrenceType.none) {
-        if (_isSameDay(task.dueDate, date)) {
-          include = true;
-        }
-      } else {
-        // 2. Recurring task
-        // Check end date
-        if (task.recurrence!.endDate != null &&
-            date.isAfter(task.recurrence!.endDate!)) {
-          continue;
-        }
-
-        // Check start date (task shouldn't appear before it was created/due)
-        // Use dueDate as start date
-        if (date.isBefore(
-          DateTime(task.dueDate.year, task.dueDate.month, task.dueDate.day),
-        )) {
-          continue;
-        }
-
-        switch (task.recurrence!.type) {
-          case RecurrenceType.daily:
-            include = true;
-            break;
-          case RecurrenceType.weekly:
-            if (date.weekday == task.dueDate.weekday) include = true;
-            break;
-          case RecurrenceType.monthly:
-            if (date.day == task.dueDate.day) include = true;
-            break;
-          case RecurrenceType.yearly:
-            if (date.month == task.dueDate.month &&
-                date.day == task.dueDate.day) {
-              include = true;
-            }
-            break;
-          case RecurrenceType.specificDays:
-            if (task.recurrence!.daysOfWeek != null &&
-                task.recurrence!.daysOfWeek!.contains(date.weekday)) {
-              include = true;
-            }
-            break;
-          case RecurrenceType.custom:
-            final diff = date.difference(task.dueDate).inDays;
-            if (task.recurrence!.interval != null &&
-                diff % task.recurrence!.interval! == 0) {
-              include = true;
-            }
-            break;
-          default:
-            break;
-        }
-      }
-
-      if (include) {
+      if (_isTaskActiveOnDate(task, date)) {
         TaskStatus status;
         if (task.recurrence != null &&
             task.recurrence!.type != RecurrenceType.none) {
@@ -502,6 +485,128 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     );
   }
 
+  Widget _buildWeeklyRecurringTaskCard(Task task, DateTime startOfWeek) {
+    // startOfWeek should be the Saturday of the week
+    final days = List.generate(7, (index) => startOfWeek.add(Duration(days: index)));
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Task Title and Menu
+          Row(
+            children: [
+              const HugeIcon(
+                icon: HugeIcons.strokeRoundedRepeat,
+                size: 16,
+                color: Colors.grey,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  task.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              IconButton(
+                icon: const HugeIcon(
+                  icon: HugeIcons.strokeRoundedMoreHorizontal,
+                  size: 18,
+                  color: Colors.grey,
+                ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => _showTaskOptions(context, task),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // 7 Circles
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: days.map((date) {
+              final isActive = _isTaskActiveOnDate(task, date);
+              final status = isActive 
+                  ? ref.read(tasksProvider.notifier).getStatusForDate(task.id!, date)
+                  : TaskStatus.pending;
+                  
+              return Column(
+                children: [
+                  Text(
+                    _getDayName(date.weekday)[0], // First letter of day name
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  InkWell(
+                    onTap: isActive ? () {
+                      HapticFeedback.lightImpact();
+                      final nextStatus = status == TaskStatus.success 
+                          ? TaskStatus.pending 
+                          : TaskStatus.success;
+                      ref.read(tasksProvider.notifier).updateStatus(task.id!, nextStatus, date: date);
+                    } : null,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isActive
+                            ? (status == TaskStatus.success
+                                ? Colors.green
+                                : Theme.of(context).colorScheme.surfaceContainerHighest)
+                            : Colors.transparent,
+                        border: isActive
+                            ? Border.all(
+                                color: status == TaskStatus.success
+                                    ? Colors.green
+                                    : Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
+                              )
+                            : null,
+                      ),
+                      child: isActive && status == TaskStatus.success
+                          ? const Icon(Icons.check, size: 16, color: Colors.white)
+                          : (!isActive 
+                              ? Center(
+                                  child: Container(
+                                    width: 4, 
+                                    height: 4, 
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).colorScheme.outlineVariant,
+                                      shape: BoxShape.circle
+                                    )
+                                  )
+                                ) 
+                              : null),
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDailyView(List<Task> tasks, List<CategoryData> categories) {
     // Generate tasks for the selected date
     final dailyTasks = _getTasksForDate(tasks, _selectedDate);
@@ -514,36 +619,44 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   }
 
   Widget _buildWeeklyView(List<Task> tasks, List<CategoryData> categories) {
-    // In DateTime: Mon=1, Tue=2, ... Sat=6, Sun=7
-    // In Jalali/Iran: Start of week is Saturday.
-    // So if today is Saturday (6), we want offset 0.
-    // If today is Sunday (7), offset 1.
-    // If today is Monday (1), offset 2.
-    // ...
-    // If today is Friday (5), offset 6.
-
-    // Formula: (weekday % 7 + 1) % 7 ? No.
-    // Sat(6) -> 0. (6+1)%7 = 0.
-    // Sun(7) -> 1. (7+1)%7 = 1.
-    // Mon(1) -> 2. (1+1)%7 = 2.
-    // ...
-    // Fri(5) -> 6. (5+1)%7 = 6.
-
     final offset = (_selectedDate.weekday + 1) % 7;
     final startOfWeek = _selectedDate.subtract(Duration(days: offset));
 
-    // Group by day
+    // Identify recurring tasks active in this week
+    final recurringTasksForWeek = <Task>[];
+    for (var task in tasks) {
+      if (task.recurrence != null &&
+          task.recurrence!.type != RecurrenceType.none) {
+        bool isActive = false;
+        for (int i = 0; i < 7; i++) {
+          if (_isTaskActiveOnDate(task, startOfWeek.add(Duration(days: i)))) {
+            isActive = true;
+            break;
+          }
+        }
+        if (isActive) recurringTasksForWeek.add(task);
+      }
+    }
+
+    // Group regular tasks by day
     final Map<int, List<Task>> dayGroups = {};
 
     for (int i = 0; i < 7; i++) {
       final date = startOfWeek.add(Duration(days: i));
       final dayTasks = _getTasksForDate(tasks, date);
-      if (dayTasks.isNotEmpty) {
-        dayGroups[date.weekday] = dayTasks;
+      final regularTasks = dayTasks
+          .where(
+            (t) =>
+                t.recurrence == null || t.recurrence!.type == RecurrenceType.none,
+          )
+          .toList();
+
+      if (regularTasks.isNotEmpty) {
+        dayGroups[date.weekday] = regularTasks;
       }
     }
 
-    if (dayGroups.isEmpty) {
+    if (dayGroups.isEmpty && recurringTasksForWeek.isEmpty) {
       return const Center(child: Text('برای این هفته برنامه‌ای نداری.'));
     }
 
@@ -555,44 +668,70 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         return offsetA.compareTo(offsetB);
       });
 
-    return ListView.builder(
-      padding: EdgeInsets.only(
-        top: 0, // Removed padding
+    return ListView(
+      padding: const EdgeInsets.only(
+        top: 0,
         left: 16,
         right: 16,
         bottom: 16,
       ),
-      itemCount: sortedDays.length,
-      itemBuilder: (context, index) {
-        final day = sortedDays[index];
-        final dayTasks = dayGroups[day]!;
-        final dayDate = dayTasks.first.dueDate;
-        final jDate = Jalali.fromDateTime(dayDate);
-        final dayName = _getDayName(dayDate.weekday);
-
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(right: 8, bottom: 8),
-                child: Text(
-                  _toPersianDigit(
-                    '$dayName - ${jDate.day} ${jDate.formatter.mN}',
-                  ),
+      children: [
+        // Recurring Tasks Section
+        if (recurringTasksForWeek.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                const Text('🔁', style: TextStyle(fontSize: 16)),
+                const SizedBox(width: 8),
+                Text(
+                  'تسک‌های تکرار شونده',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 15,
+                    fontSize: 13,
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
-              ),
-              _buildGroupedTasksContent(dayTasks, categories),
-            ],
+              ],
+            ),
           ),
-        );
-      },
+          ...recurringTasksForWeek.map(
+            (task) => _buildWeeklyRecurringTaskCard(task, startOfWeek),
+          ),
+          const SizedBox(height: 16),
+        ],
+
+        // Daily Lists
+        ...sortedDays.map((day) {
+          final dayTasks = dayGroups[day]!;
+          final dayDate = dayTasks.first.dueDate;
+          final jDate = Jalali.fromDateTime(dayDate);
+          final dayName = _getDayName(dayDate.weekday);
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 8, bottom: 8),
+                  child: Text(
+                    _toPersianDigit(
+                      '$dayName - ${jDate.day} ${jDate.formatter.mN}',
+                    ),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+                _buildGroupedTasksContent(dayTasks, categories),
+              ],
+            ),
+          );
+        }),
+      ],
     );
   }
 
@@ -630,7 +769,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     final sortedWeekKeys = weekGroups.keys.toList()..sort();
 
     return ListView.builder(
-      padding: EdgeInsets.only(
+      padding: const EdgeInsets.only(
         top: 0, // Removed padding
         left: 16,
         right: 16,
@@ -641,7 +780,17 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         final weekKey = sortedWeekKeys[index];
         final weekTasksRaw = weekGroups[weekKey]!;
 
-        // Deduplicate recurring tasks: keep only one instance per week to show compact row
+        // Extract unique recurring tasks
+        final recurringTasksMap = <int, Task>{};
+        for (var t in weekTasksRaw) {
+          if (t.recurrence != null &&
+              t.recurrence!.type != RecurrenceType.none) {
+            recurringTasksMap[t.id!] = t;
+          }
+        }
+        final recurringTasksForWeek = recurringTasksMap.values.toList();
+
+        // Deduplicate regular tasks
         final Map<int, List<Task>> uniqueTasks = {};
         for (var t in weekTasksRaw) {
           if (t.id != null) {
@@ -655,13 +804,15 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           final first = instances.first;
           if (first.recurrence != null &&
               first.recurrence!.type != RecurrenceType.none) {
-             // Skip recurring tasks here
+            // Skip recurring tasks here (handled separately)
           } else {
             processedTasks.addAll(instances);
           }
         }
-        
-        if (processedTasks.isEmpty) return const SizedBox.shrink();
+
+        if (processedTasks.isEmpty && recurringTasksForWeek.isEmpty) {
+          return const SizedBox.shrink();
+        }
 
         final weekStart = DateTime.fromMillisecondsSinceEpoch(weekKey);
         final weekEnd = weekStart.add(const Duration(days: 6));
@@ -687,6 +838,12 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   ),
                 ),
               ),
+              if (recurringTasksForWeek.isNotEmpty) ...[
+                ...recurringTasksForWeek.map(
+                  (task) => _buildWeeklyRecurringTaskCard(task, weekStart),
+                ),
+                const SizedBox(height: 8),
+              ],
               _buildGroupedTasksContent(processedTasks, categories),
             ],
           ),

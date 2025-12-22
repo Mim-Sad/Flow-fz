@@ -86,7 +86,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         color: color,
                         shape: BoxShape.circle,
                         border: isSelected
-                            ? Border.all(color: Theme.of(context).colorScheme.onSurface, width: 3)
+                            ? Border.all(color: Theme.of(context).colorScheme.onSurface, width: 2)
                             : null,
                         boxShadow: [
                           BoxShadow(
@@ -97,7 +97,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ],
                       ),
                       child: isSelected
-                          ? const HugeIcon(icon: HugeIcons.strokeRoundedTick01, color: Colors.white, size: 20)
+                          ? const HugeIcon(icon: HugeIcons.strokeRoundedTick01, color: Colors.white, size: 10)
                           : null,
                     ),
                   );
