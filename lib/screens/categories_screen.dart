@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:lottie/lottie.dart';
 import 'package:uuid/uuid.dart';
 import '../models/category_data.dart';
 import '../providers/category_provider.dart';
+import '../constants/duck_emojis.dart';
 
 class CategoriesScreen extends ConsumerStatefulWidget {
   const CategoriesScreen({super.key});
@@ -16,7 +18,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   void _showCategoryDialog([CategoryData? category]) {
     final isEditing = category != null;
     final nameController = TextEditingController(text: category?.label ?? '');
-    final emojiController = TextEditingController(text: category?.emoji ?? '');
+    String selectedEmoji = category?.emoji ?? DuckEmojis.all.first;
     Color selectedColor = category?.color ?? Theme.of(context).colorScheme.primary;
     
     // Simple color palette
@@ -37,6 +39,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TextField(
                     controller: nameController,
@@ -46,14 +49,38 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: emojiController,
-                    decoration: const InputDecoration(
-                      labelText: 'ایموجی',
-                      border: OutlineInputBorder(),
-                      helperText: 'یک ایموجی وارد کنید',
+                  const Text('آیکون', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 200,
+                    width: double.maxFinite,
+                    child: GridView.builder(
+                      shrinkWrap: true,
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 5,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                      ),
+                      itemCount: DuckEmojis.all.length,
+                      itemBuilder: (context, index) {
+                        final emojiPath = DuckEmojis.all[index];
+                        final isSelected = selectedEmoji == emojiPath;
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() => selectedEmoji = emojiPath);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: isSelected ? Theme.of(context).colorScheme.primaryContainer : null,
+                              borderRadius: BorderRadius.circular(8),
+                              border: isSelected ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2) : Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                            ),
+                            child: Lottie.asset(emojiPath, fit: BoxFit.contain),
+                          ),
+                        );
+                      },
                     ),
-                    maxLength: 2,
                   ),
                   const SizedBox(height: 16),
                   const Text('رنگ', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -95,11 +122,11 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
               ),
               FilledButton(
                 onPressed: () {
-                  if (nameController.text.isNotEmpty && emojiController.text.isNotEmpty) {
+                  if (nameController.text.isNotEmpty) {
                     final newCategory = CategoryData(
                       id: isEditing ? category.id : const Uuid().v4(),
                       label: nameController.text,
-                      emoji: emojiController.text,
+                      emoji: selectedEmoji,
                       color: selectedColor,
                     );
                     
@@ -186,7 +213,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                       ),
                     ),
                     alignment: Alignment.center,
-                    child: Text(category.emoji, style: const TextStyle(fontSize: 24)),
+                    child: Lottie.asset(category.emoji, width: 32, height: 32),
                   ),
                   title: Text(
                     category.label,

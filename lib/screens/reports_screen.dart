@@ -69,13 +69,36 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       final startOfNow = now.subtract(Duration(days: (now.weekday + 1) % 7));
       return DateUtils.isSameDay(startOfSelected, startOfNow);
     } else {
-      return _selectedDate.year == now.year && _selectedDate.month == now.month;
+      final jSelected = Jalali.fromDateTime(_selectedDate);
+      final jNow = Jalali.fromDateTime(now);
+      return jSelected.year == jNow.year && jSelected.month == jNow.month;
     }
+  }
+
+  bool _isTaskStructurallyValid(Task task) {
+    if (task.title.trim().isEmpty) return false;
+
+    final recurrence = task.recurrence;
+    if (recurrence != null && recurrence.type != RecurrenceType.none) {
+      if (task.id == null) return false;
+      if (recurrence.type == RecurrenceType.hourly) return false;
+      if (recurrence.type == RecurrenceType.custom) {
+        if (recurrence.interval == null || recurrence.interval! <= 0) {
+          return false;
+        }
+      }
+      if (recurrence.type == RecurrenceType.specificDays) {
+        final days = recurrence.daysOfWeek;
+        if (days == null || days.isEmpty) return false;
+      }
+    }
+    return true;
   }
 
   @override
   Widget build(BuildContext context) {
-    final tasks = ref.watch(tasksProvider);
+    final allTasks = ref.watch(tasksProvider);
+    final tasks = allTasks.where(_isTaskStructurallyValid).toList();
 
     final filteredTasks = tasks.where((t) {
       if (_viewMode == 0) {
@@ -104,8 +127,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ) &&
             t.dueDate.isBefore(endRange.add(const Duration(seconds: 1)));
       } else {
-        return t.dueDate.year == _selectedDate.year &&
-            t.dueDate.month == _selectedDate.month;
+        final jTask = Jalali.fromDateTime(t.dueDate);
+        final jSelected = Jalali.fromDateTime(_selectedDate);
+        return jTask.year == jSelected.year &&
+            jTask.month == jSelected.month;
       }
     }).toList();
 
@@ -465,11 +490,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       } else if (_viewMode == 1) {
         _selectedDate = _selectedDate.add(Duration(days: delta * 7));
       } else {
-        _selectedDate = DateTime(
-          _selectedDate.year,
-          _selectedDate.month + delta,
-          1,
-        );
+        final j = Jalali.fromDateTime(_selectedDate);
+        _selectedDate = j.addMonths(delta).toDateTime();
       }
     });
   }

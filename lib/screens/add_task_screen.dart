@@ -1,3 +1,4 @@
+import 'package:lottie/lottie.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -196,7 +197,14 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                       children: cats.map((cat) {
                         final isSelected = _selectedCategories.contains(cat.id);
                         return FilterChip(
-                          label: Text('${cat.emoji} ${cat.label}'),
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Lottie.asset(cat.emoji, width: 20, height: 20),
+                              const SizedBox(width: 8),
+                              Text(cat.label),
+                            ],
+                          ),
                           selected: isSelected,
                           onSelected: (selected) {
                             setState(() {

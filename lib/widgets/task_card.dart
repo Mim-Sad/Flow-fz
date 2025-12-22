@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:lottie/lottie.dart';
 import '../models/task.dart';
 import '../models/category_data.dart';
 import '../providers/task_provider.dart';
@@ -215,14 +216,17 @@ class TaskCard extends ConsumerWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(catData.emoji, style: const TextStyle(fontSize: 10)),
+          Lottie.asset(catData.emoji, width: 14, height: 14),
           const SizedBox(width: 4),
-          Text(
-            catData.label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: onCardColor,
+          Flexible(
+            child: Text(
+              catData.label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: onCardColor,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

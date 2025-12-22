@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:lottie/lottie.dart';
 import 'package:text_scroll/text_scroll.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import '../providers/task_provider.dart';
@@ -491,7 +492,7 @@ class TaskListTile extends ConsumerWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(catData.emoji, style: const TextStyle(fontSize: 10)),
+          Lottie.asset(catData.emoji, width: 14, height: 14),
           const SizedBox(width: 4),
           Flexible(
             child: TextScroll(

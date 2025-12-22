@@ -1,7 +1,15 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:intl/intl.dart' as intl;
+import '../services/database_service.dart';
 import '../providers/theme_provider.dart';
+import '../providers/task_provider.dart';
+import '../providers/category_provider.dart';
 import 'categories_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -19,6 +27,91 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     // Simply update theme without overlay animation for now as requested
     // "Revert to simple state"
     updateTheme();
+  }
+
+  Future<void> _exportData() async {
+    try {
+      final data = await DatabaseService().exportData();
+      final jsonString = jsonEncode(data);
+      final bytes = utf8.encode(jsonString);
+      
+      String? outputFile = await FilePicker.platform.saveFile(
+        dialogTitle: 'ذخیره فایل پشتیبان',
+        fileName: 'flow_backup_${intl.DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}.json',
+        allowedExtensions: ['json'],
+        type: FileType.custom,
+        bytes: Uint8List.fromList(bytes),
+      );
+
+      if (outputFile != null) {
+        // On Desktop, saveFile just returns the path, so we need to write the file.
+        // On Mobile (Android/iOS), saveFile handles writing if bytes are provided.
+        if (!Platform.isAndroid && !Platform.isIOS) {
+          final file = File(outputFile);
+          await file.writeAsBytes(bytes);
+        }
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('پشتیبان‌گیری با موفقیت انجام شد')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطا در پشتیبان‌گیری: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _importData() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+
+      if (result != null && result.files.single.path != null) {
+        if (!mounted) return;
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('بازگردانی اطلاعات'),
+            content: const Text('آیا مطمئن هستید؟ تمام اطلاعات فعلی حذف و با فایل انتخاب شده جایگزین خواهند شد.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('لغو')),
+              TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('تایید')),
+            ],
+          ),
+        );
+
+        if (confirm == true) {
+          File file = File(result.files.single.path!);
+          String jsonString = await file.readAsString();
+          Map<String, dynamic> data = jsonDecode(jsonString);
+          
+          await DatabaseService().importData(data);
+          
+          // Invalidate providers to refresh data
+          ref.invalidate(tasksProvider);
+          ref.invalidate(categoryProvider);
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('اطلاعات با موفقیت بازگردانی شد.')),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطا در بازگردانی اطلاعات: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -50,6 +143,58 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
               ),
+            ),
+            const SizedBox(height: 32),
+
+            // Backup & Restore
+            ListTile(
+              title: const Text('پشتیبان‌گیری و بازگردانی', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              subtitle: const Text('ذخیره و بازیابی اطلاعات برنامه', style: TextStyle(fontSize: 10)),
+              leading: HugeIcon(icon: HugeIcons.strokeRoundedDatabase01, color: Theme.of(context).colorScheme.primary),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+              ),
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  builder: (context) => Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'پشتیبان‌گیری و بازگردانی',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 24),
+                        ListTile(
+                          leading: const HugeIcon(icon: HugeIcons.strokeRoundedUpload01, color: Colors.blue),
+                          title: const Text('خروجی گرفتن از اطلاعات'),
+                          subtitle: const Text('ذخیره تمام اطلاعات در یک فایل'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _exportData();
+                          },
+                        ),
+                        ListTile(
+                          leading: const HugeIcon(icon: HugeIcons.strokeRoundedDownload01, color: Colors.green),
+                          title: const Text('وارد کردن اطلاعات'),
+                          subtitle: const Text('بازگردانی اطلاعات از فایل ذخیره شده'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _importData();
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 32),
   

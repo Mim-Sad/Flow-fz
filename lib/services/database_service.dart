@@ -204,6 +204,67 @@ class DatabaseService {
     );
   }
 
+  // Export/Import Logic
+  Future<Map<String, dynamic>> exportData() async {
+    final tasks = await getAllTasks();
+    final categories = await getAllCategories();
+    final completions = await getAllTaskCompletions();
+
+    // Convert completions to list for JSON serialization
+    // Structure: [{taskId: 1, date: "2023-01-01", status: 1}, ...]
+    List<Map<String, dynamic>> completionsList = [];
+    completions.forEach((taskId, dates) {
+      dates.forEach((date, status) {
+        completionsList.add({
+          'taskId': taskId,
+          'date': date,
+          'status': status,
+        });
+      });
+    });
+
+    return {
+      'version': 1, // Data export format version
+      'timestamp': DateTime.now().toIso8601String(),
+      'tasks': tasks.map((t) => t.toMap()).toList(),
+      'categories': categories.map((c) => c.toMap()).toList(),
+      'completions': completionsList,
+    };
+  }
+
+  Future<void> importData(Map<String, dynamic> data) async {
+    Database db = await database;
+    
+    await db.transaction((txn) async {
+      // Clear existing data
+      await txn.delete('tasks');
+      await txn.delete('categories');
+      await txn.delete('task_completions');
+
+      // Import Categories
+      final categoriesList = (data['categories'] as List).cast<Map<String, dynamic>>();
+      for (var catMap in categoriesList) {
+        await txn.insert('categories', catMap);
+      }
+
+      // Import Tasks
+      final tasksList = (data['tasks'] as List).cast<Map<String, dynamic>>();
+      for (var taskMap in tasksList) {
+        // We need to ensure we don't have ID conflicts if we are merging, 
+        // but here we are replacing, so we can keep IDs or let autoincrement handle it.
+        // If we want to keep relationships (completions), we MUST keep IDs.
+        await txn.insert('tasks', taskMap);
+      }
+
+      // Import Completions
+      if (data['completions'] != null) {
+        final completionsList = (data['completions'] as List).cast<Map<String, dynamic>>();
+        for (var compMap in completionsList) {
+          await txn.insert('task_completions', compMap);
+        }
+      }
+    });
+  }
   Future<int> updateTaskStatus(int id, TaskStatus status) async {
     Database db = await database;
     return await db.update(

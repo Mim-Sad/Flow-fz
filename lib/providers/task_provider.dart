@@ -67,9 +67,20 @@ class TasksNotifier extends StateNotifier<List<Task>> {
       // Force state update to rebuild listeners (even though list might be same)
       state = [...state]; 
     } else {
-      // Regular single task
-      await _dbService.updateTaskStatus(id, status);
-      await loadTasks();
+      // Regular single task - Optimistic Update
+      final previousState = [...state];
+      state = state.map((t) => t.id == id ? t.copyWith(status: status) : t).toList();
+
+      try {
+        await _dbService.updateTaskStatus(id, status);
+        // We don't need to reload all tasks if the update succeeded
+        // But to be safe, we can sync in background or just trust the optimistic update
+        // await loadTasks(); 
+      } catch (e) {
+        // Revert on failure
+        state = previousState;
+        rethrow;
+      }
     }
   }
 
