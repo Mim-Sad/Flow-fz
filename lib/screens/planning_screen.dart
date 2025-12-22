@@ -1011,22 +1011,22 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         children: [
           // Header
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 16, 14, 8),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Row(
               textDirection: TextDirection.rtl,
               children: [
-                const Text('🔄', style: TextStyle(fontSize: 14)),
-                const SizedBox(width: 6),
+                Lottie.asset(DuckEmojis.fire, width: 24, height: 24),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'تسک‌های تکرار شونده ماهانه',
+                    'تسک‌های تکرار شونده',
+                    textDirection: TextDirection.rtl,
+                    textAlign: TextAlign.right,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
                       color: Theme.of(context).colorScheme.primary,
                     ),
-                    textAlign: TextAlign.right,
-                    textDirection: TextDirection.rtl,
                   ),
                 ),
               ],
@@ -1035,7 +1035,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
           // Divider
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Divider(
               height: 1,
               thickness: 0.5,
@@ -1046,7 +1046,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
           // Weeks Sections
           ...tasksByWeek.entries.map((entry) {
