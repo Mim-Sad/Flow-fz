@@ -203,7 +203,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: Theme.of(context).colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: Theme.of(context).colorScheme.outlineVariant.withValues(
@@ -219,6 +219,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Row(
+              textDirection: TextDirection.rtl,
               children: [
                 const Text('🔁', style: TextStyle(fontSize: 16)),
                 const SizedBox(width: 8),
@@ -238,9 +239,20 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             ),
           ),
           
+          // Thin divider line
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Divider(
+              height: 1,
+              thickness: 0.5,
+              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+          ),
+          const SizedBox(height: 8),
+          
           // List of recurring tasks
           ...tasks.map((task) => _buildRecurringTaskRow(task)),
-          const SizedBox(height: 6),
+          const SizedBox(height: 12),
 
           // Progress Bar
           if (total > 0)
@@ -269,6 +281,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         color: Colors.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
         child: Row(
+          textDirection: TextDirection.ltr,
           children: [
             // Status Icon (Left side)
             _getStatusIconForTile(task),
@@ -287,6 +300,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   _showTaskOptions(context, task);
                 },
                 child: Row(
+                  textDirection: TextDirection.rtl,
                   children: [
                     if (task.taskEmoji != null) ...[
                       Text(task.taskEmoji!, style: const TextStyle(fontSize: 14)),
@@ -507,9 +521,11 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       color: Colors.transparent,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
       child: Row(
+        textDirection: TextDirection.ltr,
         children: [
           // 7 Status Icons (Left side)
           Row(
+            textDirection: TextDirection.rtl,
             mainAxisSize: MainAxisSize.min,
             children: days.map((date) => Padding(
               padding: const EdgeInsets.symmetric(horizontal: 1.5),
@@ -540,6 +556,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                 _showTaskOptions(context, task);
               },
               child: Row(
+                textDirection: TextDirection.rtl,
                 children: [
                   if (task.taskEmoji != null) ...[
                     Text(task.taskEmoji!, style: const TextStyle(fontSize: 14)),
@@ -587,7 +604,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: Theme.of(context).colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
@@ -601,6 +618,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Row(
+              textDirection: TextDirection.rtl,
               children: [
                 const Text('🔁', style: TextStyle(fontSize: 16)),
                 const SizedBox(width: 8),
@@ -620,27 +638,43 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             ),
           ),
           
+          // Thin divider line
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Divider(
+              height: 1,
+              thickness: 0.5,
+              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+          ),
+          const SizedBox(height: 10),
+          
           // Day initials
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Row(
+              textDirection: TextDirection.ltr,
               children: [
-                ...List.generate(7, (index) {
-                  final date = startOfWeek.add(Duration(days: index));
-                  return Container(
-                    width: 22,
-                    margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                    alignment: Alignment.center,
-                    child: Text(
-                      _getDayName(date.weekday)[0],
-                      style: TextStyle(
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                Row(
+                  textDirection: TextDirection.rtl,
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(7, (index) {
+                    final date = startOfWeek.add(Duration(days: index));
+                    return Container(
+                      width: 22,
+                      margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                      alignment: Alignment.center,
+                      child: Text(
+                        _getDayName(date.weekday)[0],
+                        style: TextStyle(
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                        ),
                       ),
-                    ),
-                  );
-                }),
+                    );
+                  }),
+                ),
                 const Expanded(child: SizedBox()), // Push to right
               ],
             ),
@@ -649,7 +683,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           
           // List of recurring tasks
           ...tasks.map((task) => _buildWeeklyRecurringTaskRow(task, startOfWeek)),
-          const SizedBox(height: 6),
+          const SizedBox(height: 12),
 
           // Progress Bar
           if (totalSlots > 0)
@@ -1002,7 +1036,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias, // For progress bar clipping
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: Theme.of(context).colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: Theme.of(context).colorScheme.outlineVariant.withValues(
@@ -1015,8 +1049,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
             child: Row(
+              textDirection: TextDirection.rtl,
               children: [
                 Text(emoji, style: const TextStyle(fontSize: 14)),
                 const SizedBox(width: 6),
@@ -1039,6 +1074,17 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
               ],
             ),
           ),
+          
+          // Thin divider line
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Divider(
+              height: 1,
+              thickness: 0.5,
+              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+          ),
+          const SizedBox(height: 8),
           
           // Reorderable List of Tasks
           if (tasks.isNotEmpty)
@@ -1066,7 +1112,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
               },
             ),
 
-          const SizedBox(height: 6),
+          const SizedBox(height: 12),
 
           // Progress Bar
           if (total > 0)
@@ -1095,6 +1141,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         color: Colors.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
         child: Row(
+          textDirection: TextDirection.ltr,
           children: [
             // Status Icon (Left side)
             _buildStatusIcon(task: task, date: task.dueDate, size: 22),
@@ -1113,6 +1160,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   _showTaskOptions(context, task);
                 },
                 child: Row(
+                  textDirection: TextDirection.rtl,
                   children: [
                     if (task.taskEmoji != null) ...[
                       Text(task.taskEmoji!, style: const TextStyle(fontSize: 14)),
