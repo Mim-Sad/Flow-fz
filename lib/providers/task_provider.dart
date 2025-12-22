@@ -84,7 +84,7 @@ class TasksNotifier extends StateNotifier<List<Task>> {
     _ref.invalidate(allTasksIncludingDeletedProvider);
   }
 
-  Future<void> updateStatus(int id, TaskStatus status, {DateTime? date}) async {
+  Future<void> updateStatus(int id, TaskStatus status, {DateTime? date, Map<String, dynamic>? metadata}) async {
     final task = state.firstWhere((t) => t.id == id, orElse: () => Task(title: '', dueDate: DateTime.now()));
     final rootId = task.rootId ?? id;
 
@@ -96,6 +96,12 @@ class TasksNotifier extends StateNotifier<List<Task>> {
       
       try {
         await _dbService.setTaskCompletion(id, date, status);
+        
+        // If metadata is provided (e.g. for deferCount), update the main task as well
+        if (metadata != null) {
+          final updatedTask = task.copyWith(metadata: metadata);
+          await updateTask(updatedTask);
+        }
       } catch (e) {
         // Rollback on error
         _loadTasks(); 
@@ -105,11 +111,16 @@ class TasksNotifier extends StateNotifier<List<Task>> {
     } else {
       // Regular task status update
       final previousState = [...state];
-      state = state.map((t) => t.id == id ? t.copyWith(status: status) : t).toList();
+      final updatedTask = task.copyWith(status: status, metadata: metadata ?? task.metadata);
+      state = state.map((t) => t.id == id ? updatedTask : t).toList();
       _ref.invalidate(allTasksIncludingDeletedProvider);
 
       try {
-        await _dbService.updateTaskStatus(id, status);
+        if (metadata != null) {
+          await _dbService.updateTask(updatedTask);
+        } else {
+          await _dbService.updateTaskStatus(id, status);
+        }
       } catch (e) {
         state = previousState;
         rethrow;

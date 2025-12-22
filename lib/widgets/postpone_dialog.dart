@@ -103,20 +103,21 @@ class PostponeDialog extends ConsumerWidget {
                   // 1. Mark current as deferred and update its defer count
                   final updatedMetadata = Map<String, dynamic>.from(task.metadata);
                   updatedMetadata['deferCount'] = (updatedMetadata['deferCount'] ?? 0) + 1;
-                  final updatedTask = task.copyWith(
-                    status: TaskStatus.deferred,
-                    metadata: updatedMetadata,
-                  );
-
+                  updatedMetadata['lastDeferredAt'] = DateTime.now().toIso8601String();
+                  
                   if (targetDate != null) {
-                    // If it's a recurring instance, we update via completion
+                    // If it's a recurring instance, we update via completion and update root task metadata
                     await ref.read(tasksProvider.notifier).updateStatus(
                       task.id!,
                       TaskStatus.deferred,
                       date: targetDate,
+                      metadata: updatedMetadata,
                     );
-                    // Note: completions don't store metadata yet, but the task event will log the change
                   } else {
+                    final updatedTask = task.copyWith(
+                      status: TaskStatus.deferred,
+                      metadata: updatedMetadata,
+                    );
                     await ref.read(tasksProvider.notifier).updateTask(updatedTask);
                   }
                   
@@ -158,12 +159,14 @@ class PostponeDialog extends ConsumerWidget {
                       // 1. Update status and metadata of current task to deferred
                       final currentMetadata = Map<String, dynamic>.from(task.metadata);
                       currentMetadata['deferCount'] = (currentMetadata['deferCount'] ?? 0) + 1;
+                      currentMetadata['lastDeferredAt'] = DateTime.now().toIso8601String();
                       
                       if (targetDate != null) {
                         await ref.read(tasksProvider.notifier).updateStatus(
                           task.id!,
                           TaskStatus.deferred,
                           date: targetDate,
+                          metadata: currentMetadata,
                         );
                       } else {
                         final updatedCurrentTask = task.copyWith(
@@ -174,19 +177,28 @@ class PostponeDialog extends ConsumerWidget {
                       }
 
                       // 2. Create a new task copy with the same incremented deferCount
-                      final newTask = task.copyWith(
-                        id: null,
+                      // Note: We use the constructor directly because copyWith(id: null) 
+                      // would fallback to 'this.id' due to 'id ?? this.id' logic.
+                      final newTask = Task(
                         rootId: task.rootId ?? task.id,
+                        title: task.title,
+                        description: task.description,
                         dueDate: newDate,
                         status: TaskStatus.pending,
+                        priority: task.priority,
+                        category: task.category,
+                        categories: List.from(task.categories),
                         createdAt: DateTime.now(),
                         updatedAt: DateTime.now(),
-                        metadata: currentMetadata,
+                        position: task.position,
+                        taskEmoji: task.taskEmoji,
+                        attachments: List.from(task.attachments),
                         recurrence: null, // Defer creates a one-off instance
+                        metadata: Map<String, dynamic>.from(currentMetadata),
                       );
                       
                       await ref.read(tasksProvider.notifier).addTask(newTask);
-                      
+
                       if (context.mounted) Navigator.pop(context);
                     }
                   }

@@ -57,6 +57,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     );
     if (picked != null) {
       setState(() {
+        _animatedKeys.clear();
         _selectedDate = picked.toDateTime();
       });
     }
@@ -64,6 +65,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
   void _jumpToCurrent() {
     setState(() {
+      _animatedKeys.clear();
       _selectedDate = DateTime.now();
     });
   }
@@ -87,6 +89,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
   void _changeRange(int delta) {
     setState(() {
+      _animatedKeys.clear();
       if (_viewMode == 0) {
         _selectedDate = _selectedDate.add(Duration(days: delta));
       } else if (_viewMode == 1) {
@@ -167,6 +170,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                         selected: {_viewMode},
                         onSelectionChanged: (Set<int> newSelection) {
                           setState(() {
+                            _animatedKeys.clear();
                             _viewMode = newSelection.first;
                           });
                         },
@@ -1041,7 +1045,6 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         if (weekIndex >= 0 && weekIndex < weeks.length) {
           final weekDays = weeks[weekIndex];
           for (var task in tasks) {
-            final rootId = task.rootId ?? task.id!;
             for (var date in weekDays) {
               if (isTaskActiveOnDate(task, date, completions)) {
                 final rootId = task.rootId ?? task.id!;

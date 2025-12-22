@@ -359,8 +359,8 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                         ),
                         ButtonSegment(
                           value: TaskPriority.medium, 
-                          label: Text('متوسط'),
-                          icon: HugeIcon(icon: HugeIcons.strokeRoundedMinusSign, color: Colors.orange, size: 18)
+                          label: Text('عادی'),
+                          icon: HugeIcon(icon: HugeIcons.strokeRoundedMinusSign, color: Colors.grey, size: 18)
                         ),
                         ButtonSegment(
                           value: TaskPriority.high, 
@@ -742,6 +742,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
       taskEmoji: _selectedEmoji,
       attachments: _attachments,
       recurrence: _recurrence,
+      metadata: widget.task?.metadata ?? const {},
     );
     
     if (widget.task == null) {

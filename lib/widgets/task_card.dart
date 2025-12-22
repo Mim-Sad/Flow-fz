@@ -27,12 +27,12 @@ class TaskCard extends ConsumerWidget {
         onCardColor = Theme.of(context).colorScheme.onErrorContainer;
         break;
       case TaskPriority.medium:
-        cardColor = Theme.of(context).colorScheme.primaryContainer;
-        onCardColor = Theme.of(context).colorScheme.onPrimaryContainer;
+        cardColor = Theme.of(context).colorScheme.surfaceContainerLow;
+        onCardColor = Theme.of(context).colorScheme.onSurface;
         break;
       case TaskPriority.low:
-        cardColor = Theme.of(context).colorScheme.secondaryContainer;
-        onCardColor = Theme.of(context).colorScheme.onSecondaryContainer;
+        cardColor = Colors.green.withValues(alpha: 0.1);
+        onCardColor = Colors.green.shade800;
         break;
     }
 
@@ -166,13 +166,15 @@ class TaskCard extends ConsumerWidget {
   }
 
   Widget _buildPriorityCapsule(BuildContext context, Color onCardColor) {
+    if (task.priority == TaskPriority.medium) return const SizedBox.shrink();
+
     String label;
     switch (task.priority) {
       case TaskPriority.high:
         label = 'بالا';
         break;
       case TaskPriority.medium:
-        label = 'متوسط';
+        label = 'عادی';
         break;
       case TaskPriority.low:
         label = 'کم';

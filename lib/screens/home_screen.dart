@@ -5,7 +5,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:lottie/lottie.dart';
 import 'package:text_scroll/text_scroll.dart';
-import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
 import '../models/task.dart';
@@ -250,12 +249,7 @@ class TaskListTile extends ConsumerWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () {}, // Removed tap on body (except status toggle on icon) or maybe keep it empty? User said "Hold on body for move".
-        // Wait, "Hold on body for move" is usually default behavior of ReorderableListView if onLongPress is null.
-        // But we have onLongPress defined here.
-        // If we want ReorderableListView to handle drag, we should NOT consume onLongPress on the body unless we want a custom action.
-        // User said: "Hold only for move".
-        // So I should REMOVE onLongPress from InkWell body.
+        onTap: onStatusToggle, 
         onLongPress: null, 
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -304,16 +298,28 @@ class TaskListTile extends ConsumerWidget {
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Wrap(
-                      spacing: 6,
+                      spacing: 4,
                       runSpacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         _buildCategoryCapsule(context, ref),
                         _buildPriorityCapsule(context),
                         if (task.recurrence != null && task.recurrence!.type != RecurrenceType.none)
-                          HugeIcon(icon: HugeIcons.strokeRoundedRepeat, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
+                            ),
+                            child: HugeIcon(
+                              icon: HugeIcons.strokeRoundedRepeat, 
+                              size: 12, 
+                              color: Theme.of(context).colorScheme.primary
+                            ),
+                          ),
                       ],
                     ),
                   ],
@@ -346,7 +352,7 @@ class TaskListTile extends ConsumerWidget {
           } else {
             // Swipe Left: Defer
             HapticFeedback.mediumImpact();
-            PostponeDialog.show(context, ref, task);
+            PostponeDialog.show(context, ref, task, targetDate: task.dueDate);
             return false;
           }
         },
@@ -379,6 +385,8 @@ class TaskListTile extends ConsumerWidget {
   }
 
   Widget _buildPriorityCapsule(BuildContext context) {
+    if (task.priority == TaskPriority.medium) return const SizedBox.shrink();
+
     dynamic icon;
     Color color;
     String label;
@@ -391,8 +399,8 @@ class TaskListTile extends ConsumerWidget {
         break;
       case TaskPriority.medium:
         icon = HugeIcons.strokeRoundedMinusSign;
-        color = Colors.orange;
-        label = 'متوسط';
+        color = Colors.grey;
+        label = 'عادی';
         break;
       case TaskPriority.high:
         icon = HugeIcons.strokeRoundedAlertCircle;

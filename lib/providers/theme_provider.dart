@@ -26,7 +26,7 @@ class ThemeNotifier extends Notifier<ThemeState> {
   ThemeState build() {
     return ThemeState(
       seedColor: const Color(0xFF6750A4), // Default color
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.dark,
     );
   }
 

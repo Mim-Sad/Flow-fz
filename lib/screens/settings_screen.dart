@@ -144,7 +144,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
 
             // Backup & Restore
             ListTile(
@@ -198,10 +198,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 32),
   
-            // Color Selection (Compact Redesign)
-            const Text(
-              'رنگ اصلی نرم‌افزار',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            // Color Selection
+            Row(
+              children: [
+                HugeIcon(icon: HugeIcons.strokeRoundedPaintBoard, color: Theme.of(context).colorScheme.primary, size: 20),
+                const SizedBox(width: 8),
+                const Text(
+                  'رنگ اصلی نرم‌افزار',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -242,7 +248,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ],
                       ),
                       child: isSelected
-                          ? const HugeIcon(icon: HugeIcons.strokeRoundedHeartCheck, color: Colors.white, size: 10)
+                          ? Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: const HugeIcon(icon: HugeIcons.strokeRoundedHeartCheck, color: Colors.white),
+                          )
                           : null,
                     ),
                   );
@@ -251,95 +260,72 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 34),
   
-            // Mode Selection (Light/Dark)
-            const Text(
-              'حالت نمایش',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
+            // Mode Selection
             Row(
               children: [
-                Expanded(
-                  child: _buildModeCard(
-                    context,
-                    ref,
-                    title: 'روشن',
-                    icon: HugeIcons.strokeRoundedSun01,
-                    isSelected: themeState.themeMode == ThemeMode.light,
-                    onTap: () => themeNotifier.setThemeMode(ThemeMode.light),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildModeCard(
-                    context,
-                    ref,
-                    title: 'تاریک',
-                    icon: HugeIcons.strokeRoundedMoon02,
-                    isSelected: themeState.themeMode == ThemeMode.dark,
-                    onTap: () => themeNotifier.setThemeMode(ThemeMode.dark),
-                  ),
+                HugeIcon(icon: HugeIcons.strokeRoundedMoon, color: Theme.of(context).colorScheme.primary, size: 20),
+                const SizedBox(width: 8),
+                const Text(
+                  'حالت نمایش',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            _buildModeCard(
-              context,
-              ref,
-              title: 'هماهنگ با سیستم',
-              icon: HugeIcons.strokeRoundedSettings01,
-              isSelected: themeState.themeMode == ThemeMode.system,
-              onTap: () => themeNotifier.setThemeMode(ThemeMode.system),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildModeCard(
-    BuildContext context,
-    WidgetRef ref, {
-    required String title,
-    required dynamic icon,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Theme.of(context).colorScheme.primaryContainer
-              : Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.outlineVariant,
-            width: 2,
-          ),
-        ),
-        child: Column(
-          children: [
-            HugeIcon(
-              icon: icon,
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: TextStyle(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.onSurfaceVariant,
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<ThemeMode>(
+                segments: [
+                  ButtonSegment<ThemeMode>(
+                    value: ThemeMode.light,
+                    label: const Text('روشن'),
+                    icon: HugeIcon(
+                      icon: HugeIcons.strokeRoundedSun01,
+                      size: 20,
+                      color: themeState.themeMode == ThemeMode.light
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  ButtonSegment<ThemeMode>(
+                    value: ThemeMode.dark,
+                    label: const Text('تاریک'),
+                    icon: HugeIcon(
+                      icon: HugeIcons.strokeRoundedMoon02,
+                      size: 20,
+                      color: themeState.themeMode == ThemeMode.dark
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  ButtonSegment<ThemeMode>(
+                    value: ThemeMode.system,
+                    label: const Text('سیستم'),
+                    icon: HugeIcon(
+                      icon: HugeIcons.strokeRoundedSettings01,
+                      size: 20,
+                      color: themeState.themeMode == ThemeMode.system
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+                selected: {themeState.themeMode},
+                onSelectionChanged: (newSelection) {
+                  themeNotifier.setThemeMode(newSelection.first);
+                },
+                showSelectedIcon: false,
+                style: SegmentedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  selectedBackgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                  selectedForegroundColor: Theme.of(context).colorScheme.primary,
+                  side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
