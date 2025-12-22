@@ -23,7 +23,7 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'flow_database.db');
     return await openDatabase(
       path,
-      version: 8,
+      version: 9,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -88,6 +88,9 @@ class DatabaseService {
       // If some tasks are missing, fallback to taskId
       await db.execute('UPDATE task_completions SET rootId = taskId WHERE rootId IS NULL');
     }
+    if (oldVersion < 9) {
+      await db.execute('ALTER TABLE tasks ADD COLUMN metadata TEXT');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -109,7 +112,8 @@ class DatabaseService {
         updatedAt TEXT,
         deletedAt TEXT,
         isDeleted INTEGER NOT NULL DEFAULT 0,
-        position INTEGER NOT NULL DEFAULT 0
+        position INTEGER NOT NULL DEFAULT 0,
+        metadata TEXT
       )
     ''');
     await _createCategoriesTable(db);

@@ -13,6 +13,7 @@ import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
 import '../models/task.dart';
 import '../models/category_data.dart';
+import '../widgets/postpone_dialog.dart';
 import '../widgets/task_sheets.dart';
 // Removed unused import: add_task_screen.dart as it is handled in TaskSheets
 
@@ -303,7 +304,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     final isCancelled = status == TaskStatus.cancelled;
     final isSuccess = status == TaskStatus.success;
     
-    return Opacity(
+    final row = Opacity(
       opacity: isCancelled ? 0.6 : 1.0,
       child: Container(
         color: Colors.transparent,
@@ -321,7 +322,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
               child: InkWell(
                 onTap: () {
                   HapticFeedback.lightImpact();
-                  _toggleTaskStatus(task, task.dueDate);
+                  _toggleTaskStatus(task, _selectedDate);
                 },
                 onLongPress: () {
                   HapticFeedback.mediumImpact();
@@ -361,6 +362,37 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           ],
         ),
       ),
+    );
+
+    return Dismissible(
+      key: Key('planning_rec_dismiss_${task.id}_${_selectedDate.toIso8601String()}'),
+      direction: DismissDirection.horizontal,
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.startToEnd) {
+          // Swipe Right: Done
+          HapticFeedback.mediumImpact();
+          _toggleTaskStatus(task, _selectedDate);
+          return false;
+        } else {
+          // Swipe Left: Defer
+          HapticFeedback.mediumImpact();
+          PostponeDialog.show(context, ref, task, targetDate: _selectedDate);
+          return false;
+        }
+      },
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 20),
+        color: Colors.green.shade400,
+        child: const Icon(Icons.check, color: Colors.white),
+      ),
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        color: Colors.orange.shade400,
+        child: const Icon(Icons.history, color: Colors.white),
+      ),
+      child: row,
     );
   }
 
@@ -1383,7 +1415,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
   Widget _buildCompactTaskRow(Task task) {
     final isCancelled = task.status == TaskStatus.cancelled;
-    return Opacity(
+    final row = Opacity(
       opacity: isCancelled ? 0.6 : 1.0,
       child: Container(
         // Add transparent background to catch drag gestures effectively
@@ -1445,6 +1477,37 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           ],
         ),
       ),
+    );
+
+    return Dismissible(
+      key: Key('planning_dismiss_${task.id}_${task.dueDate.toIso8601String()}'),
+      direction: DismissDirection.horizontal,
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.startToEnd) {
+          // Swipe Right: Done
+          HapticFeedback.mediumImpact();
+          _toggleTaskStatus(task, task.dueDate);
+          return false;
+        } else {
+          // Swipe Left: Defer
+          HapticFeedback.mediumImpact();
+          PostponeDialog.show(context, ref, task, targetDate: task.dueDate);
+          return false;
+        }
+      },
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 20),
+        color: Colors.green.shade400,
+        child: const Icon(Icons.check, color: Colors.white),
+      ),
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        color: Colors.orange.shade400,
+        child: const Icon(Icons.history, color: Colors.white),
+      ),
+      child: row,
     );
   }
 

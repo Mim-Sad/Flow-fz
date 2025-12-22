@@ -6,6 +6,7 @@ import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import '../models/task.dart';
 import '../providers/task_provider.dart';
 import '../screens/add_task_screen.dart';
+import 'postpone_dialog.dart';
 
 class TaskStatusPickerSheet extends ConsumerWidget {
   final Task task;
@@ -134,81 +135,21 @@ class TaskStatusPickerSheet extends ConsumerWidget {
     return InkWell(
       onTap: () async {
         HapticFeedback.mediumImpact();
-        Navigator.pop(context);
 
         if (status == TaskStatus.deferred) {
-          final initialDate = targetDate ?? task.dueDate;
+          // Close the current sheet first
+          Navigator.pop(context);
           
-          final Jalali? picked = await showPersianDatePicker(
-            context: context,
-            initialDate: Jalali.fromDateTime(
-              initialDate.add(const Duration(days: 1)),
-            ),
-            firstDate: Jalali.fromDateTime(
-              DateTime.now().subtract(const Duration(days: 365)),
-            ),
-            lastDate: Jalali.fromDateTime(
-              DateTime.now().add(const Duration(days: 365)),
-            ),
-            helpText: 'انتخاب تاریخ تعویق',
-          );
-
-          if (picked != null) {
-            if (!context.mounted) return;
-            final TimeOfDay? pickedTime = await showTimePicker(
-              context: context,
-              initialTime: TimeOfDay.fromDateTime(initialDate),
-              builder: (context, child) {
-                return Directionality(
-                  textDirection: TextDirection.rtl,
-                  child: child!,
-                );
-              },
-            );
-
-            if (pickedTime != null) {
-               final dt = picked.toDateTime();
-               final newDate = DateTime(dt.year, dt.month, dt.day, pickedTime.hour, pickedTime.minute);
-
-              if (targetDate != null) {
-                ref.read(tasksProvider.notifier).updateStatus(
-                      task.id!,
-                      TaskStatus.deferred,
-                      date: targetDate,
-                    );
-              } else {
-                await ref
-                    .read(tasksProvider.notifier)
-                    .updateStatus(task.id!, TaskStatus.deferred);
-              }
-
-              // Create new task
-              final newTask = Task(
-                rootId: task.rootId ?? task.id,
-                title: task.title,
-                description: task.description,
-                dueDate: newDate,
-                status: TaskStatus.pending,
-                priority: task.priority,
-                category: task.category,
-                categories: task.categories,
-                taskEmoji: task.taskEmoji,
-                attachments: task.attachments,
-                recurrence: null, // One-off copy
-              );
-              
-              await ref.read(tasksProvider.notifier).addTask(newTask);
-            }
-          }
+          // Show the new postponement dialog
+          PostponeDialog.show(context, ref, task, targetDate: targetDate);
         } else {
           // Standard Status Update
           if (targetDate != null) {
-            ref
-                .read(tasksProvider.notifier)
-                .updateStatus(task.id!, status, date: targetDate);
+            ref.read(tasksProvider.notifier).updateStatus(task.id!, status, date: targetDate);
           } else {
             ref.read(tasksProvider.notifier).updateStatus(task.id!, status);
           }
+          if (context.mounted) Navigator.pop(context);
         }
       },
       borderRadius: BorderRadius.circular(15),
@@ -277,8 +218,8 @@ class TaskStatusPickerSheet extends ConsumerWidget {
     );
   }
 }
-
-class TaskOptionsSheet extends ConsumerWidget {
+  
+  class TaskOptionsSheet extends ConsumerWidget {
   final Task task;
 
   const TaskOptionsSheet({super.key, required this.task});

@@ -10,6 +10,7 @@ import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
 import '../models/task.dart';
 import '../models/category_data.dart';
+import '../widgets/postpone_dialog.dart';
 import '../widgets/task_sheets.dart';
 import 'add_task_screen.dart';
 
@@ -345,48 +346,7 @@ class TaskListTile extends ConsumerWidget {
           } else {
             // Swipe Left: Defer
             HapticFeedback.mediumImpact();
-            final Jalali? picked = await showPersianDatePicker(
-              context: context,
-              initialDate: Jalali.fromDateTime(task.dueDate.add(const Duration(days: 1))),
-              firstDate: Jalali.fromDateTime(DateTime.now().subtract(const Duration(days: 365))),
-              lastDate: Jalali.fromDateTime(DateTime.now().add(const Duration(days: 365))),
-              helpText: 'انتخاب تاریخ تعویق',
-            );
-
-            if (picked != null) {
-              if (!context.mounted) return false;
-              final TimeOfDay? pickedTime = await showTimePicker(
-                context: context,
-                initialTime: TimeOfDay.fromDateTime(task.dueDate),
-                builder: (context, child) {
-                  return Directionality(
-                    textDirection: TextDirection.rtl,
-                    child: child!,
-                  );
-                },
-              );
-
-              if (pickedTime != null) {
-                final dt = picked.toDateTime();
-                final newDate = DateTime(dt.year, dt.month, dt.day, pickedTime.hour, pickedTime.minute);
-                
-                await ref.read(tasksProvider.notifier).updateStatus(task.id!, TaskStatus.deferred, date: task.dueDate);
-                final newTask = Task(
-                  rootId: task.rootId ?? task.id,
-                  title: task.title,
-                  description: task.description,
-                  dueDate: newDate,
-                  status: TaskStatus.pending,
-                  priority: task.priority,
-                  category: task.category,
-                  categories: task.categories,
-                  taskEmoji: task.taskEmoji,
-                  attachments: task.attachments,
-                  recurrence: null, // Defer creates a one-off instance
-                );
-                await ref.read(tasksProvider.notifier).addTask(newTask);
-              }
-            }
+            PostponeDialog.show(context, ref, task);
             return false;
           }
         },

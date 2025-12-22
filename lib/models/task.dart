@@ -89,6 +89,7 @@ class Task {
   final String? taskEmoji;
   final List<String> attachments;
   final RecurrenceConfig? recurrence;
+  final Map<String, dynamic> metadata;
 
   Task({
     this.id,
@@ -108,10 +109,13 @@ class Task {
     this.taskEmoji,
     this.attachments = const [],
     this.recurrence,
+    this.metadata = const {},
   }) : 
     createdAt = createdAt ?? DateTime.now(),
     updatedAt = updatedAt ?? (createdAt ?? DateTime.now()),
     categories = categories ?? (category != null ? [category] : []);
+
+  int get deferCount => metadata['deferCount'] ?? 0;
 
   Map<String, dynamic> toMap() {
     return {
@@ -132,6 +136,7 @@ class Task {
       'taskEmoji': taskEmoji,
       'attachments': json.encode(attachments),
       'recurrence': recurrence?.toJson(),
+      'metadata': json.encode(metadata),
     };
   }
 
@@ -145,6 +150,15 @@ class Task {
       }
     } else if (map['category'] != null) {
       loadedCategories = [map['category']];
+    }
+
+    Map<String, dynamic> loadedMetadata = {};
+    if (map['metadata'] != null) {
+      try {
+        loadedMetadata = Map<String, dynamic>.from(json.decode(map['metadata']));
+      } catch (e) {
+        // Fallback
+      }
     }
 
     return Task(
@@ -169,6 +183,7 @@ class Task {
       recurrence: map['recurrence'] != null 
           ? RecurrenceConfig.fromJson(map['recurrence']) 
           : null,
+      metadata: loadedMetadata,
     );
   }
 
@@ -190,6 +205,7 @@ class Task {
     String? taskEmoji,
     List<String>? attachments,
     RecurrenceConfig? recurrence,
+    Map<String, dynamic>? metadata,
   }) {
     return Task(
       id: id ?? this.id,
@@ -209,6 +225,7 @@ class Task {
       taskEmoji: taskEmoji ?? this.taskEmoji,
       attachments: attachments ?? this.attachments,
       recurrence: recurrence ?? this.recurrence,
+      metadata: metadata ?? this.metadata,
     );
   }
 }
