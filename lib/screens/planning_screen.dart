@@ -26,6 +26,7 @@ class PlanningScreen extends ConsumerStatefulWidget {
 class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   int _viewMode = 0; // 0: Daily, 1: Weekly, 2: Monthly
   DateTime _selectedDate = DateTime.now();
+  final Set<String> _animatedKeys = {};
 
   String _toPersianDigit(String input) {
     const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -98,8 +99,10 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Watch activeTasksProvider for the selected date
-    final tasks = ref.watch(activeTasksProvider(_selectedDate));
+    // Watch all tasks for weekly/monthly views
+    final allTasks = ref.watch(tasksProvider);
+    // Watch activeTasksProvider for the selected date (daily view)
+    final dailyTasks = ref.watch(activeTasksProvider(_selectedDate));
     
     final categories = ref.watch(categoryProvider).value ?? [];
 
@@ -111,7 +114,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
               // Spacer for the top bar
               SizedBox(height: MediaQuery.of(context).padding.top + 70),
               
-              Expanded(child: _buildMainContent(tasks, categories)),
+              Expanded(child: _buildMainContent(allTasks, dailyTasks, categories)),
               _buildRangePicker(),
             ],
           ),
@@ -287,7 +290,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             ),
         ],
       ),
-    ).animate().fadeIn().slideY(begin: 0.05);
+    );
   }
 
   Widget _buildRecurringTaskRow(Task task) {
@@ -361,14 +364,19 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     );
   }
 
-  Widget _buildMainContent(List<Task> tasks, List<CategoryData> categories) {
-    final validTasks = tasks.where(_isTaskStructurallyValid).toList();
-
+  Widget _buildMainContent(
+    List<Task> allTasks,
+    List<Task> dailyTasks,
+    List<CategoryData> categories,
+  ) {
     if (_viewMode == 0) {
+      final validTasks = dailyTasks.where(_isTaskStructurallyValid).toList();
       return _buildDailyView(validTasks, categories);
     } else if (_viewMode == 1) {
+      final validTasks = allTasks.where(_isTaskStructurallyValid).toList();
       return _buildWeeklyView(validTasks, categories);
     } else {
+      final validTasks = allTasks.where(_isTaskStructurallyValid).toList();
       return _buildMonthlyView(validTasks, categories);
     }
   }
@@ -750,20 +758,32 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       children: [
         // Recurring Tasks Box
-        if (recurringTasks.isNotEmpty)
-          FadeInOnce(
-            key: const ValueKey('daily_recurring_box'),
-            delay: 100.ms,
-            child: _buildRecurringTaskGroup(recurringTasks),
-          ),
+        if (recurringTasks.isNotEmpty) ...[
+          () {
+            final key = 'daily_recurring_${_selectedDate.toIso8601String()}';
+            final shouldAnimate = !_animatedKeys.contains(key);
+            if (shouldAnimate) _animatedKeys.add(key);
+            return FadeInOnce(
+              key: ValueKey(key),
+              delay: 100.ms,
+              animate: shouldAnimate,
+              child: _buildRecurringTaskGroup(recurringTasks),
+            );
+          }(),
+        ],
         
         // Regular Task Groups
         ..._getGroupedAndSortedTasks(regularTasks).entries.toList().asMap().entries.map((entry) {
              final index = entry.key;
              final group = entry.value;
+             final key = 'daily_group_${group.key}_${_selectedDate.toIso8601String()}';
+             final shouldAnimate = !_animatedKeys.contains(key);
+             if (shouldAnimate) _animatedKeys.add(key);
+
              return FadeInOnce(
-               key: ValueKey('daily_group_${group.key}'),
+               key: ValueKey(key),
                delay: (200 + (index * 50)).ms,
+               animate: shouldAnimate,
                child: _buildTaskGroup(group.key, group.value, categories),
              );
         }),
@@ -814,12 +834,19 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       children: [
         // Recurring Tasks Section (Top)
-        if (recurringTasksForWeek.isNotEmpty)
-          FadeInOnce(
-            key: const ValueKey('weekly_recurring_box'),
-            delay: 100.ms,
-            child: _buildWeeklyRecurringTaskGroup(recurringTasksForWeek, startOfWeek),
-          ),
+        if (recurringTasksForWeek.isNotEmpty) ...[
+          () {
+            final key = 'weekly_recurring_${startOfWeek.toIso8601String()}';
+            final shouldAnimate = !_animatedKeys.contains(key);
+            if (shouldAnimate) _animatedKeys.add(key);
+            return FadeInOnce(
+              key: ValueKey(key),
+              delay: 100.ms,
+              animate: shouldAnimate,
+              child: _buildWeeklyRecurringTaskGroup(recurringTasksForWeek, startOfWeek),
+            );
+          }(),
+        ],
         
         // Grouped Regular Tasks (All tasks of the week grouped by category)
         if (regularTasksForWeek.isNotEmpty)
@@ -828,9 +855,13 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
               .map((entry) {
                 final index = entry.key;
                 final group = entry.value;
+                final key = 'weekly_group_${group.key}_${startOfWeek.toIso8601String()}';
+                final shouldAnimate = !_animatedKeys.contains(key);
+                if (shouldAnimate) _animatedKeys.add(key);
                 return FadeInOnce(
-                  key: ValueKey('weekly_group_${group.key}'),
+                  key: ValueKey(key),
                   delay: (200 + (index * 50)).ms,
+                  animate: shouldAnimate,
                   child: _buildTaskGroup(group.key, group.value, categories),
                 );
               }),
@@ -909,16 +940,23 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         children: [
           // Consolidated Recurring Tasks Box
-          if (recurringTasksByWeek.isNotEmpty)
-            FadeInOnce(
-              key: const ValueKey('monthly_recurring_box'),
-              delay: 100.ms,
-              child: _buildMonthlyRecurringTasksBox(
-                recurringTasksByWeek,
-                weeks,
-                jalaliDate.month,
-              ),
-            ),
+          if (recurringTasksByWeek.isNotEmpty) ...[
+            () {
+              final key = 'monthly_recurring_${jalaliDate.year}_${jalaliDate.month}';
+              final shouldAnimate = !_animatedKeys.contains(key);
+              if (shouldAnimate) _animatedKeys.add(key);
+              return FadeInOnce(
+                key: ValueKey(key),
+                delay: 100.ms,
+                animate: shouldAnimate,
+                child: _buildMonthlyRecurringTasksBox(
+                  recurringTasksByWeek,
+                  weeks,
+                  jalaliDate.month,
+                ),
+              );
+            }(),
+          ],
           
           if (recurringTasksByWeek.isNotEmpty && regularTasksForMonth.isNotEmpty)
              const SizedBox(height: 16),
@@ -928,9 +966,14 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             ..._getGroupedAndSortedTasks(regularTasksForMonth).entries.toList().asMap().entries.map((entry) {
                final index = entry.key;
                final group = entry.value;
+               final key = 'monthly_group_${group.key}_${jalaliDate.year}_${jalaliDate.month}';
+               final shouldAnimate = !_animatedKeys.contains(key);
+               if (shouldAnimate) _animatedKeys.add(key);
+
                return FadeInOnce(
-                 key: ValueKey('monthly_group_${group.key}'),
+                 key: ValueKey(key),
                  delay: (200 + (index * 50)).ms,
+                 animate: shouldAnimate,
                  child: _buildTaskGroup(group.key, group.value, categories),
                );
             }),
@@ -1335,7 +1378,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             ),
         ],
       ),
-    ).animate().fadeIn().slideY(begin: 0.05);
+    );
   }
 
   Widget _buildCompactTaskRow(Task task) {
@@ -1556,25 +1599,29 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 class FadeInOnce extends StatefulWidget {
   final Widget child;
   final Duration delay;
-  const FadeInOnce({super.key, required this.child, required this.delay});
+  final bool animate;
+  const FadeInOnce({
+    super.key,
+    required this.child,
+    required this.delay,
+    this.animate = true,
+  });
 
   @override
   State<FadeInOnce> createState() => _FadeInOnceState();
 }
 
 class _FadeInOnceState extends State<FadeInOnce> with AutomaticKeepAliveClientMixin {
-  bool _hasAnimated = false;
-
   @override
   bool get wantKeepAlive => true;
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    if (_hasAnimated) return widget.child;
+    if (!widget.animate) return widget.child;
 
     return widget.child
-        .animate(onComplete: (controller) => _hasAnimated = true)
+        .animate()
         .fadeIn(duration: 400.ms, delay: widget.delay)
         .slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic)
         .blur(begin: const Offset(4, 4), end: Offset.zero);

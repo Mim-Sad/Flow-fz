@@ -32,13 +32,10 @@ class TaskStatusPickerSheet extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                const SizedBox(width: 16),
-                _buildStatusAction(
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatusAction(
                   context,
                   ref,
                   TaskStatus.success,
@@ -46,35 +43,10 @@ class TaskStatusPickerSheet extends ConsumerWidget {
                   HugeIcons.strokeRoundedCheckmarkCircle03,
                   Colors.green,
                 ),
-                const SizedBox(width: 8),
-                _buildStatusAction(
-                  context,
-                  ref,
-                  TaskStatus.failed,
-                  'انجام نشده',
-                  HugeIcons.strokeRoundedCancelCircle,
-                  Colors.red,
-                ),
-                const SizedBox(width: 8),
-                _buildStatusAction(
-                  context,
-                  ref,
-                  TaskStatus.cancelled,
-                  'لغو شده',
-                  HugeIcons.strokeRoundedMinusSignCircle,
-                  Colors.grey,
-                ),
-                const SizedBox(width: 8),
-                _buildStatusAction(
-                  context,
-                  ref,
-                  TaskStatus.deferred,
-                  'تعویق شده',
-                  HugeIcons.strokeRoundedClock01,
-                  Colors.orange,
-                ),
-                const SizedBox(width: 8),
-                _buildStatusAction(
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildStatusAction(
                   context,
                   ref,
                   TaskStatus.pending,
@@ -82,9 +54,47 @@ class TaskStatusPickerSheet extends ConsumerWidget {
                   HugeIcons.strokeRoundedCircle,
                   Theme.of(context).colorScheme.primary,
                 ),
-                const SizedBox(width: 16),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildStatusAction(
+                  context,
+                  ref,
+                  TaskStatus.failed,
+                  'انجام نشده',
+                  HugeIcons.strokeRoundedCancelCircle,
+                  Colors.red,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatusAction(
+                  context,
+                  ref,
+                  TaskStatus.cancelled,
+                  'لغو شده',
+                  HugeIcons.strokeRoundedMinusSignCircle,
+                  Colors.grey,
+                  horizontal: true,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildStatusAction(
+                  context,
+                  ref,
+                  TaskStatus.deferred,
+                  'تعویق شده',
+                  HugeIcons.strokeRoundedClock01,
+                  Colors.orange,
+                  horizontal: true,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
         ],
@@ -98,8 +108,9 @@ class TaskStatusPickerSheet extends ConsumerWidget {
     TaskStatus status,
     String label,
     dynamic icon,
-    Color color,
-  ) {
+    Color color, {
+    bool horizontal = false,
+  }) {
     // Determine the target date for this status change
     // If recurringDate is provided (e.g., from Planning screen), use it.
     // Otherwise, if it's a recurring task (e.g., from Home screen), use task.dueDate as the target date.
@@ -200,42 +211,68 @@ class TaskStatusPickerSheet extends ConsumerWidget {
           }
         }
       },
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(15),
       child: Container(
-        width: 80,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
           color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
           border: Border.all(
             color: isSelected
                 ? color
-                : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
-            width: isSelected ? 2 : 1,
+                : Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+            width: isSelected ? 1.5 : 1,
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(15),
         ),
-        child: Column(
-          children: [
-            HugeIcon(
-              icon: icon,
-              size: 28,
-              color: isSelected
-                  ? color
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                color: isSelected
-                    ? color
-                    : Theme.of(context).colorScheme.onSurface,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        child: horizontal
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  HugeIcon(
+                    icon: icon,
+                    size: 20,
+                    color: isSelected
+                        ? color
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isSelected
+                          ? color
+                          : Theme.of(context).colorScheme.onSurface,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  HugeIcon(
+                    icon: icon,
+                    size: 28,
+                    color: isSelected
+                        ? color
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isSelected
+                          ? color
+                          : Theme.of(context).colorScheme.onSurface,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }

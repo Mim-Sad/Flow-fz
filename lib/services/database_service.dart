@@ -265,43 +265,28 @@ class DatabaseService {
     final now = DateTime.now();
     final nowStr = now.toIso8601String();
 
-    // 1. Mark current version as deleted/archived
-    if (task.id != null) {
-      await db.update(
-        'tasks',
-        {
-          'isDeleted': 1, 
-          'deletedAt': nowStr,
-          'updatedAt': nowStr,
-        },
-        where: 'id = ?',
-        whereArgs: [task.id],
-      );
-    }
+    if (task.id == null) return -1;
 
-    // 2. Insert new version
-    final rootId = task.rootId ?? task.id;
-    final newTask = task.copyWith(
-      id: null, // New ID
-      rootId: rootId,
-      createdAt: now,
-      updatedAt: now,
-      isDeleted: false,
-      deletedAt: null,
+    final map = task.toMap();
+    map.remove('id'); // Ensure we don't try to update the primary key column
+    map['updatedAt'] = nowStr;
+
+    await db.update(
+      'tasks',
+      map,
+      where: 'id = ?',
+      whereArgs: [task.id],
     );
-    
-    final map = newTask.toMap();
-    final newId = await db.insert('tasks', map);
 
     await insertTaskEvent(
-      taskId: newId,
-      rootId: rootId,
+      taskId: task.id!,
+      rootId: task.rootId ?? task.id,
       type: 'update',
-      payload: {'previousId': task.id, 'task': map},
+      payload: {'task': map},
       occurredAt: now,
     );
 
-    return newId;
+    return task.id!;
   }
 
   Future<int> softDeleteTask(int id) async {

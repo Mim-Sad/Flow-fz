@@ -724,7 +724,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     }
   }
 
-  void _saveTask() {
+  Future<void> _saveTask() async {
     if (_titleController.text.isEmpty) return;
     
     final task = Task(
@@ -745,10 +745,13 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     );
     
     if (widget.task == null) {
-      ref.read(tasksProvider.notifier).addTask(task);
+      await ref.read(tasksProvider.notifier).addTask(task);
     } else {
-      ref.read(tasksProvider.notifier).updateTask(task);
+      await ref.read(tasksProvider.notifier).updateTask(task);
     }
-    Navigator.pop(context);
+    
+    if (mounted) {
+      Navigator.pop(context);
+    }
   }
 }
