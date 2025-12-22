@@ -100,14 +100,20 @@ class TaskStatusPickerSheet extends ConsumerWidget {
     dynamic icon,
     Color color,
   ) {
-    // Determine current status (check specific date if recurring)
+    // Determine the target date for this status change
+    // If recurringDate is provided (e.g., from Planning screen), use it.
+    // Otherwise, if it's a recurring task (e.g., from Home screen), use task.dueDate as the target date.
+    final targetDate = recurringDate ??
+        (task.recurrence != null && task.recurrence!.type != RecurrenceType.none
+            ? task.dueDate
+            : null);
+
+    // Determine current status (check specific date if it's a date-specific instance)
     TaskStatus currentStatus;
-    if (recurringDate != null &&
-        task.recurrence != null &&
-        task.recurrence!.type != RecurrenceType.none) {
+    if (targetDate != null) {
       currentStatus = ref
           .read(tasksProvider.notifier)
-          .getStatusForDate(task.id!, recurringDate!);
+          .getStatusForDate(task.id!, targetDate);
     } else {
       currentStatus = task.status;
     }
@@ -120,7 +126,7 @@ class TaskStatusPickerSheet extends ConsumerWidget {
         Navigator.pop(context);
 
         if (status == TaskStatus.deferred) {
-          final initialDate = recurringDate ?? task.dueDate;
+          final initialDate = targetDate ?? task.dueDate;
           
           final Jalali? picked = await showPersianDatePicker(
             context: context,
@@ -147,13 +153,11 @@ class TaskStatusPickerSheet extends ConsumerWidget {
                final dt = picked.toDateTime();
                final newDate = DateTime(dt.year, dt.month, dt.day, pickedTime.hour, pickedTime.minute);
 
-              if (recurringDate != null &&
-                  task.recurrence != null &&
-                  task.recurrence!.type != RecurrenceType.none) {
+              if (targetDate != null) {
                 ref.read(tasksProvider.notifier).updateStatus(
                       task.id!,
                       TaskStatus.deferred,
-                      date: recurringDate,
+                      date: targetDate,
                     );
               } else {
                 await ref
@@ -181,12 +185,10 @@ class TaskStatusPickerSheet extends ConsumerWidget {
           }
         } else {
           // Standard Status Update
-          if (recurringDate != null &&
-              task.recurrence != null &&
-              task.recurrence!.type != RecurrenceType.none) {
+          if (targetDate != null) {
             ref
                 .read(tasksProvider.notifier)
-                .updateStatus(task.id!, status, date: recurringDate);
+                .updateStatus(task.id!, status, date: targetDate);
           } else {
             ref.read(tasksProvider.notifier).updateStatus(task.id!, status);
           }

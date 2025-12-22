@@ -376,7 +376,7 @@ class TaskListTile extends ConsumerWidget {
                   categories: task.categories,
                   taskEmoji: task.taskEmoji,
                   attachments: task.attachments,
-                  recurrence: task.recurrence,
+                  recurrence: null, // Defer creates a one-off instance
                 );
                 await ref.read(tasksProvider.notifier).addTask(newTask);
               }

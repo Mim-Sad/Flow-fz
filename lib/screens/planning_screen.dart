@@ -238,7 +238,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             child: Row(
               textDirection: TextDirection.rtl,
               children: [
-                const Text('🔁', style: TextStyle(fontSize: 16)),
+                Lottie.asset(DuckEmojis.fire, width: 24, height: 24),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -631,7 +631,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             child: Row(
               textDirection: TextDirection.rtl,
               children: [
-                const Text('🔁', style: TextStyle(fontSize: 16)),
+                Lottie.asset(DuckEmojis.fire, width: 24, height: 24),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -1225,7 +1225,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
     if (key == 'combined') {
       title = 'کارهای ترکیبی';
-      emoji = DuckEmojis.all[29];
+      emoji = DuckEmojis.hypn;
       color = Colors.purple;
     } else if (key == 'uncategorized') {
       title = 'بدون دسته‌بندی';
