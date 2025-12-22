@@ -68,13 +68,13 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   bool _isCurrentRange() {
     final now = DateTime.now();
     if (_viewMode == 0) {
-      return _isSameDay(_selectedDate, now);
+      return isSameDay(_selectedDate, now);
     } else if (_viewMode == 1) {
       final startOfSelected = _selectedDate.subtract(
         Duration(days: (_selectedDate.weekday + 1) % 7),
       );
       final startOfNow = now.subtract(Duration(days: (now.weekday + 1) % 7));
-      return _isSameDay(startOfSelected, startOfNow);
+      return isSameDay(startOfSelected, startOfNow);
     } else {
       final jSelected = Jalali.fromDateTime(_selectedDate);
       final jNow = Jalali.fromDateTime(now);
@@ -97,13 +97,8 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Watch tasksProvider to rebuild when tasks change
-    final allTasks = ref.watch(tasksProvider);
-    final tasks = allTasks.where(_isTaskStructurallyValid).toList();
-    
-    // Also watch taskCompletionsProvider if it exists, or just rely on tasksProvider updates
-    // Since we updated TasksNotifier to force state update on completion change, this should be enough.
-    // However, for recurring tasks status, we might need to ensure we are reading the latest status.
+    // Watch activeTasksProvider for the selected date
+    final tasks = ref.watch(activeTasksProvider(_selectedDate));
     
     final categories = ref.watch(categoryProvider).value ?? [];
 
@@ -387,90 +382,6 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     return true;
   }
 
-  bool _isTaskActiveOnDate(Task task, DateTime date) {
-    if (task.recurrence == null ||
-        task.recurrence!.type == RecurrenceType.none) {
-      return _isSameDay(task.dueDate, date);
-    }
-
-    try {
-      // Check end date
-      if (task.recurrence!.endDate != null &&
-          date.isAfter(task.recurrence!.endDate!)) {
-        return false;
-      }
-
-      // Check start date (task shouldn't appear before it was created/due)
-      final dateOnly = DateTime(date.year, date.month, date.day);
-      final dueOnly =
-          DateTime(task.dueDate.year, task.dueDate.month, task.dueDate.day);
-      if (dateOnly.isBefore(dueOnly)) {
-        return false;
-      }
-
-      // Special check: If this task has a specific status entry for this date in task_completions,
-      // it means it was interacted with on this date, so it should be active/visible.
-      // This covers cases where recurrence logic might be tricky but user explicitly acted on it.
-      if (task.id != null) {
-          final status = ref.read(tasksProvider.notifier).getStatusForDate(task.id!, date);
-          if (status != TaskStatus.pending) { // If it has a non-default status recorded
-              return true;
-          }
-      }
-
-      switch (task.recurrence!.type) {
-        case RecurrenceType.daily:
-          return true;
-        case RecurrenceType.weekly:
-          return date.weekday == task.dueDate.weekday;
-        case RecurrenceType.monthly:
-          final jDate = Jalali.fromDateTime(date);
-          final jDue = Jalali.fromDateTime(task.dueDate);
-          return jDate.day == jDue.day;
-        case RecurrenceType.yearly:
-          final jDate = Jalali.fromDateTime(date);
-          final jDue = Jalali.fromDateTime(task.dueDate);
-          return jDate.month == jDue.month && jDate.day == jDue.day;
-        case RecurrenceType.specificDays:
-          return task.recurrence!.daysOfWeek != null &&
-              task.recurrence!.daysOfWeek!.contains(date.weekday);
-        case RecurrenceType.custom:
-          final diff = date.difference(task.dueDate).inDays;
-          final interval = task.recurrence!.interval;
-          return interval != null && interval > 0 && diff % interval == 0;
-        default:
-          return false;
-      }
-    } catch (e) {
-      debugPrint('Error in _isTaskActiveOnDate: $e');
-      return false;
-    }
-  }
-
-  // Logic to expand recurring tasks
-  List<Task> _getTasksForDate(List<Task> allTasks, DateTime date) {
-    final tasksForDate = <Task>[];
-
-    for (var task in allTasks) {
-      if (!_isTaskStructurallyValid(task)) continue;
-
-      if (_isTaskActiveOnDate(task, date)) {
-        TaskStatus status = task.status;
-        if (task.recurrence != null &&
-            task.recurrence!.type != RecurrenceType.none &&
-            task.id != null) {
-          status = ref
-              .read(tasksProvider.notifier)
-              .getStatusForDate(task.id!, date);
-        }
-
-        // Create a virtual copy for display
-        tasksForDate.add(task.copyWith(dueDate: date, status: status));
-      }
-    }
-    return tasksForDate;
-  }
-
   Widget _buildRangePicker() {
     String label = '';
     final jalali = Jalali.fromDateTime(_selectedDate);
@@ -614,7 +525,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                 final today = DateTime.now();
                 DateTime targetDate = days.first;
                 for (var d in days) {
-                  if (_isSameDay(d, today)) {
+                  if (isSameDay(d, today)) {
                     targetDate = d;
                     break;
                   }
@@ -657,15 +568,23 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   }
 
   Widget _buildWeeklyRecurringTaskGroup(List<Task> tasks, DateTime startOfWeek) {
-    // Calculate progress across all 7 days for all tasks
-    int totalSlots = tasks.length * 7;
+    final completions = ref.watch(taskCompletionsProvider);
+    
+    // Calculate progress across active days for all tasks
+    int totalSlots = 0;
     int completedSlots = 0;
     
     for (var task in tasks) {
       for (int i = 0; i < 7; i++) {
         final date = startOfWeek.add(Duration(days: i));
-        final status = ref.read(tasksProvider.notifier).getStatusForDate(task.id!, date);
-        if (status == TaskStatus.success) completedSlots++;
+        if (isTaskActiveOnDate(task, date, completions)) {
+          totalSlots++;
+          final rootId = task.rootId ?? task.id!;
+          final statusIndex = completions[rootId]?[getDateKey(date)];
+          // Default to pending for recurring tasks if no completion record exists
+          final status = statusIndex != null ? TaskStatus.values[statusIndex] : TaskStatus.pending;
+          if (status == TaskStatus.success) completedSlots++;
+        }
       }
     }
     double progress = totalSlots == 0 ? 0 : completedSlots / totalSlots;
@@ -773,10 +692,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     );
   }
 
-  Widget _buildDailyView(List<Task> tasks, List<CategoryData> categories) {
-    // Generate tasks for the selected date
-    final dailyTasks = _getTasksForDate(tasks, _selectedDate);
-
+  Widget _buildDailyView(List<Task> dailyTasks, List<CategoryData> categories) {
     if (dailyTasks.isEmpty) {
       return Center(
         child: Column(
@@ -839,12 +755,13 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
     // 1. Identify recurring tasks active in this week
     final recurringTasksForWeek = <Task>[];
+    final completions = ref.watch(taskCompletionsProvider);
     for (var task in tasks) {
       if (task.recurrence != null &&
           task.recurrence!.type != RecurrenceType.none) {
         bool isActive = false;
         for (int i = 0; i < 7; i++) {
-          if (_isTaskActiveOnDate(task, startOfWeek.add(Duration(days: i)))) {
+          if (isTaskActiveOnDate(task, startOfWeek.add(Duration(days: i)), completions)) {
             isActive = true;
             break;
           }
@@ -934,12 +851,13 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
       // 2. Collect Recurring Tasks
       final Map<int, List<Task>> recurringTasksByWeek = {};
+      final completions = ref.watch(taskCompletionsProvider);
       for (int i = 0; i < weeks.length; i++) {
           final weekDays = weeks[i];
           final weekTasks = <Task>[];
           for (var task in tasks) {
             if (task.recurrence != null && task.recurrence!.type != RecurrenceType.none) {
-               if (weekDays.any((d) => _isTaskActiveOnDate(task, d))) {
+               if (weekDays.any((d) => isTaskActiveOnDate(task, d, completions))) {
                   weekTasks.add(task);
                }
             }
@@ -1015,22 +933,24 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     List<List<DateTime>> weeks,
     int currentMonth,
   ) {
+    final completions = ref.watch(taskCompletionsProvider);
     double progress = 0.0;
     try {
       int totalTasks = 0;
       int completedTasks = 0;
-      final notifier = ref.read(tasksProvider.notifier);
 
       tasksByWeek.forEach((weekIndex, tasks) {
         if (weekIndex >= 0 && weekIndex < weeks.length) {
           final weekDays = weeks[weekIndex];
           for (var task in tasks) {
-            if (task.id == null) continue;
+            final rootId = task.rootId ?? task.id!;
             for (var date in weekDays) {
-              if (_isTaskActiveOnDate(task, date)) {
+              if (isTaskActiveOnDate(task, date, completions)) {
                 totalTasks++;
-                if (notifier.getStatusForDate(task.id!, date) ==
-                    TaskStatus.success) {
+                final statusIndex = completions[rootId]?[getDateKey(date)];
+                // For recurring tasks in this box, we should default to pending if no completion record exists
+                final status = statusIndex != null ? TaskStatus.values[statusIndex] : TaskStatus.pending;
+                if (status == TaskStatus.success) {
                   completedTasks++;
                 }
               }
@@ -1468,23 +1388,16 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   void _toggleTaskStatus(Task task, DateTime date) {
     if (task.id == null) return;
 
-    final hasRecurring =
-        task.recurrence != null && task.recurrence!.type != RecurrenceType.none;
-    final status = hasRecurring
-        ? ref.read(tasksProvider.notifier).getStatusForDate(task.id!, date)
-        : task.status;
+    // Always use getStatusForDate for accurate per-date status
+    final status = ref.read(tasksProvider.notifier).getStatusForDate(task.id!, date);
 
     final nextStatus =
         status == TaskStatus.success ? TaskStatus.pending : TaskStatus.success;
 
-    // Apply optimistic update immediately
-    if (hasRecurring) {
-        ref
-          .read(tasksProvider.notifier)
-          .updateStatus(task.id!, nextStatus, date: date);
-    } else {
-        ref.read(tasksProvider.notifier).updateStatus(task.id!, nextStatus);
-    }
+    // Always provide the date to updateStatus to ensure specific day tracking
+    ref
+        .read(tasksProvider.notifier)
+        .updateStatus(task.id!, nextStatus, date: date);
 
     HapticFeedback.lightImpact();
   }
@@ -1495,12 +1408,17 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     double size = 24,
     bool isCurrentMonth = true,
   }) {
-    final hasRecurring =
-        task.recurrence != null && task.recurrence!.type != RecurrenceType.none;
-    final hasId = task.id != null;
-    final status = (hasRecurring && hasId)
-        ? ref.read(tasksProvider.notifier).getStatusForDate(task.id!, date)
-        : task.status;
+    final completions = ref.watch(taskCompletionsProvider);
+    final dateStr = getDateKey(date);
+    
+    final hasRecurrence = task.recurrence != null && task.recurrence!.type != RecurrenceType.none;
+    TaskStatus status = hasRecurrence ? TaskStatus.pending : task.status;
+    
+    final rootId = task.rootId ?? task.id!;
+    final statusIndex = completions[rootId]?[dateStr];
+    if (statusIndex != null) {
+      status = TaskStatus.values[statusIndex];
+    }
 
     dynamic icon;
     Color color;
@@ -1536,7 +1454,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       color = color.withValues(alpha: 0.15);
     }
 
-    final isActive = _isTaskActiveOnDate(task, date);
+    final isActive = isTaskActiveOnDate(task, date, completions);
     if (!isActive) {
       return Container(
         width: size,
@@ -1580,14 +1498,6 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
   Widget _getStatusIconForTile(Task task) {
     return _buildStatusIcon(task: task, date: task.dueDate);
-  }
-
-
-
-  bool _isSameDay(DateTime date1, DateTime date2) {
-    return date1.year == date2.year &&
-        date1.month == date2.month &&
-        date1.day == date2.day;
   }
 
   String _getDayName(int weekday) {

@@ -61,13 +61,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   bool _isCurrentRange() {
     final now = DateTime.now();
     if (_viewMode == 0) {
-      return DateUtils.isSameDay(_selectedDate, now);
+      return isSameDay(_selectedDate, now);
     } else if (_viewMode == 1) {
       final startOfSelected = _selectedDate.subtract(
         Duration(days: (_selectedDate.weekday + 1) % 7),
       );
       final startOfNow = now.subtract(Duration(days: (now.weekday + 1) % 7));
-      return DateUtils.isSameDay(startOfSelected, startOfNow);
+      return isSameDay(startOfSelected, startOfNow);
     } else {
       final jSelected = Jalali.fromDateTime(_selectedDate);
       final jNow = Jalali.fromDateTime(now);
@@ -75,90 +75,43 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     }
   }
 
-  bool _isTaskStructurallyValid(Task task) {
-    if (task.title.trim().isEmpty) return false;
-
-    final recurrence = task.recurrence;
-    if (recurrence != null && recurrence.type != RecurrenceType.none) {
-      if (task.id == null) return false;
-      if (recurrence.type == RecurrenceType.hourly) return false;
-      if (recurrence.type == RecurrenceType.custom) {
-        if (recurrence.interval == null || recurrence.interval! <= 0) {
-          return false;
-        }
-      }
-      if (recurrence.type == RecurrenceType.specificDays) {
-        final days = recurrence.daysOfWeek;
-        if (days == null || days.isEmpty) return false;
-      }
-    }
-    return true;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final allTasksAsync = ref.watch(allTasksIncludingDeletedProvider);
+    DateTimeRange range;
+    if (_viewMode == 0) {
+      range = DateTimeRange(start: _selectedDate, end: _selectedDate);
+    } else if (_viewMode == 1) {
+      final startOfWeek = _selectedDate.subtract(
+        Duration(days: (_selectedDate.weekday + 1) % 7),
+      );
+      final endOfWeek = startOfWeek.add(const Duration(days: 6));
+      range = DateTimeRange(start: startOfWeek, end: endOfWeek);
+    } else {
+      final jSelected = Jalali.fromDateTime(_selectedDate);
+      final jStart = jSelected.copy(day: 1);
+      final jEnd = jSelected.copy(day: jSelected.monthLength);
+      range = DateTimeRange(start: jStart.toDateTime(), end: jEnd.toDateTime());
+    }
 
-    return allTasksAsync.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
-      error: (e, _) => const Scaffold(
-        body: Center(child: Text('خطا در بارگذاری گزارش‌ها')),
-      ),
-      data: (allTasks) {
-        final tasks = allTasks.where(_isTaskStructurallyValid).toList();
+    final filteredTasks = ref.watch(tasksForRangeProvider(range));
 
-        final filteredTasks = tasks.where((t) {
-          if (_viewMode == 0) {
-            return DateUtils.isSameDay(t.dueDate, _selectedDate);
-          } else if (_viewMode == 1) {
-            final startOfWeek = _selectedDate.subtract(
-              Duration(days: (_selectedDate.weekday + 1) % 7),
-            );
-            final endOfWeek = startOfWeek.add(const Duration(days: 6));
-            final startRange = DateTime(
-              startOfWeek.year,
-              startOfWeek.month,
-              startOfWeek.day,
-            );
-            final endRange = DateTime(
-              endOfWeek.year,
-              endOfWeek.month,
-              endOfWeek.day,
-              23,
-              59,
-              59,
-            );
-            return t.dueDate.isAfter(
-                  startRange.subtract(const Duration(seconds: 1)),
-                ) &&
-                t.dueDate.isBefore(endRange.add(const Duration(seconds: 1)));
-          } else {
-            final jTask = Jalali.fromDateTime(t.dueDate);
-            final jSelected = Jalali.fromDateTime(_selectedDate);
-            return jTask.year == jSelected.year &&
-                jTask.month == jSelected.month;
-          }
-        }).toList();
+    final successCount = filteredTasks
+        .where((t) => t.status == TaskStatus.success)
+        .length;
+    final failedCount = filteredTasks
+        .where((t) => t.status == TaskStatus.failed)
+        .length;
+    final cancelledCount = filteredTasks
+        .where((t) => t.status == TaskStatus.cancelled)
+        .length;
+    final pendingCount = filteredTasks
+        .where((t) => t.status == TaskStatus.pending)
+        .length;
+    final deferredCount = filteredTasks
+        .where((t) => t.status == TaskStatus.deferred)
+        .length;
 
-        final successCount = filteredTasks
-            .where((t) => t.status == TaskStatus.success)
-            .length;
-        final failedCount = filteredTasks
-            .where((t) => t.status == TaskStatus.failed)
-            .length;
-        final cancelledCount = filteredTasks
-            .where((t) => t.status == TaskStatus.cancelled)
-            .length;
-        final pendingCount = filteredTasks
-            .where((t) => t.status == TaskStatus.pending)
-            .length;
-        final deferredCount = filteredTasks
-            .where((t) => t.status == TaskStatus.deferred)
-            .length;
-
-        return Scaffold(
+    return Scaffold(
       body: Stack(
         children: [
           Column(
@@ -392,8 +345,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
         ],
       ),
-        );
-      },
     );
   }
 

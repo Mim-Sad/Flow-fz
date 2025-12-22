@@ -3,6 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/task.dart';
 import '../models/category_data.dart';
+import '../providers/task_provider.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -11,14 +12,6 @@ class DatabaseService {
   factory DatabaseService() => _instance;
 
   DatabaseService._internal();
-
-  String _dateKey(DateTime date) {
-    final d = date.toLocal();
-    final y = d.year.toString().padLeft(4, '0');
-    final m = d.month.toString().padLeft(2, '0');
-    final day = d.day.toString().padLeft(2, '0');
-    return '$y-$m-$day';
-  }
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -30,7 +23,7 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'flow_database.db');
     return await openDatabase(
       path,
-      version: 7,
+      version: 8,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -61,12 +54,6 @@ class DatabaseService {
       ''');
     }
     if (oldVersion < 6) {
-      // Check if position column exists in categories (it might not if created in v4)
-      // Actually we are just adding it now.
-      // But sqlite doesn't support IF NOT EXISTS for column.
-      // We can just try adding it, but safer to assume it's needed if version < 6.
-      // However, if table was created in v4 (before this change), it won't have position.
-      // We need to alter table.
       await db.execute('ALTER TABLE categories ADD COLUMN position INTEGER NOT NULL DEFAULT 0');
     }
     if (oldVersion < 7) {
@@ -87,6 +74,19 @@ class DatabaseService {
       ''');
 
       await db.execute('UPDATE tasks SET rootId = id WHERE rootId IS NULL');
+    }
+    if (oldVersion < 8) {
+      // Add rootId to task_completions for better historical tracking
+      await db.execute('ALTER TABLE task_completions ADD COLUMN rootId INTEGER');
+      
+      // Populate rootId in task_completions based on tasks table
+      await db.execute('''
+        UPDATE task_completions 
+        SET rootId = (SELECT rootId FROM tasks WHERE tasks.id = task_completions.taskId)
+      ''');
+      
+      // If some tasks are missing, fallback to taskId
+      await db.execute('UPDATE task_completions SET rootId = taskId WHERE rootId IS NULL');
     }
   }
 
@@ -117,9 +117,10 @@ class DatabaseService {
       CREATE TABLE task_completions(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         taskId INTEGER NOT NULL,
+        rootId INTEGER,
         date TEXT NOT NULL,
         status INTEGER NOT NULL,
-        UNIQUE(taskId, date)
+        UNIQUE(rootId, date)
       )
     ''');
     await db.execute('''
@@ -222,26 +223,28 @@ class DatabaseService {
     Database db = await database;
     final List<Map<String, dynamic>> maps = await db.query('task_completions');
     
-    final Map<int, Map<String, int>> result = {};
-    for (var map in maps) {
-      final taskId = map['taskId'] as int;
+    final Map<int, Map<String, int>> completions = {};
+    for (final map in maps) {
+      final rootId = map['rootId'] as int;
       final date = map['date'] as String;
       final status = map['status'] as int;
       
-      result.putIfAbsent(taskId, () => {});
-      result[taskId]![date] = status;
+      completions.putIfAbsent(rootId, () => {});
+      completions[rootId]![date] = status;
     }
-    return result;
+    return completions;
   }
 
   Future<void> setTaskCompletion(int taskId, DateTime date, TaskStatus status) async {
     Database db = await database;
-    final dateStr = _dateKey(date);
+    final dateStr = getDateKey(date);
+    final rootId = await getTaskRootId(taskId) ?? taskId;
     
     await db.insert(
       'task_completions',
       {
         'taskId': taskId,
+        'rootId': rootId,
         'date': dateStr,
         'status': status.index,
       },
@@ -250,7 +253,7 @@ class DatabaseService {
 
     await insertTaskEvent(
       taskId: taskId,
-      rootId: await getTaskRootId(taskId),
+      rootId: rootId,
       type: 'completion',
       payload: {'date': dateStr, 'status': status.index},
       occurredAt: DateTime.now(),
@@ -259,28 +262,46 @@ class DatabaseService {
 
   Future<int> updateTask(Task task) async {
     Database db = await database;
-    final updatedAt = DateTime.now().toIso8601String();
-    final map = task.toMap();
-    map['updatedAt'] = updatedAt;
+    final now = DateTime.now();
+    final nowStr = now.toIso8601String();
 
-    final result = await db.update(
-      'tasks',
-      map,
-      where: 'id = ?',
-      whereArgs: [task.id],
-    );
-
+    // 1. Mark current version as deleted/archived
     if (task.id != null) {
-      await insertTaskEvent(
-        taskId: task.id!,
-        rootId: task.rootId ?? await getTaskRootId(task.id!),
-        type: 'update',
-        payload: {'task': map},
-        occurredAt: DateTime.now(),
+      await db.update(
+        'tasks',
+        {
+          'isDeleted': 1, 
+          'deletedAt': nowStr,
+          'updatedAt': nowStr,
+        },
+        where: 'id = ?',
+        whereArgs: [task.id],
       );
     }
 
-    return result;
+    // 2. Insert new version
+    final rootId = task.rootId ?? task.id;
+    final newTask = task.copyWith(
+      id: null, // New ID
+      rootId: rootId,
+      createdAt: now,
+      updatedAt: now,
+      isDeleted: false,
+      deletedAt: null,
+    );
+    
+    final map = newTask.toMap();
+    final newId = await db.insert('tasks', map);
+
+    await insertTaskEvent(
+      taskId: newId,
+      rootId: rootId,
+      type: 'update',
+      payload: {'previousId': task.id, 'task': map},
+      occurredAt: now,
+    );
+
+    return newId;
   }
 
   Future<int> softDeleteTask(int id) async {

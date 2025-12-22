@@ -30,11 +30,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final tasks = ref.watch(tasksProvider);
+    final today = DateTime.now();
+    final todayTasks = [...ref.watch(activeTasksProvider(today))];
     
-    // Filter today tasks
-    List<Task> todayTasks = tasks.where((t) => DateUtils.isSameDay(t.dueDate, DateTime.now())).toList();
-
     // Apply Sorting
     if (_sortMode == SortMode.manual) {
       todayTasks.sort((a, b) => a.position.compareTo(b.position));
@@ -196,6 +194,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.read(tasksProvider.notifier).updateStatus(
       task.id!,
       task.status == TaskStatus.success ? TaskStatus.pending : TaskStatus.success,
+      date: task.dueDate,
     );
   }
 }

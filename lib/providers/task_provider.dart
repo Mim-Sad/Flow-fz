@@ -1,106 +1,113 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import '../models/task.dart';
 import '../services/database_service.dart';
 
 final databaseServiceProvider = Provider((ref) => DatabaseService());
 
-final tasksProvider = StateNotifierProvider<TasksNotifier, List<Task>>((ref) {
-  final dbService = ref.watch(databaseServiceProvider);
-  return TasksNotifier(dbService);
-});
-
+// Provider for all tasks including deleted (for reports)
 final allTasksIncludingDeletedProvider = FutureProvider<List<Task>>((ref) async {
   final dbService = ref.watch(databaseServiceProvider);
   return dbService.getAllTasks(includeDeleted: true);
 });
 
-// Provider to expose task completion history
-final taskCompletionsProvider = StateProvider<Map<int, Map<String, int>>>((ref) => {});
+// Provider for completion status of tasks (especially recurring ones)
+// Map<taskId, Map<dateKey, statusIndex>>
+final taskCompletionsProvider = StateNotifierProvider<TaskCompletionsNotifier, Map<int, Map<String, int>>>((ref) {
+  return TaskCompletionsNotifier(ref.watch(databaseServiceProvider));
+});
+
+class TaskCompletionsNotifier extends StateNotifier<Map<int, Map<String, int>>> {
+  final DatabaseService _dbService;
+
+  TaskCompletionsNotifier(this._dbService) : super({}) {
+    _loadCompletions();
+  }
+
+  Future<void> _loadCompletions() async {
+    state = await _dbService.getAllTaskCompletions();
+  }
+
+  void updateCompletion(int taskId, String dateKey, int statusIndex) {
+    final newState = Map<int, Map<String, int>>.from(state);
+    newState.putIfAbsent(taskId, () => {});
+    newState[taskId]![dateKey] = statusIndex;
+    state = newState;
+  }
+
+  void setCompletions(Map<int, Map<String, int>> completions) {
+    state = completions;
+  }
+}
+
+final tasksProvider = StateNotifierProvider<TasksNotifier, List<Task>>((ref) {
+  return TasksNotifier(ref);
+});
 
 class TasksNotifier extends StateNotifier<List<Task>> {
+  final Ref _ref;
   final DatabaseService _dbService;
-  // We don't have direct access to 'ref' here to update other providers, 
-  // but we can expose a way to get completions or update them.
-  // Actually, better to keep completions separate or manage them here.
-  // For simplicity, let's keep completions in a separate field in this notifier or use a separate provider.
-  // But since we need to update the UI when completions change, and they are linked to tasks,
-  // we might want to expose them.
-  
-  // Let's use a simpler approach: load completions into a public field or expose via a getter/stream.
-  // But Riverpod recommends separate providers.
-  
-  // Refactored approach: TasksNotifier will handle both for now to keep it simple
-  // or we need to pass a callback or Ref to TasksNotifier (not recommended).
-  
-  Map<int, Map<String, int>> _completions = {};
-  Map<int, Map<String, int>> get completions => _completions;
 
-  String _dateKey(DateTime date) {
-    final d = date.toLocal();
-    final y = d.year.toString().padLeft(4, '0');
-    final m = d.month.toString().padLeft(2, '0');
-    final day = d.day.toString().padLeft(2, '0');
-    return '$y-$m-$day';
+  TasksNotifier(this._ref) : _dbService = _ref.read(databaseServiceProvider), super([]) {
+    _loadTasks();
   }
 
-  TasksNotifier(this._dbService) : super([]) {
-    loadTasks();
-  }
-
-  Future<void> loadTasks() async {
-    final tasks = await _dbService.getAllTasks();
-    _completions = await _dbService.getAllTaskCompletions();
-    state = tasks;
+  Future<void> _loadTasks() async {
+    state = await _dbService.getAllTasks();
   }
 
   Future<void> addTask(Task task) async {
-    await _dbService.insertTask(task);
-    await loadTasks();
+    final id = await _dbService.insertTask(task);
+    final newTask = task.copyWith(id: id, rootId: task.rootId ?? id);
+    state = [...state, newTask];
+    _ref.invalidate(allTasksIncludingDeletedProvider);
   }
 
   Future<void> updateTask(Task task) async {
-    await _dbService.updateTask(task);
-    await loadTasks();
+    final newId = await _dbService.updateTask(task);
+    final newTask = task.copyWith(
+      id: newId, 
+      rootId: task.rootId ?? task.id,
+      updatedAt: DateTime.now(),
+    );
+    state = state.map((t) => t.id == task.id ? newTask : t).toList();
+    // Also refresh the allTasksIncludingDeletedProvider to include the new version and archived old version
+    _ref.invalidate(allTasksIncludingDeletedProvider);
   }
 
   Future<void> deleteTask(int id) async {
-    await _dbService.deleteTask(id);
-    await loadTasks();
+    await _dbService.softDeleteTask(id);
+    state = state.where((t) => t.id != id).toList();
+    _ref.invalidate(allTasksIncludingDeletedProvider);
   }
 
   Future<void> updateStatus(int id, TaskStatus status, {DateTime? date}) async {
+    final task = state.firstWhere((t) => t.id == id, orElse: () => Task(title: '', dueDate: DateTime.now()));
+    final rootId = task.rootId ?? id;
+
     if (date != null) {
-      final dateStr = _dateKey(date);
-      final previous = _completions[id]?[dateStr];
-
-      _completions.putIfAbsent(id, () => {});
-      _completions[id]![dateStr] = status.index;
-      state = [...state];
-
+      final dateStr = getDateKey(date);
+      
+      // Update local completions provider for immediate UI response
+      _ref.read(taskCompletionsProvider.notifier).updateCompletion(rootId, dateStr, status.index);
+      
       try {
         await _dbService.setTaskCompletion(id, date, status);
       } catch (e) {
-        if (previous == null) {
-          _completions[id]!.remove(dateStr);
-          if (_completions[id]!.isEmpty) _completions.remove(id);
-        } else {
-          _completions[id]![dateStr] = previous;
-        }
-        state = [...state];
+        // Rollback on error
+        _loadTasks(); 
+        _ref.read(taskCompletionsProvider.notifier)._loadCompletions();
         rethrow;
       }
     } else {
-      // Regular single task - Optimistic Update
+      // Regular task status update
       final previousState = [...state];
       state = state.map((t) => t.id == id ? t.copyWith(status: status) : t).toList();
 
       try {
         await _dbService.updateTaskStatus(id, status);
-        // We don't need to reload all tasks if the update succeeded
-        // But to be safe, we can sync in background or just trust the optimistic update
-        // await loadTasks(); 
       } catch (e) {
-        // Revert on failure
         state = previousState;
         rethrow;
       }
@@ -108,32 +115,211 @@ class TasksNotifier extends StateNotifier<List<Task>> {
   }
 
   Future<void> reorderTasks(List<Task> reorderedTasks) async {
-    // Update positions locally first to prevent flicker
-    final updatedTasks = <Task>[];
+    state = reorderedTasks;
     for (int i = 0; i < reorderedTasks.length; i++) {
-      updatedTasks.add(reorderedTasks[i].copyWith(position: i));
+      final updatedTask = reorderedTasks[i].copyWith(position: i);
+      await _dbService.updateTask(updatedTask);
     }
-    state = updatedTasks;
+  }
+
+  TaskStatus getStatusForDate(int taskId, DateTime date) {
+    final task = state.firstWhere((t) => t.id == taskId, orElse: () => Task(title: '', dueDate: DateTime.now()));
+    final rootId = task.rootId ?? taskId;
     
-    // Fire and forget DB updates
-    Future.microtask(() async {
-      for (final task in updatedTasks) {
-        await _dbService.updateTask(task);
+    final completions = _ref.read(taskCompletionsProvider);
+    final dateStr = getDateKey(date);
+    final statusIndex = completions[rootId]?[dateStr];
+    
+    if (statusIndex != null) {
+      return TaskStatus.values[statusIndex];
+    }
+    
+    return task.status;
+  }
+}
+
+// Provider for active tasks on a specific date (Real-time and Sync-free)
+final activeTasksProvider = Provider.family<List<Task>, DateTime>((ref, date) {
+  final allTasks = ref.watch(tasksProvider);
+  final completions = ref.watch(taskCompletionsProvider);
+  
+  final dateOnly = DateTime(date.year, date.month, date.day);
+  final List<Task> activeTasks = [];
+
+  for (final task in allTasks) {
+    if (isTaskActiveOnDate(task, dateOnly, completions)) {
+      TaskStatus status = task.status;
+      
+      final dateKey = getDateKey(dateOnly);
+      final rootId = task.rootId ?? task.id!;
+      final statusIndex = completions[rootId]?[dateKey];
+      if (statusIndex != null) {
+        status = TaskStatus.values[statusIndex];
       }
-    });
+      
+      activeTasks.add(task.copyWith(dueDate: dateOnly, status: status));
+    }
   }
   
-  TaskStatus getStatusForDate(int taskId, DateTime date) {
-    final dateStr = _dateKey(date);
-    final byDay = _completions[taskId];
-    if (byDay != null) {
-      final stored = byDay[dateStr];
-      if (stored != null) return TaskStatus.values[stored];
+  return activeTasks;
+});
 
-      final legacy = date.toIso8601String().split('T')[0];
-      final legacyStored = byDay[legacy];
-      if (legacyStored != null) return TaskStatus.values[legacyStored];
-    }
-    return TaskStatus.pending; // Default if not found
+// Provider for historical active tasks (includes deleted tasks if they were active on that date)
+final historicalActiveTasksProvider = Provider.family<List<Task>, DateTime>((ref, date) {
+  final allTasksAsync = ref.watch(allTasksIncludingDeletedProvider);
+  final completions = ref.watch(taskCompletionsProvider);
+  
+  return allTasksAsync.maybeWhen(
+    data: (allTasks) {
+      final dateOnly = DateTime(date.year, date.month, date.day);
+      
+      // Group by rootId to handle multiple versions on the same day
+      final Map<int, Task> activeVersions = {};
+
+      for (final task in allTasks) {
+        final rootId = task.rootId ?? task.id!;
+        
+        // 1. Check if version was alive on this date
+        final createdAtDate = DateTime(task.createdAt.year, task.createdAt.month, task.createdAt.day);
+        if (dateOnly.isBefore(createdAtDate)) continue;
+
+        if (task.isDeleted && task.deletedAt != null) {
+          final deletedAtDate = DateTime(task.deletedAt!.year, task.deletedAt!.month, task.deletedAt!.day);
+          if (deletedAtDate.isBefore(dateOnly)) continue;
+        }
+
+        // 2. Check if task definition says it's active on this date
+        if (isTaskActiveOnDate(task, dateOnly, completions)) {
+          // If multiple versions are active on the same day, pick the latest one (highest ID)
+          final existing = activeVersions[rootId];
+          if (existing == null || (task.id ?? 0) > (existing.id ?? 0)) {
+            TaskStatus status = task.status;
+            final dateKey = getDateKey(dateOnly);
+            final statusIndex = completions[rootId]?[dateKey];
+            if (statusIndex != null) {
+              status = TaskStatus.values[statusIndex];
+            }
+            activeVersions[rootId] = task.copyWith(dueDate: dateOnly, status: status);
+          }
+        }
+      }
+      return activeVersions.values.toList();
+    },
+    orElse: () => [],
+  );
+});
+
+// Provider for tasks in a date range (for reports)
+final tasksForRangeProvider = Provider.family<List<Task>, DateTimeRange>((ref, range) {
+  final allTasksAsync = ref.watch(allTasksIncludingDeletedProvider);
+  final completions = ref.watch(taskCompletionsProvider);
+
+  return allTasksAsync.maybeWhen(
+    data: (allTasks) {
+      final List<Task> results = [];
+      final startDate = DateTime(range.start.year, range.start.month, range.start.day);
+      final endDate = DateTime(range.end.year, range.end.month, range.end.day);
+
+      for (var d = startDate;
+          d.isBefore(endDate) || isSameDay(d, endDate);
+          d = d.add(const Duration(days: 1))) {
+        
+        final dateOnly = d;
+        final Map<int, Task> activeVersions = {};
+
+        for (final task in allTasks) {
+          final rootId = task.rootId ?? task.id!;
+          
+          // 1. Check if version was alive on this date
+          final createdAtDate = DateTime(task.createdAt.year, task.createdAt.month, task.createdAt.day);
+          if (dateOnly.isBefore(createdAtDate)) continue;
+
+          if (task.isDeleted && task.deletedAt != null) {
+            final deletedAtDate = DateTime(task.deletedAt!.year, task.deletedAt!.month, task.deletedAt!.day);
+            if (deletedAtDate.isBefore(dateOnly)) continue;
+          }
+
+          // 2. Check if task definition says it's active on this date
+          if (isTaskActiveOnDate(task, dateOnly, completions)) {
+            final existing = activeVersions[rootId];
+            if (existing == null || (task.id ?? 0) > (existing.id ?? 0)) {
+              TaskStatus status = task.status;
+              final dateKey = getDateKey(dateOnly);
+              final statusIndex = completions[rootId]?[dateKey];
+              if (statusIndex != null) {
+                status = TaskStatus.values[statusIndex];
+              }
+              activeVersions[rootId] = task.copyWith(dueDate: dateOnly, status: status);
+            }
+          }
+        }
+        results.addAll(activeVersions.values);
+      }
+      return results;
+    },
+    orElse: () => [],
+  );
+});
+
+String getDateKey(DateTime date) {
+  final d = date.toLocal();
+  final y = d.year.toString().padLeft(4, '0');
+  final m = d.month.toString().padLeft(2, '0');
+  final day = d.day.toString().padLeft(2, '0');
+  return '$y-$m-$day';
+}
+
+bool isTaskActiveOnDate(Task task, DateTime date, Map<int, Map<String, int>> completions) {
+  if (task.recurrence == null || task.recurrence!.type == RecurrenceType.none) {
+    return isSameDay(task.dueDate, date);
   }
+
+  try {
+    // Check end date
+    if (task.recurrence!.endDate != null && date.isAfter(task.recurrence!.endDate!)) {
+      return false;
+    }
+
+    // Check start date
+    final dateOnly = DateTime(date.year, date.month, date.day);
+    final dueOnly = DateTime(task.dueDate.year, task.dueDate.month, task.dueDate.day);
+    if (dateOnly.isBefore(dueOnly)) {
+      return false;
+    }
+
+    // Check if it has an explicit status for this date
+    final dateKey = getDateKey(dateOnly);
+    if (completions[task.rootId ?? task.id!]?.containsKey(dateKey) ?? false) {
+      return true;
+    }
+
+    switch (task.recurrence!.type) {
+      case RecurrenceType.daily:
+        return true;
+      case RecurrenceType.weekly:
+        return date.weekday == task.dueDate.weekday;
+      case RecurrenceType.monthly:
+        final jDate = Jalali.fromDateTime(date);
+        final jDue = Jalali.fromDateTime(task.dueDate);
+        return jDate.day == jDue.day;
+      case RecurrenceType.yearly:
+        final jDate = Jalali.fromDateTime(date);
+        final jDue = Jalali.fromDateTime(task.dueDate);
+        return jDate.month == jDue.month && jDate.day == jDue.day;
+      case RecurrenceType.specificDays:
+        return task.recurrence!.daysOfWeek?.contains(date.weekday) ?? false;
+      case RecurrenceType.custom:
+        final diff = date.difference(dueOnly).inDays;
+        final interval = task.recurrence!.interval;
+        return interval != null && interval > 0 && diff % interval == 0;
+      default:
+        return false;
+    }
+  } catch (e) {
+    return false;
+  }
+}
+
+bool isSameDay(DateTime d1, DateTime d2) {
+  return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
 }
