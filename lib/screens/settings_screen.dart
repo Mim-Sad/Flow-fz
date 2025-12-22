@@ -37,7 +37,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             // Categories Management
             ListTile(
               title: const Text('مدیریت دسته‌بندی‌ها', style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16,)),
-              subtitle: const Text('افزودن، ویرایش و حذف دسته‌بندی‌ها',style: TextStyle(fontSize: 12,),),
+              subtitle: const Text('افزودن، ویرایش و حذف دسته‌بندی‌ها',style: TextStyle(fontSize: 10,),),
               leading: const HugeIcon(icon: HugeIcons.strokeRoundedTag01, color: Colors.blue),
               trailing: const HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: Colors.grey, size: 20),
               onTap: () {
@@ -97,7 +97,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ],
                       ),
                       child: isSelected
-                          ? const HugeIcon(icon: HugeIcons.strokeRoundedCheckmarkCircle03, color: Colors.white, size: 24)
+                          ? const HugeIcon(icon: HugeIcons.strokeRoundedTick01, color: Colors.white, size: 20)
                           : null,
                     ),
                   );

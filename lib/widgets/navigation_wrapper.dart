@@ -77,7 +77,7 @@ class NavigationWrapper extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            icon: const HugeIcon(icon: HugeIcons.strokeRoundedMenuSquare, color: Colors.grey),
+            icon: const HugeIcon(icon: HugeIcons.strokeRoundedSettings03, color: Colors.grey),
             onPressed: () => context.push('/settings'),
           ),
           const SizedBox(width: 8),

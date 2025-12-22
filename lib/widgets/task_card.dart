@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../models/task.dart';
 import '../models/category_data.dart';
 import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
+  // Removed unused import
+import '../widgets/task_sheets.dart';
 import '../screens/add_task_screen.dart';
 
 class TaskCard extends ConsumerWidget {
@@ -55,7 +58,7 @@ class TaskCard extends ConsumerWidget {
                 task.status == TaskStatus.success ? TaskStatus.pending : TaskStatus.success,
               );
         },
-        onLongPress: () => _showStatusPicker(context, ref),
+        onLongPress: null, // Removed long press on body
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -64,7 +67,7 @@ class TaskCard extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(child: _getStatusIconForCard(task.status, onCardColor)),
+                  Expanded(child: _getStatusIconForCard(task, onCardColor, context)),
                   PopupMenuButton<String>(
                     icon: HugeIcon(icon: HugeIcons.strokeRoundedMoreHorizontal, size: 20, color: onCardColor),
                     padding: EdgeInsets.zero,
@@ -227,9 +230,9 @@ class TaskCard extends ConsumerWidget {
     );
   }
 
-  Widget _getStatusIconForCard(TaskStatus status, Color color) {
+  Widget _getStatusIconForCard(Task task, Color color, BuildContext context) {
     dynamic iconData;
-    switch (status) {
+    switch (task.status) {
       case TaskStatus.success:
         iconData = HugeIcons.strokeRoundedCheckmarkCircle03;
         break;
@@ -248,85 +251,32 @@ class TaskCard extends ConsumerWidget {
     }
     return Align(
       alignment: Alignment.centerRight,
-      child: HugeIcon(icon: iconData, size: 24, color: color.withValues(alpha: 0.8)),
+      child: InkWell(
+         onLongPress: () {
+            HapticFeedback.heavyImpact();
+            showModalBottomSheet(
+              context: context,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+              ),
+              builder: (context) => TaskStatusPickerSheet(task: task),
+            );
+         },
+         child: HugeIcon(icon: iconData, size: 24, color: color.withValues(alpha: 0.8)),
+      ),
     );
   }
 
   void _showStatusPicker(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('تغییر وضعیت تسک', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            ),
-            const SizedBox(height: 8),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  const SizedBox(width: 16),
-                  _buildStatusAction(context, ref, task, TaskStatus.success, 'انجام شده', HugeIcons.strokeRoundedCheckmarkCircle03, Colors.green),
-                  const SizedBox(width: 16),
-                  _buildStatusAction(context, ref, task, TaskStatus.failed, 'انجام نشده', HugeIcons.strokeRoundedCancelCircle, Colors.red),
-                  const SizedBox(width: 16),
-                  _buildStatusAction(context, ref, task, TaskStatus.cancelled, 'لغو شده', HugeIcons.strokeRoundedMinusSignCircle, Colors.grey),
-                  const SizedBox(width: 16),
-                  _buildStatusAction(context, ref, task, TaskStatus.deferred, 'تعویق شده', HugeIcons.strokeRoundedClock01, Colors.orange),
-                  const SizedBox(width: 16),
-                  _buildStatusAction(context, ref, task, TaskStatus.pending, 'در جریان', HugeIcons.strokeRoundedCircle, Colors.blue),
-                  const SizedBox(width: 16),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
+      builder: (context) => TaskStatusPickerSheet(task: task),
     );
   }
 
-  Widget _buildStatusAction(BuildContext context, WidgetRef ref, Task task, TaskStatus status, String label, dynamic icon, Color color) {
-    final isSelected = task.status == status;
-    return InkWell(
-      onTap: () {
-        ref.read(tasksProvider.notifier).updateStatus(task.id!, status);
-        Navigator.pop(context);
-      },
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: 80,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
-          border: Border.all(
-            color: isSelected ? color : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            HugeIcon(icon: icon, color: isSelected ? color : Theme.of(context).colorScheme.onSurfaceVariant, size: 28),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 10,
-                color: isSelected ? color : Theme.of(context).colorScheme.onSurface,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
+  // Removed inline _buildStatusAction logic as it is now in TaskStatusPickerSheet
 }
 

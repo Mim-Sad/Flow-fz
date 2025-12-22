@@ -9,6 +9,7 @@ import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
 import '../models/task.dart';
 import '../models/category_data.dart';
+import '../widgets/task_sheets.dart';
 import 'add_task_screen.dart';
 
 enum SortMode { manual, defaultSort }
@@ -38,25 +39,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       todayTasks.sort((a, b) => a.position.compareTo(b.position));
     } else {
       todayTasks.sort((a, b) {
-        // High priority first
+        // 1. Status Order: Pending > Success > Deferred > Failed > Cancelled
+        final statusOrder = {
+          TaskStatus.pending: 0,
+          TaskStatus.success: 1,
+          TaskStatus.deferred: 2,
+          TaskStatus.failed: 3,
+          TaskStatus.cancelled: 4,
+        };
+        
+        final statusA = statusOrder[a.status] ?? 99;
+        final statusB = statusOrder[b.status] ?? 99;
+        
+        if (statusA != statusB) {
+          return statusA.compareTo(statusB);
+        }
+
+        // 2. High priority first
         if (a.priority != b.priority) {
           return b.priority.index.compareTo(a.priority.index);
         }
-        // Then by Category
+        // 3. Then by Category
         final catA = a.categories.isNotEmpty ? a.categories.first : (a.category ?? '');
         final catB = b.categories.isNotEmpty ? b.categories.first : (b.category ?? '');
         if (catA != catB) {
             return catA.compareTo(catB);
         }
-        // Then by creation date (old to new)
+        // 4. Then by creation date (old to new)
         return a.createdAt.compareTo(b.createdAt);
       });
     }
 
-    // Move cancelled tasks to end
-    final cancelledTasks = todayTasks.where((t) => t.status == TaskStatus.cancelled).toList();
-    final nonCancelledTasks = todayTasks.where((t) => t.status != TaskStatus.cancelled).toList();
-    todayTasks = [...nonCancelledTasks, ...cancelledTasks];
+    // No need to move cancelled tasks to end anymore as it is handled in sort logic
+    // But we keep the list assignment
+    // todayTasks = [...nonCancelledTasks, ...cancelledTasks]; // Removed this logic
 
     return Scaffold(
       body: CustomScrollView(
@@ -233,13 +249,18 @@ class TaskListTile extends ConsumerWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: onStatusToggle,
-        onLongPress: () => _showTaskOptions(context, ref, task), // Also trigger on long press
+        onTap: () {}, // Removed tap on body (except status toggle on icon) or maybe keep it empty? User said "Hold on body for move".
+        // Wait, "Hold on body for move" is usually default behavior of ReorderableListView if onLongPress is null.
+        // But we have onLongPress defined here.
+        // If we want ReorderableListView to handle drag, we should NOT consume onLongPress on the body unless we want a custom action.
+        // User said: "Hold only for move".
+        // So I should REMOVE onLongPress from InkWell body.
+        onLongPress: null, 
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              _getStatusIconForTile(task.status, context, ref, onStatusToggle),
+              _getStatusIconForTile(task, context, ref, onStatusToggle),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -333,16 +354,31 @@ class TaskListTile extends ConsumerWidget {
             );
 
             if (picked != null) {
-              await ref.read(tasksProvider.notifier).updateStatus(task.id!, TaskStatus.deferred);
-              final newTask = Task(
-                title: task.title,
-                description: task.description,
-                dueDate: picked.toDateTime(),
-                status: TaskStatus.pending,
-                priority: task.priority,
-                category: task.category,
+              if (!context.mounted) return false;
+              final TimeOfDay? pickedTime = await showTimePicker(
+                context: context,
+                initialTime: TimeOfDay.fromDateTime(task.dueDate),
               );
-              await ref.read(tasksProvider.notifier).addTask(newTask);
+
+              if (pickedTime != null) {
+                final dt = picked.toDateTime();
+                final newDate = DateTime(dt.year, dt.month, dt.day, pickedTime.hour, pickedTime.minute);
+                
+                await ref.read(tasksProvider.notifier).updateStatus(task.id!, TaskStatus.deferred);
+                final newTask = Task(
+                  title: task.title,
+                  description: task.description,
+                  dueDate: newDate,
+                  status: TaskStatus.pending,
+                  priority: task.priority,
+                  category: task.category,
+                  categories: task.categories,
+                  taskEmoji: task.taskEmoji,
+                  attachments: task.attachments,
+                  recurrence: task.recurrence,
+                );
+                await ref.read(tasksProvider.notifier).addTask(newTask);
+              }
             }
             return false;
           }
@@ -491,10 +527,7 @@ class TaskListTile extends ConsumerWidget {
     );
   }
 
-  void _showStatusPicker(BuildContext context, WidgetRef ref) {
-    _showTaskStatusPicker(context, ref, task);
-  }
-
+  // Removed _showStatusPicker as it is replaced by direct call in _getStatusIconForTile
   void _showTaskOptions(BuildContext context, WidgetRef ref, Task task) {
     HapticFeedback.selectionClick();
     showModalBottomSheet(
@@ -502,164 +535,15 @@ class TaskListTile extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'تنظیمات تسک',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const HugeIcon(icon: HugeIcons.strokeRoundedEdit02, color: Colors.blue),
-              title: const Text('ویرایش'),
-              onTap: () {
-                Navigator.pop(context);
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  useSafeArea: true,
-                  builder: (context) => AddTaskScreen(task: task),
-                );
-              },
-            ),
-            ListTile(
-              leading: const HugeIcon(icon: HugeIcons.strokeRoundedTask01, color: Colors.blue),
-              title: const Text('تغییر وضعیت'),
-              onTap: () {
-                Navigator.pop(context);
-                _showTaskStatusPicker(context, ref, task);
-              },
-            ),
-            ListTile(
-              leading: const HugeIcon(icon: HugeIcons.strokeRoundedDelete02, color: Colors.red),
-              title: const Text('حذف', style: TextStyle(color: Colors.red)),
-              onTap: () {
-                Navigator.pop(context);
-                ref.read(tasksProvider.notifier).deleteTask(task.id!);
-              },
-            ),
-          ],
-        ),
-      ),
+      builder: (context) => TaskOptionsSheet(task: task),
     );
   }
 
-  void _showTaskStatusPicker(BuildContext context, WidgetRef ref, Task task) {
-    HapticFeedback.heavyImpact();
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('تغییر وضعیت تسک', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            ),
-            const SizedBox(height: 8),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  const SizedBox(width: 16),
-                  _buildStatusOptionForTask(context, ref, task, TaskStatus.success, 'انجام شده', Colors.green, HugeIcons.strokeRoundedCheckmarkCircle03),
-                  const SizedBox(width: 8),
-                  _buildStatusOptionForTask(context, ref, task, TaskStatus.failed, 'انجام نشده', Colors.red, HugeIcons.strokeRoundedCancelCircle),
-                  const SizedBox(width: 8),
-                  _buildStatusOptionForTask(context, ref, task, TaskStatus.cancelled, 'لغو شده', Colors.grey, HugeIcons.strokeRoundedMinusSignCircle),
-                  const SizedBox(width: 8),
-                  _buildStatusOptionForTask(context, ref, task, TaskStatus.deferred, 'تعویق شده', Colors.orange, HugeIcons.strokeRoundedClock01),
-                  const SizedBox(width: 8),
-                  _buildStatusOptionForTask(context, ref, task, TaskStatus.pending, 'در جریان', Colors.blue, HugeIcons.strokeRoundedCircle),
-                  const SizedBox(width: 16),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusOptionForTask(BuildContext context, WidgetRef ref, Task task, TaskStatus status, String label, Color color, dynamic icon) {
-    final isSelected = task.status == status;
-    return InkWell(
-      onTap: () async {
-        Navigator.pop(context);
-        HapticFeedback.mediumImpact();
-        if (status == TaskStatus.deferred) {
-          final Jalali? picked = await showPersianDatePicker(
-            context: context,
-            initialDate: Jalali.fromDateTime(task.dueDate.add(const Duration(days: 1))),
-            firstDate: Jalali.fromDateTime(DateTime.now().subtract(const Duration(days: 365))),
-            lastDate: Jalali.fromDateTime(DateTime.now().add(const Duration(days: 365))),
-            helpText: 'انتخاب تاریخ تعویق',
-          );
-          
-          if (picked != null) {
-             await ref.read(tasksProvider.notifier).updateStatus(task.id!, TaskStatus.deferred);
-             final newTask = Task(
-                title: task.title,
-                description: task.description,
-                dueDate: picked.toDateTime(),
-                status: TaskStatus.pending,
-                priority: task.priority,
-                category: task.category,
-              );
-              await ref.read(tasksProvider.notifier).addTask(newTask);
-          }
-        } else {
-          ref.read(tasksProvider.notifier).updateStatus(
-            task.id!,
-            status,
-          );
-        }
-      },
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: 90,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
-          border: Border.all(
-            color: isSelected ? color : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            HugeIcon(icon: icon, color: isSelected ? color : Theme.of(context).colorScheme.onSurfaceVariant, size: 28),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: isSelected ? color : Theme.of(context).colorScheme.onSurface,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _getStatusIconForTile(TaskStatus status, BuildContext context, WidgetRef ref, VoidCallback onToggle) {
+  Widget _getStatusIconForTile(Task task, BuildContext context, WidgetRef ref, VoidCallback onToggle) {
     dynamic icon;
     Color color;
 
-    switch (status) {
+    switch (task.status) {
       case TaskStatus.success: icon = HugeIcons.strokeRoundedCheckmarkCircle03; color = Colors.green; break;
       case TaskStatus.failed: icon = HugeIcons.strokeRoundedCancelCircle; color = Colors.red; break;
       case TaskStatus.cancelled: icon = HugeIcons.strokeRoundedMinusSignCircle; color = Colors.grey; break;
@@ -669,7 +553,16 @@ class TaskListTile extends ConsumerWidget {
 
     return InkWell(
       onTap: onToggle,
-      onLongPress: () => _showStatusPicker(context, ref),
+      onLongPress: () {
+         HapticFeedback.heavyImpact();
+         showModalBottomSheet(
+          context: context,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+          ),
+          builder: (context) => TaskStatusPickerSheet(task: task),
+        );
+      },
       child: Padding(
         padding: const EdgeInsets.all(4.0),
         child: HugeIcon(icon: icon, size: 28, color: color),
