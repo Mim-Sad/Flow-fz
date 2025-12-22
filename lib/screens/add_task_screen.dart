@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
-import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
@@ -34,6 +33,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   List<String> _attachments = [];
   RecurrenceConfig? _recurrence;
   bool _isDetailsExpanded = false;
+  bool _hasTime = false;
   
   // Audio Recording
   final AudioRecorder _audioRecorder = AudioRecorder();
@@ -69,6 +69,11 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     _selectedEmoji = widget.task?.taskEmoji;
     _attachments = widget.task?.attachments ?? [];
     _recurrence = widget.task?.recurrence;
+    if (widget.task != null) {
+      _hasTime = widget.task!.metadata['hasTime'] ?? true;
+    } else {
+      _hasTime = false;
+    }
   }
 
   Future<void> _playVoice(String path) async {
@@ -122,11 +127,16 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
         right: 20,
         top: 24,
       ),
-      child: SingleChildScrollView(
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.85,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
             // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -149,7 +159,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
             Row(
               children: [
                 GestureDetector(
-                  onTap: _showEmojiPicker,
+                  onTap: _showEmojiInput,
                   child: Container(
                     width: 48,
                     height: 48,
@@ -159,7 +169,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                     ),
                     alignment: Alignment.center,
                     child: Text(
-                      _selectedEmoji ?? '😀',
+                      _selectedEmoji ?? '🫥',
                       style: const TextStyle(fontSize: 24),
                     ),
                   ),
@@ -197,12 +207,15 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                       children: cats.map((cat) {
                         final isSelected = _selectedCategories.contains(cat.id);
                         return FilterChip(
+                          visualDensity: VisualDensity.compact,
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          labelPadding: const EdgeInsets.symmetric(horizontal: 4),
                           label: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Lottie.asset(cat.emoji, width: 20, height: 20),
-                              const SizedBox(width: 8),
-                              Text(cat.label),
+                              Lottie.asset(cat.emoji, width: 16, height: 16),
+                              const SizedBox(width: 6),
+                              Text(cat.label, style: const TextStyle(fontSize: 12)),
                             ],
                           ),
                           selected: isSelected,
@@ -220,6 +233,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                           labelStyle: TextStyle(
                             color: isSelected ? cat.color : Theme.of(context).colorScheme.onSurface,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            fontSize: 12,
                           ),
                           side: BorderSide(
                             color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
@@ -266,8 +280,28 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Date & Time
+                  // Date
                   ListTile(
+                    onTap: () async {
+                      final pickedDate = await showPersianDatePicker(
+                        context: context,
+                        initialDate: Jalali.fromDateTime(_selectedDate),
+                        firstDate: Jalali.fromDateTime(DateTime.now().subtract(const Duration(days: 365))),
+                        lastDate: Jalali.fromDateTime(DateTime.now().add(const Duration(days: 365 * 2))),
+                      );
+                      if (pickedDate != null) {
+                        final dt = pickedDate.toDateTime();
+                        setState(() {
+                          _selectedDate = DateTime(
+                            dt.year,
+                            dt.month,
+                            dt.day,
+                            _selectedDate.hour,
+                            _selectedDate.minute,
+                          );
+                        });
+                      }
+                    },
                     contentPadding: EdgeInsets.zero,
                     leading: Container(
                       padding: const EdgeInsets.all(8),
@@ -277,52 +311,103 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                       ),
                       child: const HugeIcon(icon: HugeIcons.strokeRoundedCalendar03, size: 20),
                     ),
-                    title: const Text('زمان انجام', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    title: Text(
+                      _recurrence != null && _recurrence!.type != RecurrenceType.none ? 'تاریخ شروع' : 'تاریخ انجام', 
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)
+                    ),
                     subtitle: Text(
-                      '${_formatJalali(Jalali.fromDateTime(_selectedDate))} • ${_toPersianDigit(intl.DateFormat('HH:mm').format(_selectedDate))}',
+                      _formatJalali(Jalali.fromDateTime(_selectedDate)),
                       style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
-                    trailing: TextButton(
-                      onPressed: () async {
-                        final pickedDate = await showPersianDatePicker(
-                          context: context,
-                          initialDate: Jalali.fromDateTime(_selectedDate),
-                          firstDate: Jalali.fromDateTime(DateTime.now().subtract(const Duration(days: 365))),
-                          lastDate: Jalali.fromDateTime(DateTime.now().add(const Duration(days: 365 * 2))),
-                        );
-                        if (pickedDate != null) {
-                          if (!context.mounted) return;
-                          final pickedTime = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.fromDateTime(_selectedDate),
-                            builder: (context, child) {
-                              return Directionality(
-                                textDirection: TextDirection.rtl,
-                                child: child!,
-                              );
-                            },
+                    trailing: Icon(
+                      Icons.chevron_left, 
+                      size: 20, 
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
+                    ),
+                  ),
+
+                  // Time
+                  ListTile(
+                    onTap: () async {
+                      final pickedTime = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.fromDateTime(_selectedDate),
+                        builder: (context, child) => Directionality(textDirection: TextDirection.rtl, child: child!),
+                      );
+                      if (pickedTime != null) {
+                        setState(() {
+                          _hasTime = true;
+                          _selectedDate = DateTime(
+                            _selectedDate.year, _selectedDate.month, _selectedDate.day,
+                            pickedTime.hour, pickedTime.minute
                           );
-                          
-                          if (pickedTime != null) {
-                            final dt = pickedDate.toDateTime();
-                            setState(() {
-                              _selectedDate = DateTime(
-                                dt.year,
-                                dt.month,
-                                dt.day,
-                                pickedTime.hour,
-                                pickedTime.minute,
-                              );
-                            });
-                          }
-                        }
-                      },
-                      child: const Text('تغییر'),
+                        });
+                      }
+                    },
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: _hasTime 
+                            ? Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.5)
+                            : Colors.grey.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: HugeIcon(
+                        icon: HugeIcons.strokeRoundedClock01, 
+                        size: 20,
+                        color: _hasTime ? Theme.of(context).colorScheme.secondary : Colors.grey,
+                      ),
+                    ),
+                    title: const Text('زمان انجام', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    subtitle: Text(
+                      _hasTime 
+                          ? _toPersianDigit(intl.DateFormat('HH:mm').format(_selectedDate))
+                          : 'بدون ساعت تنظیم شده',
+                      style: TextStyle(
+                        fontSize: 12, 
+                        color: _hasTime 
+                            ? Theme.of(context).colorScheme.onSurfaceVariant
+                            : Colors.grey,
+                      ),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_hasTime)
+                          GestureDetector(
+                            onTap: () => setState(() => _hasTime = false),
+                            child: Container(
+                              margin: const EdgeInsets.only(left: 12),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(25),
+                                border: Border.all(color: Colors.red.withValues(alpha: 0.1)),
+                              ),
+                              child: const Text(
+                                'حذف ساعت',
+                                style: TextStyle(
+                                  color: Colors.red, 
+                                  fontSize: 11, 
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                            ),
+                          ),
+                        Icon(
+                          Icons.chevron_left, 
+                          size: 20, 
+                          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
+                        ),
+                      ],
                     ),
                   ),
                   
                   // Recurrence
                   ListTile(
+                    onTap: _showRecurrencePicker,
                     contentPadding: EdgeInsets.zero,
                     leading: Container(
                       padding: const EdgeInsets.all(8),
@@ -337,9 +422,10 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                       _getRecurrenceText(),
                       style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
-                    trailing: TextButton(
-                      onPressed: _showRecurrencePicker,
-                      child: const Text('تنظیم'),
+                    trailing: Icon(
+                      Icons.chevron_left, 
+                      size: 20, 
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
                     ),
                   ),
 
@@ -373,8 +459,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                         setState(() => _priority = val.first);
                       },
                       style: ButtonStyle(
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: VisualDensity.compact,
+                        padding: WidgetStateProperty.all(const EdgeInsets.symmetric(vertical: 10)),
                       ),
                     ),
                   ),
@@ -444,63 +529,73 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
             ),
 
             const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: FilledButton(
-                onPressed: _saveTask,
-                child: Text(widget.task == null ? 'ثبت و شروع کار' : 'ذخیره تغییرات'),
-              ),
-            ),
-            const SizedBox(height: 20),
           ],
         ),
       ),
-    );
-  }
+    ),
+    SizedBox(
+      width: double.infinity,
+      height: 55,
+      child: FilledButton(
+        onPressed: _saveTask,
+        child: Text(widget.task == null ? 'ثبت و شروع کار' : 'ذخیره تغییرات'),
+      ),
+    ),
+    const SizedBox(height: 20),
+    ],
+  ),
+),
+);
+}
 
-  void _showEmojiPicker() {
-    showModalBottomSheet(
+  void _showEmojiInput() {
+    final controller = TextEditingController(text: _selectedEmoji);
+    showDialog(
       context: context,
-      builder: (context) => SizedBox(
-        height: 350,
-        child: Column(
+      builder: (context) => AlertDialog(
+        title: const Text('انتخاب ایموجی', textAlign: TextAlign.center),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Text('انتخاب ایموجی', style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-                TextButton(
-                  onPressed: () {
-                    setState(() => _selectedEmoji = null);
-                    Navigator.pop(context);
-                  },
-                  child: const Text('حذف ایموجی'),
-                ),
-              ],
-            ),
-            Expanded(
-              child: EmojiPicker(
-                onEmojiSelected: (category, emoji) {
-                  setState(() => _selectedEmoji = emoji.emoji);
-                  Navigator.pop(context);
-                },
-                config: Config(
-                  height: 256,
-                  checkPlatformCompatibility: true,
-                  emojiViewConfig: EmojiViewConfig(
-                    columns: 7,
-                    emojiSizeMax: 28,
-                    backgroundColor: Theme.of(context).colorScheme.surface,
-                  ),
-                ),
+            const Text('از کیبورد خود ایموجی وارد کنید', style: TextStyle(fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 40),
+              maxLength: 1,
+              decoration: const InputDecoration(
+                hintText: '🫥',
+                counterText: '',
+                border: OutlineInputBorder(),
               ),
+              onChanged: (value) {
+                 if (value.characters.length > 1) {
+                   controller.text = value.characters.last;
+                   controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
+                 }
+              },
             ),
           ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              setState(() => _selectedEmoji = null);
+              Navigator.pop(context);
+            },
+            child: const Text('حذف', style: TextStyle(color: Colors.red)),
+          ),
+          TextButton(
+            onPressed: () {
+              if (controller.text.isNotEmpty) {
+                 setState(() => _selectedEmoji = controller.text);
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('تایید'),
+          ),
+        ],
       ),
     );
   }
@@ -510,10 +605,6 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
       return 'بدون تکرار';
     }
     
-    // Use start date (dueDate) as base
-    final jStartDate = Jalali.fromDateTime(_selectedDate);
-    String baseDateText = 'شروع: ${_formatJalali(jStartDate)}';
-
     String endDateText = '';
     if (_recurrence!.endDate != null) {
       final jEndDate = Jalali.fromDateTime(_recurrence!.endDate!);
@@ -534,7 +625,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
         break;
       default: typeText = 'سفارشی';
     }
-    return '$typeText - $baseDateText$endDateText';
+    return '$typeText$endDateText';
   }
   
   String _getDayName(int weekday) {
@@ -562,8 +653,8 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('تنظیمات تکرار', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                const SizedBox(height: 16),
+                const Text('تنظیمات تکرار', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 12),
                 _buildRecurrenceOption(RecurrenceType.none, 'بدون تکرار', setSheetState),
                 _buildRecurrenceOption(RecurrenceType.daily, 'روزانه', setSheetState),
                 _buildRecurrenceOption(RecurrenceType.weekly, 'هفتگی', setSheetState),
@@ -576,10 +667,13 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                    
                 const Divider(),
                 ListTile(
-                  title: const Text('تاریخ پایان تکرار'),
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: const Text('تاریخ پایان تکرار', style: TextStyle(fontSize: 14)),
                   subtitle: Text(_recurrence?.endDate != null 
                     ? _formatJalali(Jalali.fromDateTime(_recurrence!.endDate!))
-                    : 'نامحدود'
+                    : 'نامحدود',
+                    style: const TextStyle(fontSize: 12),
                   ),
                   trailing: TextButton(
                     onPressed: () async {
@@ -608,7 +702,14 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                   ),
                 ),
                 
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('تایید'),
+                  ),
+                ),
               ],
             ),
           );
@@ -662,13 +763,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
 
   Widget _buildRecurrenceOption(RecurrenceType type, String label, StateSetter setSheetState) {
     final isSelected = (_recurrence?.type ?? RecurrenceType.none) == type;
-    return ListTile(
-      title: Text(label),
-      leading: HugeIcon(
-        icon: isSelected ? HugeIcons.strokeRoundedCheckmarkCircle03 : HugeIcons.strokeRoundedCircle,
-        color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey,
-        size: 24,
-      ),
+    return InkWell(
       onTap: () {
         setState(() {
           if (type == RecurrenceType.none) {
@@ -685,11 +780,21 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
           }
         });
         setSheetState(() {});
-        // Don't close immediately if selecting specific days, let user pick days
-        if (type != RecurrenceType.specificDays) {
-          Navigator.pop(context);
-        }
       },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            HugeIcon(
+              icon: isSelected ? HugeIcons.strokeRoundedCheckmarkCircle03 : HugeIcons.strokeRoundedCircle,
+              color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(label, style: const TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -727,6 +832,9 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   Future<void> _saveTask() async {
     if (_titleController.text.isEmpty) return;
     
+    final metadata = Map<String, dynamic>.from(widget.task?.metadata ?? {});
+    metadata['hasTime'] = _hasTime;
+
     final task = Task(
       id: widget.task?.id,
       rootId: widget.task?.rootId,
@@ -742,7 +850,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
       taskEmoji: _selectedEmoji,
       attachments: _attachments,
       recurrence: _recurrence,
-      metadata: widget.task?.metadata ?? const {},
+      metadata: metadata,
     );
     
     if (widget.task == null) {

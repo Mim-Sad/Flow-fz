@@ -82,6 +82,27 @@ class TaskCard extends ConsumerWidget {
                           useSafeArea: true,
                           builder: (context) => AddTaskScreen(task: task),
                         );
+                      } else if (value == 'duplicate') {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          useSafeArea: true,
+                          builder: (context) => AddTaskScreen(
+                            task: Task(
+                              title: task.title,
+                              description: task.description,
+                              dueDate: task.dueDate,
+                              priority: task.priority,
+                              categories: task.categories,
+                              category: task.category,
+                              taskEmoji: task.taskEmoji,
+                              attachments: task.attachments,
+                              recurrence: task.recurrence,
+                              metadata: task.metadata,
+                              status: TaskStatus.pending,
+                            ),
+                          ),
+                        );
                       } else if (value == 'delete') {
                         ref.read(tasksProvider.notifier).deleteTask(task.id!);
                       } else if (value == 'status_sheet') {
@@ -96,6 +117,16 @@ class TaskCard extends ConsumerWidget {
                             HugeIcon(icon: HugeIcons.strokeRoundedEdit02, size: 18),
                             SizedBox(width: 8),
                             Text('ویرایش'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'duplicate',
+                        child: Row(
+                          children: [
+                            HugeIcon(icon: HugeIcons.strokeRoundedCopy01, size: 18),
+                            SizedBox(width: 8),
+                            Text('تکثیر تسک'),
                           ],
                         ),
                       ),
