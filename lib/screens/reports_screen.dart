@@ -44,6 +44,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       initialDate: Jalali.fromDateTime(_selectedDate),
       firstDate: Jalali(1300, 1, 1),
       lastDate: Jalali(1500, 1, 1),
+      helpText: 'انتخاب تاریخ گزارش',
     );
     if (picked != null) {
       setState(() {

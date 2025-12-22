@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import 'screens/home_screen.dart';
 import 'screens/planning_screen.dart';
 import 'screens/reports_screen.dart';
@@ -60,6 +61,8 @@ class FlowApp extends ConsumerWidget {
       locale: const Locale('fa', 'IR'),
       supportedLocales: const [Locale('fa', 'IR')],
       localizationsDelegates: const [
+        PersianMaterialLocalizations.delegate,
+        PersianCupertinoLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,

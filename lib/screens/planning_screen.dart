@@ -51,6 +51,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       initialDate: Jalali.fromDateTime(_selectedDate),
       firstDate: Jalali(1300, 1, 1),
       lastDate: Jalali(1500, 1, 1),
+      helpText: 'انتخاب تاریخ برنامه‌ریزی',
     );
     if (picked != null) {
       setState(() {

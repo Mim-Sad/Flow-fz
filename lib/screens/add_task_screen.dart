@@ -295,6 +295,12 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                           final pickedTime = await showTimePicker(
                             context: context,
                             initialTime: TimeOfDay.fromDateTime(_selectedDate),
+                            builder: (context, child) {
+                              return Directionality(
+                                textDirection: TextDirection.rtl,
+                                child: child!,
+                              );
+                            },
                           );
                           
                           if (pickedTime != null) {

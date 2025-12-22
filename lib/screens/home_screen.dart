@@ -358,6 +358,12 @@ class TaskListTile extends ConsumerWidget {
               final TimeOfDay? pickedTime = await showTimePicker(
                 context: context,
                 initialTime: TimeOfDay.fromDateTime(task.dueDate),
+                builder: (context, child) {
+                  return Directionality(
+                    textDirection: TextDirection.rtl,
+                    child: child!,
+                  );
+                },
               );
 
               if (pickedTime != null) {
