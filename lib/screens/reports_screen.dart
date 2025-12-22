@@ -203,7 +203,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                                   PieChartSectionData(
                                                     value: pendingCount.toDouble(),
                                                     title: '',
-                                                    color: Colors.blueAccent,
+                                                    color: Theme.of(context).colorScheme.primary,
                                                     radius: 35,
                                                   ),
                                                 if (deferredCount > 0)
@@ -248,7 +248,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                         _buildLegendItem(
                                           context,
                                           'در جریان',
-                                          Colors.blueAccent,
+                                          Theme.of(context).colorScheme.primary,
                                           pendingCount,
                                         ),
                                         _buildLegendItem(
@@ -540,7 +540,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final colors = [
       Colors.redAccent,
       Colors.orangeAccent,
-      Colors.blueAccent,
+      Theme.of(context).colorScheme.primary,
       Colors.cyanAccent,
       Colors.greenAccent,
     ];
@@ -557,7 +557,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   LinearGradient _calculateGradient(List<FlSpot> spots) {
     if (spots.isEmpty) {
-      return const LinearGradient(colors: [Colors.blue, Colors.blue]);
+      final primaryColor = Theme.of(context).colorScheme.primary;
+      return LinearGradient(colors: [primaryColor, primaryColor]);
     }
 
     double minY = spots.map((e) => e.y).reduce((a, b) => a < b ? a : b);

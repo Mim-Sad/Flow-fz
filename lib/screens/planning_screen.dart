@@ -99,14 +99,6 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     final tasks = ref.watch(tasksProvider);
     final categories = ref.watch(categoryProvider).value ?? [];
 
-    // Filter recurring tasks for the header (using selected date)
-    final recurringTasksForHeader = _getTasksForDate(tasks, _selectedDate)
-        .where(
-          (t) =>
-              t.recurrence != null && t.recurrence!.type != RecurrenceType.none,
-        )
-        .toList();
-
     return Scaffold(
       body: Stack(
         children: [
@@ -115,9 +107,6 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
               // Spacer for the top bar
               SizedBox(height: MediaQuery.of(context).padding.top + 70),
               
-              if (recurringTasksForHeader.isNotEmpty)
-                _buildRecurringTasksHeader(recurringTasksForHeader),
-
               Expanded(child: _buildMainContent(tasks, categories)),
               _buildRangePicker(),
             ],
@@ -204,63 +193,10 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     );
   }
 
-  Widget _buildRecurringTasksHeader(List<Task> tasks) {
-    // Only show this header if NOT in daily view? 
-    // User said: "In daily view show like normal task... In weekly/monthly design that I say".
-    // But this header is outside the view mode switch.
-    // If I want to follow instructions strictly, I should HIDE this header in Daily View
-    // and let the daily view logic render them as normal tasks.
-    
-    if (_viewMode == 0) return const SizedBox.shrink();
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.repeat_rounded,
-                size: 20,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'عادت‌های امروز',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ...tasks.map((task) => _buildRecurringTaskCard(task)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecurringTaskCard(Task task) {
-    // Get category color/emoji if available
-    final categories = ref.watch(categoryProvider).value ?? [];
-    Color color = Colors.grey;
-    String emoji = '📅';
-    if (task.categories.isNotEmpty) {
-      final cat = getCategoryById(task.categories.first, categories);
-      color = cat.color;
-      emoji = cat.emoji;
-    } else if (task.category != null) {
-      // Legacy support
-      final cat = getCategoryById(task.category!, categories);
-      color = cat.color;
-      emoji = cat.emoji;
-    }
-
+  Widget _buildRecurringTaskGroup(List<Task> tasks) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
@@ -274,166 +210,107 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: Emoji + Title + Priority + Menu
+          // Header
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Row(
               children: [
-                Text(emoji, style: const TextStyle(fontSize: 16)),
+                const Text('🔁', style: TextStyle(fontSize: 16)),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: TextScroll(
-                    task.title,
-                    mode: TextScrollMode.endless,
-                    velocity: const Velocity(pixelsPerSecond: Offset(20, 0)),
-                    delayBefore: const Duration(seconds: 2),
-                    pauseBetween: const Duration(seconds: 2),
+                  child: Text(
+                    'تسک‌های تکرار شونده',
                     textDirection: TextDirection.rtl,
                     textAlign: TextAlign.right,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
-                      color: color,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                _buildPriorityDot(task.priority),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const HugeIcon(
-                    icon: HugeIcons.strokeRoundedMoreVertical,
-                    size: 18,
-                    color: Colors.grey,
-                  ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  onPressed: () => _showTaskOptions(context, task),
                 ),
               ],
             ),
           ),
           
-          // 7 Days Row
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(7, (i) {
-                // Determine date for this circle
-                // We want to show a week window? Or just the recurrence pattern?
-                // User said: "7 days of the week... if a day is missing show faded circle"
-                // Let's align with the current week of the selected date.
-                final startOfWeek = _selectedDate.subtract(
-                  Duration(days: (_selectedDate.weekday + 1) % 7),
-                );
-                final date = startOfWeek.add(Duration(days: i));
-                final isToday = _isSameDay(date, DateTime.now());
-                
-                // Check status for this date
-                final status = ref.read(tasksProvider.notifier).getStatusForDate(task.id!, date);
-                
-                // Check if task is scheduled for this day
-                bool isScheduled = true;
-                if (task.recurrence!.type == RecurrenceType.specificDays && task.recurrence!.daysOfWeek != null) {
-                   isScheduled = task.recurrence!.daysOfWeek!.contains(date.weekday);
-                } else if (task.recurrence!.type == RecurrenceType.weekly) {
-                   isScheduled = date.weekday == task.dueDate.weekday;
-                }
-                // For daily/monthly/yearly/custom, logic is more complex, but let's assume scheduled if not specificDays.
-                // Or better, use the _getTasksForDate logic? No, too heavy.
-                // Simplify: Daily = always. Weekly = check weekday. SpecificDays = check list.
-                
-                return InkWell(
-                  onTap: () {
-                     if (!isScheduled) return;
-                     HapticFeedback.lightImpact();
-                     // Toggle status logic (Pending -> Success -> Failed -> Deferred -> Cancelled -> Pending)
-                     TaskStatus nextStatus;
-                     switch (status) {
-                       case TaskStatus.pending: nextStatus = TaskStatus.success; break;
-                       case TaskStatus.success: nextStatus = TaskStatus.failed; break;
-                       case TaskStatus.failed: nextStatus = TaskStatus.deferred; break;
-                       case TaskStatus.deferred: nextStatus = TaskStatus.cancelled; break;
-                       case TaskStatus.cancelled: nextStatus = TaskStatus.pending; break;
-                     }
-                     ref.read(tasksProvider.notifier).updateStatus(task.id!, nextStatus, date: date);
-                  },
-                  onLongPress: () {
-                     // Show status picker for this specific date instance
-                     if (!isScheduled) return;
-                     HapticFeedback.heavyImpact();
-                     showModalBottomSheet(
-                        context: context,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-                        ),
-                        builder: (context) => TaskStatusPickerSheet(task: task, recurringDate: date),
-                      );
-                  },
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isScheduled 
-                          ? _getStatusColor(status).withValues(alpha: 0.2)
-                          : Colors.grey.withValues(alpha: 0.1),
-                      border: Border.all(
-                        color: isScheduled 
-                           ? _getStatusColor(status)
-                           : Colors.grey.withValues(alpha: 0.2),
-                        width: isToday ? 2.5 : 1.5, // Highlight today
-                      ),
-                    ),
-                    child: Center(
-                      child: isScheduled 
-                        ? HugeIcon(
-                            icon: _getStatusIconData(status),
-                            size: 18,
-                            color: _getStatusColor(status),
-                          )
-                        : null,
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ),
+          // List of recurring tasks
+          ...tasks.map((task) => _buildRecurringTaskRow(task)),
+          const SizedBox(height: 8),
         ],
       ),
+    ).animate().fadeIn().slideY(begin: 0.05);
+  }
+
+  Widget _buildRecurringTaskRow(Task task) {
+    final isCancelled = task.status == TaskStatus.cancelled;
+    
+    // Determine the status icon color/icon
+    // We need to show the status for the selected date? 
+    // Or for the task itself? 
+    // In planning screen, we usually view a specific date.
+    // If we are in Daily/Weekly/Monthly, _getTasksForDate has already created virtual copies with correct status.
+    // So we can use task.status.
+    
+    return Opacity(
+      opacity: isCancelled ? 0.6 : 1.0,
+      child: Container(
+        color: Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          children: [
+            // Status Icon (Right side in RTL, so first child)
+             _getStatusIconForTile(task),
+             
+             const SizedBox(width: 12),
+             
+             // Task Title
+            Expanded(
+              child: InkWell(
+                onTap: () {}, // Maybe show details?
+                child: TextScroll(
+                  task.title,
+                  mode: TextScrollMode.endless,
+                  velocity: const Velocity(
+                    pixelsPerSecond: Offset(30, 0),
+                  ),
+                  delayBefore: const Duration(seconds: 2),
+                  pauseBetween: const Duration(seconds: 2),
+                  textDirection: TextDirection.rtl,
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    fontSize: 14,
+                    decoration: task.status == TaskStatus.success
+                        ? TextDecoration.lineThrough
+                        : null,
+                    color: task.status == TaskStatus.success
+                        ? Theme.of(context).colorScheme.onSurfaceVariant
+                              .withValues(alpha: 0.5)
+                        : Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ),
+            ),
+            
+            // Priority
+            _buildPriorityDot(task.priority),
+            
+            const SizedBox(width: 8),
+            
+            // Menu
+            IconButton(
+              icon: const HugeIcon(
+                icon: HugeIcons.strokeRoundedMoreHorizontal,
+                size: 18,
+                color: Colors.grey,
+              ),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () => _showTaskOptions(context, task),
+            ),
+          ],
+        ),
+      ),
     );
-  }
-
-  Color _getStatusColor(TaskStatus status) {
-    switch (status) {
-      case TaskStatus.success:
-        return Colors.green;
-      case TaskStatus.failed:
-        return Colors.red;
-      case TaskStatus.deferred:
-        return Colors.orange;
-      case TaskStatus.cancelled:
-        return Colors.grey;
-      case TaskStatus.pending:
-        return Theme.of(context).colorScheme.primary;
-    }
-  }
-
-  dynamic _getStatusIconData(TaskStatus status) {
-    switch (status) {
-      case TaskStatus.success:
-        return HugeIcons.strokeRoundedCheckmarkCircle02;
-      case TaskStatus.failed:
-        return HugeIcons.strokeRoundedCancel01;
-      case TaskStatus.deferred:
-        return HugeIcons.strokeRoundedTime02;
-      case TaskStatus.cancelled:
-        return HugeIcons.strokeRoundedMinusSign;
-      case TaskStatus.pending:
-        return HugeIcons.strokeRoundedCircle; // Or empty
-    }
   }
 
   Widget _buildMainContent(List<Task> tasks, List<CategoryData> categories) {
@@ -820,9 +697,11 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
   Widget _buildGroupedListView(List<Task> tasks, List<CategoryData> categories) {
     // Filter out recurring tasks
+    final recurringTasks = tasks.where((t) => t.recurrence != null && t.recurrence!.type != RecurrenceType.none).toList();
     final regularTasks = tasks.where((t) => t.recurrence == null || t.recurrence!.type == RecurrenceType.none).toList();
     
     final groups = _getGroupedAndSortedTasks(regularTasks);
+    
     return ListView(
       padding: EdgeInsets.only(
         top: 0, // Removed padding
@@ -830,14 +709,23 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         right: 16,
         bottom: 16,
       ),
-      children: groups.entries
-          .map((entry) => _buildTaskGroup(entry.key, entry.value, categories))
-          .toList(),
+      children: [
+        if (recurringTasks.isNotEmpty)
+          _buildRecurringTaskGroup(recurringTasks),
+        ...groups.entries
+          .map((entry) => _buildTaskGroup(entry.key, entry.value, categories)),
+      ],
     );
   }
 
   Widget _buildGroupedTasksContent(List<Task> tasks, List<CategoryData> categories) {
     // Filter out recurring tasks
+    final recurringTasks = tasks
+        .where(
+          (t) =>
+              t.recurrence != null && t.recurrence!.type != RecurrenceType.none,
+        )
+        .toList();
     final regularTasks = tasks
         .where(
           (t) =>
@@ -847,6 +735,8 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
     return Column(
       children: [
+        if (recurringTasks.isNotEmpty)
+          _buildRecurringTaskGroup(recurringTasks),
         if (regularTasks.isNotEmpty)
           ..._getGroupedAndSortedTasks(
             regularTasks,
@@ -1198,7 +1088,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         color = Colors.red;
         break;
       case TaskPriority.medium:
-        color = Colors.blue;
+        color = Theme.of(context).colorScheme.primary;
         break;
       case TaskPriority.low:
         color = Colors.green;

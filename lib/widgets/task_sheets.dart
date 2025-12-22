@@ -80,7 +80,7 @@ class TaskStatusPickerSheet extends ConsumerWidget {
                   TaskStatus.pending,
                   'در جریان',
                   HugeIcons.strokeRoundedCircle,
-                  Colors.blue,
+                  Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 16),
               ],

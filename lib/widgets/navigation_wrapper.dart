@@ -63,7 +63,7 @@ class NavigationWrapper extends StatelessWidget {
                   child: Image.asset(
                     'assets/images/flow-logo.png',
                     height: 24, // Slightly larger logo
-                    errorBuilder: (context, error, stackTrace) => const HugeIcon(icon: HugeIcons.strokeRoundedAnalytics01, color: Colors.blue),
+                    errorBuilder: (context, error, stackTrace) => HugeIcon(icon: HugeIcons.strokeRoundedAnalytics01, color: theme.colorScheme.primary),
                   ),
                 ),
               )
@@ -109,20 +109,20 @@ class NavigationWrapper extends StatelessWidget {
               break;
           }
         },
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: HugeIcon(icon: HugeIcons.strokeRoundedHome01, color: Colors.grey),
-            selectedIcon: HugeIcon(icon: HugeIcons.strokeRoundedHome01, color: Colors.blue),
+            icon: const HugeIcon(icon: HugeIcons.strokeRoundedHome01, color: Colors.grey),
+            selectedIcon: HugeIcon(icon: HugeIcons.strokeRoundedHome01, color: theme.colorScheme.primary),
             label: 'خانه',
           ),
           NavigationDestination(
-            icon: HugeIcon(icon: HugeIcons.strokeRoundedCalendarCheckIn01, color: Colors.grey),
-            selectedIcon: HugeIcon(icon: HugeIcons.strokeRoundedCalendarCheckIn01, color: Colors.blue),
+            icon: const HugeIcon(icon: HugeIcons.strokeRoundedCalendarCheckIn01, color: Colors.grey),
+            selectedIcon: HugeIcon(icon: HugeIcons.strokeRoundedCalendarCheckIn01, color: theme.colorScheme.primary),
             label: 'برنامه‌ریزی',
           ),
           NavigationDestination(
-            icon: HugeIcon(icon: HugeIcons.strokeRoundedChartLineData01, color: Colors.grey),
-            selectedIcon: HugeIcon(icon: HugeIcons.strokeRoundedChartLineData01, color: Colors.blue),
+            icon: const HugeIcon(icon: HugeIcons.strokeRoundedChartLineData01, color: Colors.grey),
+            selectedIcon: HugeIcon(icon: HugeIcons.strokeRoundedChartLineData01, color: theme.colorScheme.primary),
             label: 'گزارشات',
           ),
         ],

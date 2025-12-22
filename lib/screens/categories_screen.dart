@@ -17,7 +17,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     final isEditing = category != null;
     final nameController = TextEditingController(text: category?.label ?? '');
     final emojiController = TextEditingController(text: category?.emoji ?? '');
-    Color selectedColor = category?.color ?? Colors.blue;
+    Color selectedColor = category?.color ?? Theme.of(context).colorScheme.primary;
     
     // Simple color palette
     final List<Color> colors = [
@@ -129,7 +129,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         title: const Text('مدیریت دسته‌بندی‌ها'),
         actions: [
           IconButton(
-            icon: const HugeIcon(icon: HugeIcons.strokeRoundedAdd01, color: Colors.blue),
+            icon: HugeIcon(icon: HugeIcons.strokeRoundedAdd01, color: Theme.of(context).colorScheme.primary),
             onPressed: () => _showCategoryDialog(),
           ),
         ],
@@ -196,7 +196,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const HugeIcon(icon: HugeIcons.strokeRoundedEdit02, size: 20, color: Colors.blue),
+                        icon: HugeIcon(icon: HugeIcons.strokeRoundedEdit02, size: 20, color: Theme.of(context).colorScheme.primary),
                         onPressed: () => _showCategoryDialog(category),
                       ),
                       IconButton(

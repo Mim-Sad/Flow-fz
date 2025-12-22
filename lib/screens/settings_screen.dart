@@ -38,7 +38,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ListTile(
               title: const Text('مدیریت دسته‌بندی‌ها', style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16,)),
               subtitle: const Text('افزودن، ویرایش و حذف دسته‌بندی‌ها',style: TextStyle(fontSize: 10,),),
-              leading: const HugeIcon(icon: HugeIcons.strokeRoundedTag01, color: Colors.blue),
+              leading: HugeIcon(icon: HugeIcons.strokeRoundedTag01, color: Theme.of(context).colorScheme.primary),
               trailing: const HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: Colors.grey, size: 20),
               onTap: () {
                 Navigator.push(
