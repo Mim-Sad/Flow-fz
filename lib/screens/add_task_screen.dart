@@ -758,7 +758,10 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   dense: true,
-                  title: const Text('تاریخ پایان تکرار', style: TextStyle(fontSize: 14)),
+                  title: const Padding(
+                    padding: EdgeInsets.only(bottom: 4),
+                    child: Text('تاریخ پایان تکرار', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  ),
                   subtitle: Text(_recurrence?.endDate != null 
                     ? _formatJalali(Jalali.fromDateTime(_recurrence!.endDate!))
                     : 'نامحدود',
@@ -869,17 +872,8 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                           ? Theme.of(context).colorScheme.onPrimary 
                           : Theme.of(context).colorScheme.onSurface,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      fontSize: 13,
+                      fontSize: 12,
                     ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _getDayInitialHint(dayId),
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
               ],
@@ -888,19 +882,6 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
         }).toList(),
       ),
     );
-  }
-
-  String _getDayInitialHint(int dayId) {
-    switch (dayId) {
-      case DateTime.saturday: return 'شنبه';
-      case DateTime.sunday: return 'یکشنبه';
-      case DateTime.monday: return 'دوشنبه';
-      case DateTime.tuesday: return 'سه‌شنبه';
-      case DateTime.wednesday: return 'چهارشنبه';
-      case DateTime.thursday: return 'پنج‌شنبه';
-      case DateTime.friday: return 'جمعه';
-      default: return '';
-    }
   }
 
   Widget _buildRecurrenceOption(RecurrenceType type, String label, StateSetter setSheetState) {

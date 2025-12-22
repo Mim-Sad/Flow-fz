@@ -43,8 +43,36 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     return _toPersianDigit('${j.day} ${j.formatter.mN} ${j.year}');
   }
 
-  String _formatMiladiSmall(DateTime dt) {
-    return intl.DateFormat('d MMM yyyy').format(dt);
+  String _formatMiladi(DateTime dt, int viewMode) {
+    if (viewMode == 0) {
+      return intl.DateFormat('d MMMM yyyy', 'en_US').format(dt);
+    } else if (viewMode == 1) {
+      final startOfWeek = dt.subtract(
+        Duration(days: (dt.weekday + 1) % 7),
+      );
+      final endOfWeek = startOfWeek.add(const Duration(days: 6));
+      if (startOfWeek.year == endOfWeek.year) {
+        return '${intl.DateFormat('d MMM', 'en_US').format(startOfWeek)} - ${intl.DateFormat('d MMM yyyy', 'en_US').format(endOfWeek)}';
+      } else {
+        return '${intl.DateFormat('d MMM yyyy', 'en_US').format(startOfWeek)} - ${intl.DateFormat('d MMM yyyy', 'en_US').format(endOfWeek)}';
+      }
+    } else {
+      final jalali = Jalali.fromDateTime(dt);
+      final jStart = jalali.copy(day: 1);
+      final jEnd = jalali.copy(day: jalali.monthLength);
+      final dStart = jStart.toDateTime();
+      final dEnd = jEnd.toDateTime();
+
+      if (dStart.year == dEnd.year) {
+        if (dStart.month == dEnd.month) {
+          return intl.DateFormat('MMMM yyyy', 'en_US').format(dStart);
+        } else {
+          return '${intl.DateFormat('MMM', 'en_US').format(dStart)} - ${intl.DateFormat('MMM yyyy', 'en_US').format(dEnd)}';
+        }
+      } else {
+        return '${intl.DateFormat('MMM yyyy', 'en_US').format(dStart)} - ${intl.DateFormat('MMM yyyy', 'en_US').format(dEnd)}';
+      }
+    }
   }
 
   Future<void> _selectDate() async {
@@ -496,13 +524,16 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                     fontSize: 16,
                   ),
                 ),
-                Text(
-                  _formatMiladiSmall(_selectedDate),
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: Text(
+                    _formatMiladi(_selectedDate, _viewMode),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    ),
                   ),
                 ),
                 if (!_isCurrentRange())
