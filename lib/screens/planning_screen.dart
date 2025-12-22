@@ -197,9 +197,18 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   }
 
   Widget _buildRecurringTaskGroup(List<Task> tasks) {
-    // Calculate progress for recurring tasks
+    final completions = ref.watch(taskCompletionsProvider);
+    final dateKey = getDateKey(_selectedDate);
+
+    // Calculate progress for recurring tasks for the selected date
     int total = tasks.length;
-    int completed = tasks.where((t) => t.status == TaskStatus.success).length;
+    int completed = 0;
+    for (var task in tasks) {
+      final rootId = task.rootId ?? task.id!;
+      final statusIndex = completions[rootId]?[dateKey];
+      final status = statusIndex != null ? TaskStatus.values[statusIndex] : TaskStatus.pending;
+      if (status == TaskStatus.success) completed++;
+    }
     double progress = total == 0 ? 0 : completed / total;
 
     return Container(
@@ -276,7 +285,14 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   }
 
   Widget _buildRecurringTaskRow(Task task) {
-    final isCancelled = task.status == TaskStatus.cancelled;
+    final completions = ref.watch(taskCompletionsProvider);
+    final dateKey = getDateKey(_selectedDate);
+    final rootId = task.rootId ?? task.id!;
+    final statusIndex = completions[rootId]?[dateKey];
+    final status = statusIndex != null ? TaskStatus.values[statusIndex] : TaskStatus.pending;
+    
+    final isCancelled = status == TaskStatus.cancelled;
+    final isSuccess = status == TaskStatus.success;
     
     return Opacity(
       opacity: isCancelled ? 0.6 : 1.0,
@@ -322,12 +338,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                         textAlign: TextAlign.right,
                         style: TextStyle(
                           fontSize: 13,
-                          decoration: task.status == TaskStatus.success
-                              ? TextDecoration.lineThrough
-                              : null,
-                          color: task.status == TaskStatus.success
-                              ? Theme.of(context).colorScheme.onSurfaceVariant
-                                    .withValues(alpha: 0.5)
+                          decoration: isSuccess ? TextDecoration.lineThrough : null,
+                          color: isSuccess
+                              ? Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
                               : Theme.of(context).colorScheme.onSurface,
                         ),
                       ),

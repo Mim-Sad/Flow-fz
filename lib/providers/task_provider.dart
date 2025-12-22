@@ -15,13 +15,14 @@ final allTasksIncludingDeletedProvider = FutureProvider<List<Task>>((ref) async 
 // Provider for completion status of tasks (especially recurring ones)
 // Map<taskId, Map<dateKey, statusIndex>>
 final taskCompletionsProvider = StateNotifierProvider<TaskCompletionsNotifier, Map<int, Map<String, int>>>((ref) {
-  return TaskCompletionsNotifier(ref.watch(databaseServiceProvider));
+  return TaskCompletionsNotifier(ref);
 });
 
 class TaskCompletionsNotifier extends StateNotifier<Map<int, Map<String, int>>> {
+  final Ref _ref;
   final DatabaseService _dbService;
 
-  TaskCompletionsNotifier(this._dbService) : super({}) {
+  TaskCompletionsNotifier(this._ref) : _dbService = _ref.read(databaseServiceProvider), super({}) {
     _loadCompletions();
   }
 
@@ -34,6 +35,7 @@ class TaskCompletionsNotifier extends StateNotifier<Map<int, Map<String, int>>> 
     newState.putIfAbsent(taskId, () => {});
     newState[taskId]![dateKey] = statusIndex;
     state = newState;
+    _ref.invalidate(allTasksIncludingDeletedProvider); // Ensure reports refresh
   }
 
   void setCompletions(Map<int, Map<String, int>> completions) {
@@ -104,6 +106,7 @@ class TasksNotifier extends StateNotifier<List<Task>> {
       // Regular task status update
       final previousState = [...state];
       state = state.map((t) => t.id == id ? t.copyWith(status: status) : t).toList();
+      _ref.invalidate(allTasksIncludingDeletedProvider);
 
       try {
         await _dbService.updateTaskStatus(id, status);

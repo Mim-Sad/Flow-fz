@@ -340,7 +340,7 @@ class TaskListTile extends ConsumerWidget {
           if (direction == DismissDirection.startToEnd) {
             // Swipe Right: Done
             HapticFeedback.mediumImpact();
-            ref.read(tasksProvider.notifier).updateStatus(task.id!, TaskStatus.success);
+            ref.read(tasksProvider.notifier).updateStatus(task.id!, TaskStatus.success, date: task.dueDate);
             return false;
           } else {
             // Swipe Left: Defer
@@ -364,7 +364,7 @@ class TaskListTile extends ConsumerWidget {
                 final dt = picked.toDateTime();
                 final newDate = DateTime(dt.year, dt.month, dt.day, pickedTime.hour, pickedTime.minute);
                 
-                await ref.read(tasksProvider.notifier).updateStatus(task.id!, TaskStatus.deferred);
+                await ref.read(tasksProvider.notifier).updateStatus(task.id!, TaskStatus.deferred, date: task.dueDate);
                 final newTask = Task(
                   rootId: task.rootId ?? task.id,
                   title: task.title,
