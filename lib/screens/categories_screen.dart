@@ -229,7 +229,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                       ReorderableDragStartListener(
                         index: index,
                         child: HugeIcon(
-                          icon: HugeIcons.strokeRoundedMenuSquare,
+                          icon: HugeIcons.strokeRoundedMove,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                           size: 20,
                         ),

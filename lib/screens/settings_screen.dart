@@ -92,19 +92,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           BoxShadow(
                             color: color.withValues(alpha: 0.4),
                             blurRadius: 8,
-                            offset: const Offset(0, 4),
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
                       child: isSelected
-                          ? const HugeIcon(icon: HugeIcons.strokeRoundedTick01, color: Colors.white, size: 10)
+                          ? const HugeIcon(icon: HugeIcons.strokeRoundedHeartCheck, color: Colors.white, size: 10)
                           : null,
                     ),
                   );
                 },
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 34),
   
             // Mode Selection (Light/Dark)
             const Text(
