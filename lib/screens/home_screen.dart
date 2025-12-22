@@ -69,10 +69,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       });
     }
 
-    // No need to move cancelled tasks to end anymore as it is handled in sort logic
-    // But we keep the list assignment
-    // todayTasks = [...nonCancelledTasks, ...cancelledTasks]; // Removed this logic
-
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -145,6 +141,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             context: context,
             isScrollControlled: true,
             useSafeArea: true,
+            backgroundColor: Colors.transparent,
             builder: (context) => const AddTaskScreen(),
           );
         },

@@ -128,12 +128,25 @@ class TasksNotifier extends StateNotifier<List<Task>> {
     }
   }
 
-  Future<void> reorderTasks(List<Task> reorderedTasks) async {
-    state = reorderedTasks;
-    for (int i = 0; i < reorderedTasks.length; i++) {
-      final updatedTask = reorderedTasks[i].copyWith(position: i);
-      await _dbService.updateTask(updatedTask);
+  Future<void> reorderTasks(List<Task> reorderedSubset) async {
+    // 1. Create a map of new positions from the reordered subset
+    final Map<int, int> newPositions = {};
+    for (int i = 0; i < reorderedSubset.length; i++) {
+      if (reorderedSubset[i].id != null) {
+        newPositions[reorderedSubset[i].id!] = i;
+      }
     }
+
+    // 2. Update local state by merging positions
+    state = state.map((task) {
+      if (newPositions.containsKey(task.id)) {
+        return task.copyWith(position: newPositions[task.id!]!);
+      }
+      return task;
+    }).toList();
+    
+    // 3. Update positions in database
+    await _dbService.updateTaskPositions(state);
   }
 
   TaskStatus getStatusForDate(int taskId, DateTime date) {
@@ -175,6 +188,7 @@ final activeTasksProvider = Provider.family<List<Task>, DateTime>((ref, date) {
     }
   }
   
+  activeTasks.sort((a, b) => a.position.compareTo(b.position));
   return activeTasks;
 });
 
@@ -210,7 +224,9 @@ final historicalActiveTasksProvider = Provider.family<List<Task>, DateTime>((ref
           }
         }
       }
-      return activeVersions.values.toList();
+      final tasks = activeVersions.values.toList();
+      tasks.sort((a, b) => a.position.compareTo(b.position));
+      return tasks;
     },
     orElse: () => [],
   );

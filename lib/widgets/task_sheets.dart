@@ -247,7 +247,31 @@ class TaskStatusPickerSheet extends ConsumerWidget {
                 context: context,
                 isScrollControlled: true,
                 useSafeArea: true,
+                backgroundColor: Colors.transparent,
                 builder: (context) => AddTaskScreen(task: task),
+              );
+            },
+          ),
+          ListTile(
+            leading: const HugeIcon(
+              icon: HugeIcons.strokeRoundedCopy01,
+              size: 24,
+            ),
+            title: const Text('تکثیر تسک'),
+            onTap: () {
+              Navigator.pop(context);
+              // Create a copy of the task without the ID to trigger a new creation
+              final taskCopy = task.copyWith(
+                id: null,
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
+              );
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                useSafeArea: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => AddTaskScreen(task: taskCopy),
               );
             },
           ),

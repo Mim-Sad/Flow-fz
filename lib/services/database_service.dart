@@ -218,7 +218,7 @@ class DatabaseService {
     List<Map<String, dynamic>> maps = await db.query(
       'tasks',
       where: includeDeleted ? null : 'isDeleted = 0',
-      orderBy: 'dueDate ASC',
+      orderBy: 'position ASC, dueDate ASC',
     );
     return List.generate(maps.length, (i) => Task.fromMap(maps[i]));
   }
@@ -291,6 +291,22 @@ class DatabaseService {
     );
 
     return task.id!;
+  }
+
+  Future<void> updateTaskPositions(List<Task> tasks) async {
+    Database db = await database;
+    await db.transaction((txn) async {
+      final batch = txn.batch();
+      for (final task in tasks) {
+        batch.update(
+          'tasks',
+          {'position': task.position},
+          where: 'id = ?',
+          whereArgs: [task.id],
+        );
+      }
+      await batch.commit(noResult: true);
+    });
   }
 
   Future<int> softDeleteTask(int id) async {

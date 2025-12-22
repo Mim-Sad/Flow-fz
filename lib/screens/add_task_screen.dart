@@ -120,433 +120,520 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
-        left: 20,
-        right: 20,
-        top: 24,
       ),
-      child: SizedBox(
-        height: MediaQuery.of(context).size.height * 0.85,
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  widget.task == null ? 'تسک جدید' : 'ویرایش تسک',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const HugeIcon(icon: HugeIcons.strokeRoundedCancelCircle, size: 24, color: Colors.grey),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // Title and Emoji
-            Row(
-              children: [
-                GestureDetector(
-                  onTap: _showEmojiInput,
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      _selectedEmoji ?? '🫥',
-                      style: const TextStyle(fontSize: 24),
-                    ),
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Pull handle for visual cue
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _titleController,
-                    decoration: InputDecoration(
-                      hintText: 'عنوان تسک',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Categories
-            const Text('دسته‌بندی', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            const SizedBox(height: 8),
-            Consumer(
-              builder: (context, ref, child) {
-                final categoriesAsync = ref.watch(categoryProvider);
-                
-                return categoriesAsync.when(
-                  data: (categories) {
-                    final cats = categories.isEmpty ? defaultCategories : categories;
-                    return Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: cats.map((cat) {
-                        final isSelected = _selectedCategories.contains(cat.id);
-                        return FilterChip(
-                          visualDensity: VisualDensity.compact,
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          labelPadding: const EdgeInsets.symmetric(horizontal: 4),
-                          label: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Lottie.asset(cat.emoji, width: 16, height: 16),
-                              const SizedBox(width: 6),
-                              Text(cat.label, style: const TextStyle(fontSize: 12)),
-                            ],
-                          ),
-                          selected: isSelected,
-                          onSelected: (selected) {
-                            setState(() {
-                              if (selected) {
-                                _selectedCategories.add(cat.id);
-                              } else {
-                                _selectedCategories.remove(cat.id);
-                              }
-                            });
-                          },
-                          backgroundColor: Theme.of(context).colorScheme.surface,
-                          selectedColor: cat.color.withValues(alpha: 0.2),
-                          labelStyle: TextStyle(
-                            color: isSelected ? cat.color : Theme.of(context).colorScheme.onSurface,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            fontSize: 12,
-                          ),
-                          side: BorderSide(
-                            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
-                          ),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          showCheckmark: false,
-                        );
-                      }).toList(),
-                    );
-                  },
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (err, stack) => Text('خطا در بارگذاری دسته‌بندی‌ها: $err'),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Collapsible Details Section
-            Theme(
-              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                title: Text(
-                  'جزئیات بیشتر',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                tilePadding: EdgeInsets.zero,
-                initiallyExpanded: _isDetailsExpanded,
-                onExpansionChanged: (val) => setState(() => _isDetailsExpanded = val),
-                children: [
-                  // Description
-                  TextField(
-                    controller: _descController,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      hintText: 'توضیحات بیشتر...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Date
-                  ListTile(
-                    onTap: () async {
-                      final pickedDate = await showPersianDatePicker(
-                        context: context,
-                        initialDate: Jalali.fromDateTime(_selectedDate),
-                        firstDate: Jalali.fromDateTime(DateTime.now().subtract(const Duration(days: 365))),
-                        lastDate: Jalali.fromDateTime(DateTime.now().add(const Duration(days: 365 * 2))),
-                      );
-                      if (pickedDate != null) {
-                        final dt = pickedDate.toDateTime();
-                        setState(() {
-                          _selectedDate = DateTime(
-                            dt.year,
-                            dt.month,
-                            dt.day,
-                            _selectedDate.hour,
-                            _selectedDate.minute,
-                          );
-                        });
-                      }
-                    },
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const HugeIcon(icon: HugeIcons.strokeRoundedCalendar03, size: 20),
-                    ),
-                    title: Text(
-                      _recurrence != null && _recurrence!.type != RecurrenceType.none ? 'تاریخ شروع' : 'تاریخ انجام', 
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)
-                    ),
-                    subtitle: Text(
-                      _formatJalali(Jalali.fromDateTime(_selectedDate)),
-                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                    ),
-                    trailing: Icon(
-                      Icons.chevron_left, 
-                      size: 20, 
-                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
-                    ),
-                  ),
-
-                  // Time
-                  ListTile(
-                    onTap: () async {
-                      final pickedTime = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.fromDateTime(_selectedDate),
-                        builder: (context, child) => Directionality(textDirection: TextDirection.rtl, child: child!),
-                      );
-                      if (pickedTime != null) {
-                        setState(() {
-                          _hasTime = true;
-                          _selectedDate = DateTime(
-                            _selectedDate.year, _selectedDate.month, _selectedDate.day,
-                            pickedTime.hour, pickedTime.minute
-                          );
-                        });
-                      }
-                    },
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: _hasTime 
-                            ? Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.5)
-                            : Colors.grey.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: HugeIcon(
-                        icon: HugeIcons.strokeRoundedClock01, 
-                        size: 20,
-                        color: _hasTime ? Theme.of(context).colorScheme.secondary : Colors.grey,
-                      ),
-                    ),
-                    title: const Text('زمان انجام', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                    subtitle: Text(
-                      _hasTime 
-                          ? _toPersianDigit(intl.DateFormat('HH:mm').format(_selectedDate))
-                          : 'بدون ساعت تنظیم شده',
-                      style: TextStyle(
-                        fontSize: 12, 
-                        color: _hasTime 
-                            ? Theme.of(context).colorScheme.onSurfaceVariant
-                            : Colors.grey,
-                      ),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (_hasTime)
-                          GestureDetector(
-                            onTap: () => setState(() => _hasTime = false),
-                            child: Container(
-                              margin: const EdgeInsets.only(left: 12),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(25),
-                                border: Border.all(color: Colors.red.withValues(alpha: 0.1)),
-                              ),
-                              child: const Text(
-                                'حذف ساعت',
-                                style: TextStyle(
-                                  color: Colors.red, 
-                                  fontSize: 11, 
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: -0.2,
+              ),
+              
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            widget.task == null ? 'تسک جدید' : 'ویرایش تسک',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
                                 ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const HugeIcon(icon: HugeIcons.strokeRoundedCancelCircle, size: 24, color: Colors.grey),
+                            style: IconButton.styleFrom(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Title and Emoji
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: _showEmojiInput,
+                            child: Container(
+                              width: 52,
+                              height: 52,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                _selectedEmoji ?? '🫥',
+                                style: const TextStyle(fontSize: 26),
                               ),
                             ),
                           ),
-                        Icon(
-                          Icons.chevron_left, 
-                          size: 20, 
-                          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  // Recurrence
-                  ListTile(
-                    onTap: _showRecurrencePicker,
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(8),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: TextField(
+                              controller: _titleController,
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                              decoration: InputDecoration(
+                                hintText: 'چه کاری باید انجام شه؟',
+                                hintStyle: const TextStyle(fontSize: 14),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                  borderSide: BorderSide.none,
+                                ),
+                                filled: true,
+                                fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      child: const HugeIcon(icon: HugeIcons.strokeRoundedRepeat, size: 20, color: Colors.orange),
-                    ),
-                    title: const Text('تکرار', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                    subtitle: Text(
-                      _getRecurrenceText(),
-                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                    ),
-                    trailing: Icon(
-                      Icons.chevron_left, 
-                      size: 20, 
-                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
-                    ),
-                  ),
+                      const SizedBox(height: 20),
 
-                  const SizedBox(height: 16),
+                      // Categories
+                      const Text('دسته‌بندی', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      const SizedBox(height: 10),
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final categoriesAsync = ref.watch(categoryProvider);
+                          return categoriesAsync.when(
+                            data: (categories) {
+                              final cats = categories.isEmpty ? defaultCategories : categories;
+                              return Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: cats.map((cat) {
+                                  final isSelected = _selectedCategories.contains(cat.id);
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        if (isSelected) {
+                                          _selectedCategories.remove(cat.id);
+                                        } else {
+                                          _selectedCategories.add(cat.id);
+                                        }
+                                      });
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: isSelected 
+                                            ? cat.color.withValues(alpha: 0.15) 
+                                            : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                        borderRadius: BorderRadius.circular(14),
+                                        border: Border.all(
+                                          color: isSelected 
+                                              ? cat.color.withValues(alpha: 0.5)
+                                              : Colors.transparent,
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Lottie.asset(cat.emoji, width: 22, height: 22),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            cat.label,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                              color: isSelected ? cat.color : Theme.of(context).colorScheme.onSurface,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              );
+                            },
+                            loading: () => const Center(child: CircularProgressIndicator()),
+                            error: (err, stack) => Text('خطا: $err'),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 20),
 
-                  // Priority
-                  const Text('اولویت', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: SegmentedButton<TaskPriority>(
-                      segments: const [
-                        ButtonSegment(
-                          value: TaskPriority.low, 
-                          label: Text('کم'), 
-                          icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowDown01, color: Colors.green, size: 18)
+                      // Collapsible Details Section
+                      Theme(
+                        data: Theme.of(context).copyWith(
+                          dividerColor: Colors.transparent,
+                          hoverColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
                         ),
-                        ButtonSegment(
-                          value: TaskPriority.medium, 
-                          label: Text('عادی'),
-                          icon: HugeIcon(icon: HugeIcons.strokeRoundedMinusSign, color: Colors.grey, size: 18)
+                        child: ExpansionTile(
+                          title: Text(
+                            'جزئیات بیشتر',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          tilePadding: EdgeInsets.zero,
+                          initiallyExpanded: _isDetailsExpanded,
+                          onExpansionChanged: (val) {
+                            setState(() => _isDetailsExpanded = val);
+                          },
+                          children: [
+                            const SizedBox(height: 8),
+                            // Date
+                            ListTile(
+                              onTap: () async {
+                                final pickedDate = await showPersianDatePicker(
+                                  context: context,
+                                  initialDate: Jalali.fromDateTime(_selectedDate),
+                                  firstDate: Jalali.fromDateTime(DateTime.now().subtract(const Duration(days: 365))),
+                                  lastDate: Jalali.fromDateTime(DateTime.now().add(const Duration(days: 365 * 2))),
+                                );
+                                if (pickedDate != null) {
+                                  final dt = pickedDate.toDateTime();
+                                  setState(() {
+                                    _selectedDate = DateTime(
+                                      dt.year,
+                                      dt.month,
+                                      dt.day,
+                                      _selectedDate.hour,
+                                      _selectedDate.minute,
+                                    );
+                                  });
+                                }
+                              },
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                              leading: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const HugeIcon(icon: HugeIcons.strokeRoundedCalendar03, size: 20),
+                              ),
+                              title: Text(
+                                _recurrence != null && _recurrence!.type != RecurrenceType.none ? 'تاریخ شروع' : 'تاریخ انجام', 
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)
+                              ),
+                              subtitle: Text(
+                                _formatJalali(Jalali.fromDateTime(_selectedDate)),
+                                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                              ),
+                              trailing: Icon(
+                                Icons.chevron_right, 
+                                size: 20, 
+                                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
+                              ),
+                            ),
+
+                            // Time
+                            ListTile(
+                              onTap: () async {
+                                final pickedTime = await showTimePicker(
+                                  context: context,
+                                  initialTime: TimeOfDay.fromDateTime(_selectedDate),
+                                  builder: (context, child) => Directionality(textDirection: TextDirection.rtl, child: child!),
+                                );
+                                if (pickedTime != null) {
+                                  setState(() {
+                                    _hasTime = true;
+                                    _selectedDate = DateTime(
+                                      _selectedDate.year, _selectedDate.month, _selectedDate.day,
+                                      pickedTime.hour, pickedTime.minute
+                                    );
+                                  });
+                                }
+                              },
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                              leading: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: _hasTime 
+                                      ? Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.5)
+                                      : Colors.grey.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: HugeIcon(
+                                  icon: HugeIcons.strokeRoundedClock01, 
+                                  size: 20,
+                                  color: _hasTime ? Theme.of(context).colorScheme.secondary : Colors.grey,
+                                ),
+                              ),
+                              title: const Text('زمان انجام', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                              subtitle: Text(
+                                _hasTime 
+                                    ? _toPersianDigit(intl.DateFormat('HH:mm').format(_selectedDate))
+                                    : 'بدون ساعت تنظیم شده',
+                                style: TextStyle(
+                                  fontSize: 12, 
+                                  color: _hasTime 
+                                      ? Theme.of(context).colorScheme.onSurfaceVariant
+                                      : Colors.grey,
+                                ),
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (_hasTime)
+                                    GestureDetector(
+                                      onTap: () => setState(() => _hasTime = false),
+                                      child: Container(
+                                        margin: const EdgeInsets.only(left: 12),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: Colors.red.withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(25),
+                                          border: Border.all(color: Colors.red.withValues(alpha: 0.1)),
+                                        ),
+                                        child: const Text(
+                                          'حذف ساعت',
+                                          style: TextStyle(
+                                            color: Colors.red, 
+                                            fontSize: 11, 
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: -0.2,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  Icon(
+                                    Icons.chevron_right, 
+                                    size: 20, 
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
+                                  ),
+                                ],
+                              ),
+                            ),
+                            
+                            // Recurrence
+                            ListTile(
+                              onTap: _showRecurrencePicker,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                              leading: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const HugeIcon(icon: HugeIcons.strokeRoundedRepeat, size: 20, color: Colors.orange),
+                              ),
+                              title: const Text('تکرار', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                              subtitle: Text(
+                                _getRecurrenceText(),
+                                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                              ),
+                              trailing: Icon(
+                                Icons.chevron_right, 
+                                size: 20, 
+                                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
+                              ),
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // Priority
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 12),
+                              child: Text('اولویت', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            ),
+                            const SizedBox(height: 10),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: SegmentedButton<TaskPriority>(
+                                  segments: const [
+                                    ButtonSegment(
+                                      value: TaskPriority.low, 
+                                      label: Text('کم'), 
+                                      icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowDown01, color: Colors.green, size: 18)
+                                    ),
+                                    ButtonSegment(
+                                      value: TaskPriority.medium, 
+                                      label: Text('عادی'),
+                                      icon: HugeIcon(icon: HugeIcons.strokeRoundedMinusSign, color: Colors.grey, size: 18)
+                                    ),
+                                    ButtonSegment(
+                                      value: TaskPriority.high, 
+                                      label: Text('بالا'),
+                                      icon: HugeIcon(icon: HugeIcons.strokeRoundedAlertCircle, color: Colors.red, size: 18)
+                                    ),
+                                  ],
+                                  selected: {_priority},
+                                  onSelectionChanged: (val) {
+                                    setState(() => _priority = val.first);
+                                  },
+                                  style: SegmentedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                    side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            
+                            const SizedBox(height: 16),
+                            
+                            // Attachments
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Row(
+                                children: [
+                                  OutlinedButton.icon(
+                                    onPressed: _pickFile,
+                                    icon: const HugeIcon(icon: HugeIcons.strokeRoundedAttachment01, size: 18),
+                                    label: const Text('پیوست فایل'),
+                                    style: OutlinedButton.styleFrom(
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  OutlinedButton.icon(
+                                    onPressed: _toggleRecording,
+                                    icon: HugeIcon(
+                                      icon: _isRecording ? HugeIcons.strokeRoundedStop : HugeIcons.strokeRoundedMic01, 
+                                      size: 18,
+                                      color: _isRecording ? Colors.red : null,
+                                    ),
+                                    label: Text(_isRecording ? 'توقف ضبط' : 'ضبط صدا'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: _isRecording ? Colors.red : null,
+                                      side: _isRecording 
+                                          ? const BorderSide(color: Colors.red) 
+                                          : BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (_attachments.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                child: Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: _attachments.map((att) {
+                                    final name = att.split('/').last;
+                                    final isVoice = name.startsWith('voice_') || att.endsWith('.m4a');
+                                    final isPlayingThis = _isPlaying && _playingFilePath == att;
+                                    
+                                    return InputChip(
+                                      label: Text(name.length > 20 ? '${name.substring(0, 20)}...' : name),
+                                      avatar: isVoice 
+                                          ? (isPlayingThis 
+                                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) 
+                                              : const HugeIcon(icon: HugeIcons.strokeRoundedPlay, size: 18))
+                                          : const HugeIcon(icon: HugeIcons.strokeRoundedFile01, size: 16),
+                                      onPressed: isVoice ? () => _playVoice(att) : null,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      onDeleted: () {
+                                        if (isPlayingThis) {
+                                          _audioPlayer.stop();
+                                          setState(() {
+                                            _isPlaying = false;
+                                            _playingFilePath = null;
+                                          });
+                                        }
+                                        setState(() {
+                                          _attachments.remove(att);
+                                        });
+                                      },
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 20),
+
+                            // Description (Moved here and styled smaller)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: TextField(
+                                controller: _descController,
+                                maxLines: 2,
+                                style: const TextStyle(fontSize: 13),
+                                decoration: InputDecoration(
+                                  hintText: 'توضیحات بیشتر...',
+                                  hintStyle: const TextStyle(fontSize: 13),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(15),
+                                    borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(15),
+                                    borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        ButtonSegment(
-                          value: TaskPriority.high, 
-                          label: Text('بالا'),
-                          icon: HugeIcon(icon: HugeIcons.strokeRoundedAlertCircle, color: Colors.red, size: 18)
-                        ),
-                      ],
-                      selected: {_priority},
-                      onSelectionChanged: (val) {
-                        setState(() => _priority = val.first);
-                      },
-                      style: ButtonStyle(
-                        padding: WidgetStateProperty.all(const EdgeInsets.symmetric(vertical: 10)),
                       ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Attachments
-                  Row(
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: _pickFile,
-                        icon: const HugeIcon(icon: HugeIcons.strokeRoundedAttachment01, size: 18),
-                        label: const Text('پیوست فایل'),
-                      ),
-                      const SizedBox(width: 12),
-                      OutlinedButton.icon(
-                        onPressed: _toggleRecording,
-                        icon: HugeIcon(
-                          icon: _isRecording ? HugeIcons.strokeRoundedSquare01 : HugeIcons.strokeRoundedMic01, 
-                          size: 18,
-                          color: _isRecording ? Colors.red : null,
-                        ),
-                        label: Text(_isRecording ? 'توقف ضبط' : 'ضبط صدا'),
-                        style: _isRecording ? OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
-                          side: const BorderSide(color: Colors.red),
-                        ) : null,
-                      ),
+
+                      const SizedBox(height: 12),
                     ],
                   ),
-                  if (_attachments.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _attachments.map((att) {
-                        final name = att.split('/').last;
-                        final isVoice = name.startsWith('voice_') || att.endsWith('.m4a');
-                        final isPlayingThis = _isPlaying && _playingFilePath == att;
-                        
-                        return InputChip(
-                          label: Text(name.length > 20 ? '${name.substring(0, 20)}...' : name),
-                          avatar: isVoice 
-                              ? (isPlayingThis 
-                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) 
-                                  : const HugeIcon(icon: HugeIcons.strokeRoundedPlay, size: 18))
-                              : const HugeIcon(icon: HugeIcons.strokeRoundedFile01, size: 16),
-                          onPressed: isVoice ? () => _playVoice(att) : null,
-                          onDeleted: () {
-                            if (isPlayingThis) {
-                              _audioPlayer.stop();
-                              setState(() {
-                                _isPlaying = false;
-                                _playingFilePath = null;
-                              });
-                            }
-                            setState(() {
-                              _attachments.remove(att);
-                            });
-                          },
-                        );
-                      }).toList(),
-                    ),
-                  ]
-                ],
+                ),
               ),
-            ),
 
-            const SizedBox(height: 24),
-          ],
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: FilledButton.icon(
+                  onPressed: _saveTask,
+                  icon: HugeIcon(
+                    icon: widget.task == null ? HugeIcons.strokeRoundedAddSquare : HugeIcons.strokeRoundedCheckmarkSquare04, 
+                    size: 20, 
+                    color: Theme.of(context).colorScheme.onPrimary,
+                  ),
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  ),
+                  label: Text(
+                    widget.task == null ? 'ثبت و شروع کار' : 'ذخیره تغییرات',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-    SizedBox(
-      width: double.infinity,
-      height: 55,
-      child: FilledButton(
-        onPressed: _saveTask,
-        child: Text(widget.task == null ? 'ثبت و شروع کار' : 'ذخیره تغییرات'),
-      ),
-    ),
-    const SizedBox(height: 20),
-    ],
-  ),
-),
-);
-}
+    );
+  }
 
   void _showEmojiInput() {
     final controller = TextEditingController(text: _selectedEmoji);
@@ -564,16 +651,18 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 40),
               maxLength: 1,
+              keyboardType: TextInputType.text,
               decoration: const InputDecoration(
                 hintText: '🫥',
                 counterText: '',
                 border: OutlineInputBorder(),
               ),
               onChanged: (value) {
-                 if (value.characters.length > 1) {
-                   controller.text = value.characters.last;
-                   controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
-                 }
+                if (value.isNotEmpty) {
+                  final char = value.characters.last;
+                  controller.text = char;
+                  controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
+                }
               },
             ),
           ],
@@ -729,23 +818,21 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
       {'id': DateTime.friday, 'label': 'ج'},
     ];
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Wrap(
-        spacing: 8,
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: days.map((day) {
           final dayId = day['id'] as int;
           final isSelected = _recurrence?.daysOfWeek?.contains(dayId) ?? false;
-          return ChoiceChip(
-            label: Text(day['label'] as String),
-            selected: isSelected,
-            onSelected: (selected) {
+          return GestureDetector(
+            onTap: () {
               setState(() {
                 final currentDays = List<int>.from(_recurrence?.daysOfWeek ?? []);
-                if (selected) {
-                  currentDays.add(dayId);
-                } else {
+                if (isSelected) {
                   currentDays.remove(dayId);
+                } else {
+                  currentDays.add(dayId);
                 }
                 _recurrence = RecurrenceConfig(
                   type: RecurrenceType.specificDays,
@@ -755,10 +842,65 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
               });
               setSheetState(() {});
             },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: isSelected 
+                        ? Theme.of(context).colorScheme.primary 
+                        : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected 
+                          ? Theme.of(context).colorScheme.primary 
+                          : Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                      width: 1.5,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    day['label'] as String,
+                    style: TextStyle(
+                      color: isSelected 
+                          ? Theme.of(context).colorScheme.onPrimary 
+                          : Theme.of(context).colorScheme.onSurface,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _getDayInitialHint(dayId),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
           );
         }).toList(),
       ),
     );
+  }
+
+  String _getDayInitialHint(int dayId) {
+    switch (dayId) {
+      case DateTime.saturday: return 'شنبه';
+      case DateTime.sunday: return 'یکشنبه';
+      case DateTime.monday: return 'دوشنبه';
+      case DateTime.tuesday: return 'سه‌شنبه';
+      case DateTime.wednesday: return 'چهارشنبه';
+      case DateTime.thursday: return 'پنج‌شنبه';
+      case DateTime.friday: return 'جمعه';
+      default: return '';
+    }
   }
 
   Widget _buildRecurrenceOption(RecurrenceType type, String label, StateSetter setSheetState) {
