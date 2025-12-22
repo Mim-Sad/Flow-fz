@@ -180,16 +180,9 @@ final historicalActiveTasksProvider = Provider.family<List<Task>, DateTime>((ref
       final Map<int, Task> activeVersions = {};
 
       for (final task in allTasks) {
-        final rootId = task.rootId ?? task.id!;
+        if (task.isDeleted) continue; // Exclude deleted tasks from historical view as requested
         
-        // 1. Check if version was alive on this date
-        final createdAtDate = DateTime(task.createdAt.year, task.createdAt.month, task.createdAt.day);
-        if (dateOnly.isBefore(createdAtDate)) continue;
-
-        if (task.isDeleted && task.deletedAt != null) {
-          final deletedAtDate = DateTime(task.deletedAt!.year, task.deletedAt!.month, task.deletedAt!.day);
-          if (deletedAtDate.isBefore(dateOnly)) continue;
-        }
+        final rootId = task.rootId ?? task.id!;
 
         // 2. Check if task definition says it's active on this date
         if (isTaskActiveOnDate(task, dateOnly, completions)) {
@@ -231,16 +224,9 @@ final tasksForRangeProvider = Provider.family<List<Task>, DateTimeRange>((ref, r
         final Map<int, Task> activeVersions = {};
 
         for (final task in allTasks) {
-          final rootId = task.rootId ?? task.id!;
+          if (task.isDeleted) continue; // Exclude deleted tasks from range reports as requested
           
-          // 1. Check if version was alive on this date
-          final createdAtDate = DateTime(task.createdAt.year, task.createdAt.month, task.createdAt.day);
-          if (dateOnly.isBefore(createdAtDate)) continue;
-
-          if (task.isDeleted && task.deletedAt != null) {
-            final deletedAtDate = DateTime(task.deletedAt!.year, task.deletedAt!.month, task.deletedAt!.day);
-            if (deletedAtDate.isBefore(dateOnly)) continue;
-          }
+          final rootId = task.rootId ?? task.id!;
 
           // 2. Check if task definition says it's active on this date
           if (isTaskActiveOnDate(task, dateOnly, completions)) {

@@ -201,13 +201,18 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     final dateKey = getDateKey(_selectedDate);
 
     // Calculate progress for recurring tasks for the selected date
-    int total = tasks.length;
+    int total = 0;
     int completed = 0;
     for (var task in tasks) {
       final rootId = task.rootId ?? task.id!;
       final statusIndex = completions[rootId]?[dateKey];
       final status = statusIndex != null ? TaskStatus.values[statusIndex] : TaskStatus.pending;
-      if (status == TaskStatus.success) completed++;
+      
+      // Exclude cancelled and deferred from progress calculation
+      if (status != TaskStatus.cancelled && status != TaskStatus.deferred) {
+        total++;
+        if (status == TaskStatus.success) completed++;
+      }
     }
     double progress = total == 0 ? 0 : completed / total;
 
@@ -591,12 +596,16 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       for (int i = 0; i < 7; i++) {
         final date = startOfWeek.add(Duration(days: i));
         if (isTaskActiveOnDate(task, date, completions)) {
-          totalSlots++;
           final rootId = task.rootId ?? task.id!;
           final statusIndex = completions[rootId]?[getDateKey(date)];
           // Default to pending for recurring tasks if no completion record exists
           final status = statusIndex != null ? TaskStatus.values[statusIndex] : TaskStatus.pending;
-          if (status == TaskStatus.success) completedSlots++;
+          
+          // Exclude cancelled and deferred from progress calculation
+          if (status != TaskStatus.cancelled && status != TaskStatus.deferred) {
+            totalSlots++;
+            if (status == TaskStatus.success) completedSlots++;
+          }
         }
       }
     }
@@ -959,12 +968,17 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             final rootId = task.rootId ?? task.id!;
             for (var date in weekDays) {
               if (isTaskActiveOnDate(task, date, completions)) {
-                totalTasks++;
+                final rootId = task.rootId ?? task.id!;
                 final statusIndex = completions[rootId]?[getDateKey(date)];
                 // For recurring tasks in this box, we should default to pending if no completion record exists
                 final status = statusIndex != null ? TaskStatus.values[statusIndex] : TaskStatus.pending;
-                if (status == TaskStatus.success) {
-                  completedTasks++;
+                
+                // Exclude cancelled and deferred from progress calculation
+                if (status != TaskStatus.cancelled && status != TaskStatus.deferred) {
+                  totalTasks++;
+                  if (status == TaskStatus.success) {
+                    completedTasks++;
+                  }
                 }
               }
             }
@@ -1224,9 +1238,12 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       color = catData.color;
     }
 
-    // Calculate progress
-    final total = tasks.length;
-    final completed = tasks.where((t) => t.status == TaskStatus.success).length;
+    // Calculate progress (excluding cancelled and deferred tasks)
+    final relevantTasks = tasks.where((t) => 
+      t.status != TaskStatus.cancelled && t.status != TaskStatus.deferred
+    ).toList();
+    final total = relevantTasks.length;
+    final completed = relevantTasks.where((t) => t.status == TaskStatus.success).length;
     final progress = total > 0 ? completed / total : 0.0;
 
     return Container(

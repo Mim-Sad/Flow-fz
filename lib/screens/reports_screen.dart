@@ -95,6 +95,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     final filteredTasks = ref.watch(tasksForRangeProvider(range));
 
+    // For productivity: exclude cancelled and deferred tasks
+    final relevantTasks = filteredTasks.where((t) => 
+      t.status != TaskStatus.cancelled && t.status != TaskStatus.deferred
+    ).toList();
+
     final successCount = filteredTasks
         .where((t) => t.status == TaskStatus.success)
         .length;
@@ -130,7 +135,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       _buildStatSummary(
                         context,
                         successCount,
-                        filteredTasks.length,
+                        failedCount,
+                        relevantTasks.length, // Total relevant tasks (excluding cancelled/deferred)
                       ),
                       const SizedBox(height: 32),
                       Text(
@@ -457,8 +463,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     });
   }
 
-  Widget _buildStatSummary(BuildContext context, int success, int total) {
-    double percentage = total == 0 ? 0 : (success / total) * 100;
+  Widget _buildStatSummary(BuildContext context, int success, int failed, int total) {
+    // Productivity formula: success / (success + failed)
+    final int denominator = success + failed;
+    double percentage = denominator == 0 ? 0 : (success / denominator) * 100;
+    
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
