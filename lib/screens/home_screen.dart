@@ -252,7 +252,7 @@ class TaskListTile extends ConsumerWidget {
         onTap: onStatusToggle, 
         onLongPress: null, 
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.only(left: 6, right: 12, top: 12, bottom: 12),
           child: Row(
             children: [
               _getStatusIconForTile(task, context, ref, onStatusToggle),
@@ -328,7 +328,7 @@ class TaskListTile extends ConsumerWidget {
               const SizedBox(width: 4),
               IconButton(
                 icon: const HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical, size: 22, color: Colors.grey),
-                padding: EdgeInsets.zero,
+                padding: const EdgeInsets.all(10),
                 constraints: const BoxConstraints(),
                 onPressed: () => _showTaskOptions(context, ref, task),
               ),
