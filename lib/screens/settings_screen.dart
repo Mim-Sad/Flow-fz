@@ -131,6 +131,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final themeState = ref.watch(themeProvider);
     final themeNotifier = ref.read(themeProvider.notifier);
+    final onCardColor = Theme.of(context).colorScheme.onSurface;
 
     return Scaffold(
       appBar: AppBar(
@@ -139,238 +140,307 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
+        physics: const BouncingScrollPhysics(),
         children: [
             // Categories Management
-            ListTile(
-              title: const Text('مدیریت دسته‌بندی‌ها', style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16,)),
-              subtitle: const Text('افزودن، ویرایش و حذف دسته‌بندی‌ها',style: TextStyle(fontSize: 10,),),
-              leading: HugeIcon(icon: HugeIcons.strokeRoundedTag01, color: Theme.of(context).colorScheme.primary),
-              trailing: const HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: Colors.grey, size: 20),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CategoriesScreen()),
-                );
-              },
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+            FadeInOnce(
+              delay: 100.ms,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: onCardColor.withValues(alpha: 0.1), width: 1),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  title: const Text('مدیریت دسته‌بندی‌ها', style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16,)),
+                  subtitle: const Text('افزودن، ویرایش و حذف دسته‌بندی‌ها',style: TextStyle(fontSize: 10,),),
+                  leading: HugeIcon(icon: HugeIcons.strokeRoundedTag01, color: Theme.of(context).colorScheme.primary),
+                  trailing: const HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: Colors.grey, size: 20),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const CategoriesScreen()),
+                    );
+                  },
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
               ),
-            ).animate()
-              .fadeIn(duration: 600.ms)
-              .slideY(begin: 0.2, end: 0, curve: Curves.easeOutBack)
-              .scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1), curve: Curves.elasticOut, duration: 800.ms),
+            ),
             const SizedBox(height: 16),
 
             // Backup & Restore
-            ListTile(
-              title: const Text('پشتیبان‌گیری و بازگردانی', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              subtitle: const Text('ذخیره و بازیابی اطلاعات برنامه', style: TextStyle(fontSize: 10)),
-              leading: HugeIcon(icon: HugeIcons.strokeRoundedDatabase01, color: Theme.of(context).colorScheme.primary),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-              ),
-              onTap: () {
-                showModalBottomSheet(
-                  context: context,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                  ),
-                  builder: (context) => Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          'پشتیبان‌گیری و بازگردانی',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 24),
-                        ListTile(
-                          leading: const HugeIcon(icon: HugeIcons.strokeRoundedUpload01, color: Colors.blue),
-                          title: const Text('خروجی گرفتن از اطلاعات'),
-                          subtitle: const Text('ذخیره تمام اطلاعات در یک فایل'),
-                          onTap: () {
-                            Navigator.pop(context);
-                            _exportData();
-                          },
-                        ),
-                        ListTile(
-                          leading: const HugeIcon(icon: HugeIcons.strokeRoundedDownload01, color: Colors.green),
-                          title: const Text('وارد کردن اطلاعات'),
-                          subtitle: const Text('بازگردانی اطلاعات از فایل ذخیره شده'),
-                          onTap: () {
-                            Navigator.pop(context);
-                            _importData();
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ).animate()
-              .fadeIn(duration: 600.ms, delay: 100.ms)
-              .slideY(begin: 0.2, end: 0, curve: Curves.easeOutBack)
-              .scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1), curve: Curves.elasticOut, duration: 800.ms),
-            const SizedBox(height: 32),
-  
-            // Color Selection
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    HugeIcon(icon: HugeIcons.strokeRoundedPaintBoard, color: Theme.of(context).colorScheme.primary, size: 20),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'حال و هوای جریان',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ],
+            FadeInOnce(
+              delay: 150.ms,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: onCardColor.withValues(alpha: 0.1), width: 1),
                 ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.center,
-                    children: ThemeNotifier.availableColors.map((color) {
-                      final isSelected = themeState.seedColor == color;
-                      final name = SettingsScreen._poeticColorNames[color.toARGB32()] ?? '';
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  title: const Text('پشتیبان‌گیری و بازگردانی', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  subtitle: const Text('ذخیره و بازیابی اطلاعات برنامه', style: TextStyle(fontSize: 10)),
+                  leading: HugeIcon(icon: HugeIcons.strokeRoundedDatabase01, color: Theme.of(context).colorScheme.primary),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    builder: (context) => Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'پشتیبان‌گیری و بازگردانی',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 24),
+                          ListTile(
+                            leading: const HugeIcon(icon: HugeIcons.strokeRoundedUpload01, color: Colors.blue),
+                            title: const Text('خروجی گرفتن از اطلاعات'),
+                            subtitle: const Text('ذخیره تمام اطلاعات در یک فایل'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              _exportData();
+                            },
+                          ),
+                          ListTile(
+                            leading: const HugeIcon(icon: HugeIcons.strokeRoundedDownload01, color: Colors.green),
+                            title: const Text('وارد کردن اطلاعات'),
+                            subtitle: const Text('بازگردانی اطلاعات از فایل ذخیره شده'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              _importData();
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 40),
 
-                      return GestureDetector(
-                        onTapDown: (details) {
-                          if (!isSelected) {
-                            _handleThemeChange(
-                              updateTheme: () => themeNotifier.setSeedColor(color),
-                              tapPosition: details.globalPosition,
-                            );
-                          }
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isSelected 
-                                ? color.withValues(alpha: 0.15) 
-                                : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
+            // Color Selection
+            FadeInOnce(
+              delay: 200.ms,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      HugeIcon(icon: HugeIcons.strokeRoundedPaintBoard, color: Theme.of(context).colorScheme.primary, size: 20),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'حال و هوای جریان',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.center,
+                      children: ThemeNotifier.availableColors.map((color) {
+                        final isSelected = themeState.seedColor == color;
+                        final name = SettingsScreen._poeticColorNames[color.toARGB32()] ?? '';
+  
+                        return GestureDetector(
+                          onTapDown: (details) {
+                            if (!isSelected) {
+                              _handleThemeChange(
+                                updateTheme: () => themeNotifier.setSeedColor(color),
+                                tapPosition: details.globalPosition,
+                              );
+                            }
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
                               color: isSelected 
-                                  ? color.withValues(alpha: 0.5)
-                                  : Colors.transparent,
-                              width: 1.5,
+                                  ? color.withValues(alpha: 0.15) 
+                                  : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: isSelected 
+                                    ? color.withValues(alpha: 0.5)
+                                    : Colors.transparent,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 22,
+                                  height: 22,
+                                  decoration: BoxDecoration(
+                                    color: color,
+                                    borderRadius: BorderRadius.circular(6),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: color.withValues(alpha: 0.3),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  name,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                    color: isSelected ? color : Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 22,
-                                height: 22,
-                                decoration: BoxDecoration(
-                                  color: color,
-                                  borderRadius: BorderRadius.circular(6),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: color.withValues(alpha: 0.3),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                name,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                  color: isSelected ? color : Theme.of(context).colorScheme.onSurface,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                        );
+                      }).toList(),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: 40),
   
             // Mode Selection
-            Row(
-              children: [
-                HugeIcon(icon: HugeIcons.strokeRoundedMoon, color: Theme.of(context).colorScheme.primary, size: 20),
-                const SizedBox(width: 8),
-                const Text(
-                  'خورشید و ماه جریان',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: SegmentedButton<ThemeMode>(
-                segments: [
-                  ButtonSegment<ThemeMode>(
-                    value: ThemeMode.light,
-                    label: const Text('روشن'),
-                    icon: HugeIcon(
-                      icon: HugeIcons.strokeRoundedSun01,
-                      size: 20,
-                      color: themeState.themeMode == ThemeMode.light
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+            FadeInOnce(
+              delay: 250.ms,
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      HugeIcon(icon: HugeIcons.strokeRoundedMoon, color: Theme.of(context).colorScheme.primary, size: 20),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'خورشید و ماه جریان',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
-                  ButtonSegment<ThemeMode>(
-                    value: ThemeMode.dark,
-                    label: const Text('تاریک'),
-                    icon: HugeIcon(
-                      icon: HugeIcons.strokeRoundedMoon02,
-                      size: 20,
-                      color: themeState.themeMode == ThemeMode.dark
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  ButtonSegment<ThemeMode>(
-                    value: ThemeMode.system,
-                    label: const Text('سیستم'),
-                    icon: HugeIcon(
-                      icon: HugeIcons.strokeRoundedSettings01,
-                      size: 20,
-                      color: themeState.themeMode == ThemeMode.system
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<ThemeMode>(
+                      segments: [
+                        ButtonSegment<ThemeMode>(
+                          value: ThemeMode.light,
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              HugeIcon(
+                                icon: HugeIcons.strokeRoundedSun01,
+                                size: 18,
+                                color: themeState.themeMode == ThemeMode.light
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 4),
+                              const Text('چو خورشید', style: TextStyle(fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        ButtonSegment<ThemeMode>(
+                          value: ThemeMode.dark,
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              HugeIcon(
+                                icon: HugeIcons.strokeRoundedMoon02,
+                                size: 18,
+                                color: themeState.themeMode == ThemeMode.dark
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 4),
+                              const Text('چو ماه', style: TextStyle(fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        ButtonSegment<ThemeMode>(
+                          value: ThemeMode.system,
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              HugeIcon(
+                                icon: HugeIcons.strokeRoundedSettings01,
+                                size: 18,
+                                color: themeState.themeMode == ThemeMode.system
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 4),
+                              const Text('سیستم', style: TextStyle(fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                      ],
+                      selected: {themeState.themeMode},
+                      onSelectionChanged: (newSelection) {
+                        themeNotifier.setThemeMode(newSelection.first);
+                      },
+                      showSelectedIcon: false,
+                      style: SegmentedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.surface,
+                        selectedBackgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                        selectedForegroundColor: Theme.of(context).colorScheme.primary,
+                        side: BorderSide(color: onCardColor.withValues(alpha: 0.1), width: 1),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                      ),
                     ),
                   ),
                 ],
-                selected: {themeState.themeMode},
-                onSelectionChanged: (newSelection) {
-                  themeNotifier.setThemeMode(newSelection.first);
-                },
-                showSelectedIcon: false,
-                style: SegmentedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.surface,
-                  selectedBackgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                  selectedForegroundColor: Theme.of(context).colorScheme.primary,
-                  side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
               ),
             ),
+            const SizedBox(height: 40),
         ],
       ),
     );
+  }
+}
+
+class FadeInOnce extends StatefulWidget {
+  final Widget child;
+  final Duration delay;
+  const FadeInOnce({super.key, required this.child, required this.delay});
+
+  @override
+  State<FadeInOnce> createState() => _FadeInOnceState();
+}
+
+class _FadeInOnceState extends State<FadeInOnce> with AutomaticKeepAliveClientMixin {
+  bool _hasAnimated = false;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    if (_hasAnimated) return widget.child;
+
+    return widget.child
+        .animate(onComplete: (controller) => _hasAnimated = true)
+        .fadeIn(duration: 400.ms, delay: widget.delay)
+        .slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic)
+        .blur(begin: const Offset(4, 4), end: Offset.zero);
   }
 }
