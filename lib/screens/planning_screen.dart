@@ -804,23 +804,32 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     );
   }
 
+  Widget _buildEmptyState(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Lottie.asset(
+            'assets/images/TheSoul/20 glasses.json',
+            width: 120,
+            height: 120,
+            fit: BoxFit.contain,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDailyView(List<Task> dailyTasks, List<CategoryData> categories) {
     if (dailyTasks.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('✨', style: TextStyle(fontSize: 40)),
-            const SizedBox(height: 16),
-            Text(
-              'برای این روز برنامه‌ای نداری.',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      );
+      return _buildEmptyState('برای این روز برنامه‌ای نداری.');
     }
 
 
@@ -908,7 +917,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     }
 
     if (regularTasksForWeek.isEmpty && recurringTasksForWeek.isEmpty) {
-      return const Center(child: Text('برای این هفته برنامه‌ای نداری.'));
+      return _buildEmptyState('برای این هفته برنامه‌ای نداری.');
     }
 
     return ListView(
@@ -1014,7 +1023,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       }
 
       if (recurringTasksByWeek.isEmpty && regularTasksForMonth.isEmpty) {
-        return const Center(child: Text('برای این ماه برنامه‌ای نداری.'));
+        return _buildEmptyState('برای این ماه برنامه‌ای نداری.');
       }
 
       return ListView(
