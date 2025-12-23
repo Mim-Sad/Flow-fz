@@ -89,6 +89,7 @@ class TaskCard extends ConsumerWidget {
                           useSafeArea: true,
                           builder: (context) => AddTaskScreen(
                             task: task.duplicate(),
+                            initialDate: task.dueDate,
                           ),
                         );
                       } else if (value == 'delete') {

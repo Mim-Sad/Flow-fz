@@ -147,15 +147,72 @@ class PostponeDialog extends ConsumerWidget {
                   );
 
                   if (picked != null && context.mounted) {
+                    bool isNoTimeSelected = false;
                     final TimeOfDay? pickedTime = await showTimePicker(
                       context: context,
                       initialTime: TimeOfDay.fromDateTime(initialDate),
+                      builder: (context, child) => Directionality(
+                        textDirection: TextDirection.rtl,
+                        child: Stack(
+                          children: [
+                            child!,
+                            Positioned(
+                              bottom: 40, // Moved higher to avoid overlapping with system buttons
+                              left: 0,
+                              right: 0,
+                              child: Center(
+                                child: TextButton.icon(
+                                  onPressed: () {
+                                    isNoTimeSelected = true;
+                                    Navigator.pop(context);
+                                  },
+                                  icon: HugeIcon(
+                                    icon: HugeIcons.strokeRoundedClock01,
+                                    color: Theme.of(context).colorScheme.primary,
+                                    size: 18,
+                                  ),
+                                  label: Text(
+                                    'بدون ساعت مشخص',
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(25), // More rounded/pill shape
+                                      side: BorderSide(
+                                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     );
 
-                    if (pickedTime != null && context.mounted) {
-                      final dt = picked.toDateTime();
-                      final newDate = DateTime(dt.year, dt.month, dt.day, pickedTime.hour, pickedTime.minute);
+                    // If user cancelled the time picker and didn't click "No specific time"
+                    if (pickedTime == null && !isNoTimeSelected) return;
 
+                    final dt = picked.toDateTime();
+                    final DateTime newDate;
+                    final bool hasTime;
+
+                    if (isNoTimeSelected) {
+                      newDate = DateTime(dt.year, dt.month, dt.day);
+                      hasTime = false;
+                    } else {
+                      newDate = DateTime(dt.year, dt.month, dt.day, pickedTime!.hour, pickedTime.minute);
+                      hasTime = true;
+                    }
+
+                    if (context.mounted) {
                       // 1. Update status and metadata of current task to deferred
                       final currentMetadata = Map<String, dynamic>.from(task.metadata);
                       currentMetadata['deferCount'] = (currentMetadata['deferCount'] ?? 0) + 1;
@@ -177,8 +234,9 @@ class PostponeDialog extends ConsumerWidget {
                       }
 
                       // 2. Create a new task copy with the same incremented deferCount
-                      // Note: We use the constructor directly because copyWith(id: null) 
-                      // would fallback to 'this.id' due to 'id ?? this.id' logic.
+                      final newTaskMetadata = Map<String, dynamic>.from(currentMetadata);
+                      newTaskMetadata['hasTime'] = hasTime;
+
                       final newTask = Task(
                         rootId: task.rootId ?? task.id,
                         title: task.title,
@@ -194,7 +252,7 @@ class PostponeDialog extends ConsumerWidget {
                         taskEmoji: task.taskEmoji,
                         attachments: List.from(task.attachments),
                         recurrence: null, // Defer creates a one-off instance
-                        metadata: Map<String, dynamic>.from(currentMetadata),
+                        metadata: newTaskMetadata,
                       );
                       
                       await ref.read(tasksProvider.notifier).addTask(newTask);

@@ -88,7 +88,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.only(left: 20, right: 20, bottom: 80),
             sliver: SliverReorderableList(
               itemBuilder: (context, index) {
                 final task = todayTasks[index];
@@ -507,7 +507,10 @@ class TaskListTile extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
-      builder: (context) => TaskOptionsSheet(task: task),
+      builder: (context) => TaskOptionsSheet(
+        task: task,
+        date: task.dueDate,
+      ),
     );
   }
 

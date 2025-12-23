@@ -17,7 +17,8 @@ import 'package:intl/intl.dart' as intl;
 
 class AddTaskScreen extends ConsumerStatefulWidget {
   final Task? task;
-  const AddTaskScreen({super.key, this.task});
+  final DateTime? initialDate;
+  const AddTaskScreen({super.key, this.task, this.initialDate});
 
   @override
   ConsumerState<AddTaskScreen> createState() => _AddTaskScreenState();
@@ -62,7 +63,32 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     super.initState();
     _titleController = TextEditingController(text: widget.task?.title);
     _descController = TextEditingController(text: widget.task?.description);
-    _selectedDate = widget.task?.dueDate ?? DateTime.now();
+    
+    // Logic for date:
+    // 1. If it's a new task (no task provided), use initialDate or now.
+    // 2. If it's an existing task (edit), use its dueDate.
+    // 3. If it's a duplicated task (task provided but no ID):
+    //    - Always prioritize initialDate (this is the date the user was looking at/clicked on)
+    //    - Otherwise use the task's existing dueDate
+    
+    if (widget.task == null) {
+      _selectedDate = widget.initialDate ?? DateTime.now();
+    } else {
+      // Logic for existing or duplicated tasks:
+      // For recurring tasks, we usually want to preserve/show the original series start date (task.dueDate)
+      // because editing or duplicating a recurring task usually means working with the whole series.
+      // For regular tasks, initialDate (the day the user clicked/is looking at) is a better default.
+      
+      final isRecurring = widget.task!.recurrence != null && 
+                          widget.task!.recurrence!.type != RecurrenceType.none;
+      
+      if (isRecurring) {
+        _selectedDate = widget.task!.dueDate;
+      } else {
+        _selectedDate = widget.initialDate ?? widget.task!.dueDate;
+      }
+    }
+    
     _priority = widget.task?.priority ?? TaskPriority.medium;
     _selectedCategories = widget.task?.categories ?? 
         (widget.task?.category != null ? [widget.task!.category!] : []);

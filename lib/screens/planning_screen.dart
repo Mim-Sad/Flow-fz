@@ -358,7 +358,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                 },
                 onLongPress: () {
                   HapticFeedback.mediumImpact();
-                  _showTaskOptions(context, task);
+                  _showTaskOptions(context, task, date: _selectedDate);
                 },
                 child: Row(
                   textDirection: TextDirection.rtl,
@@ -628,7 +628,15 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
               },
               onLongPress: () {
                 HapticFeedback.mediumImpact();
-                _showTaskOptions(context, task);
+                final today = DateTime.now();
+                DateTime targetDate = days.first;
+                for (var d in days) {
+                  if (isSameDay(d, today)) {
+                    targetDate = d;
+                    break;
+                  }
+                }
+                _showTaskOptions(context, task, date: targetDate);
               },
               child: Row(
                 textDirection: TextDirection.rtl,
@@ -1472,7 +1480,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                 },
                 onLongPress: () {
                   HapticFeedback.mediumImpact();
-                  _showTaskOptions(context, task);
+                  _showTaskOptions(context, task, date: task.dueDate);
                 },
                 child: Row(
                   textDirection: TextDirection.rtl,
@@ -1545,14 +1553,17 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     );
   }
 
-  void _showTaskOptions(BuildContext context, Task task) {
+  void _showTaskOptions(BuildContext context, Task task, {DateTime? date}) {
     HapticFeedback.selectionClick();
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
-      builder: (context) => TaskOptionsSheet(task: task),
+      builder: (context) => TaskOptionsSheet(
+        task: task,
+        date: date ?? task.dueDate,
+      ),
     );
   }
 
