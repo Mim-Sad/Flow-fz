@@ -504,9 +504,8 @@ class TaskListTile extends ConsumerWidget {
     HapticFeedback.selectionClick();
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) => TaskOptionsSheet(
         task: task,
         date: task.dueDate,
@@ -523,7 +522,7 @@ class TaskListTile extends ConsumerWidget {
       case TaskStatus.failed: icon = HugeIcons.strokeRoundedCancelCircle; color = Colors.red; break;
       case TaskStatus.cancelled: icon = HugeIcons.strokeRoundedMinusSignCircle; color = Colors.grey; break;
       case TaskStatus.deferred: icon = HugeIcons.strokeRoundedClock01; color = Colors.orange; break;
-      case TaskStatus.pending: icon = HugeIcons.strokeRoundedCircle; color = Theme.of(context).colorScheme.outline; break;
+      case TaskStatus.pending: icon = Theme.of(context).colorScheme.outline; icon = HugeIcons.strokeRoundedCircle; color = Theme.of(context).colorScheme.outline; break;
     }
 
     return InkWell(
@@ -532,9 +531,8 @@ class TaskListTile extends ConsumerWidget {
          HapticFeedback.heavyImpact();
          showModalBottomSheet(
           context: context,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-          ),
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
           builder: (context) => TaskStatusPickerSheet(task: task),
         );
       },

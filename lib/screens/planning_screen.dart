@@ -1250,18 +1250,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                 ),
 
                 if (!isLast)
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    child: Divider(
-                      height: 1,
-                      thickness: 0.5,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .outlineVariant
-                          .withValues(alpha: 0.3),
-                    ),
-                  )
+                  const SizedBox(height: 12)
                 else
                   const SizedBox(height: 12),
               ],
@@ -1557,9 +1546,8 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     HapticFeedback.selectionClick();
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) => TaskOptionsSheet(
         task: task,
         date: date ?? task.dueDate,
@@ -1665,6 +1653,8 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         HapticFeedback.heavyImpact();
         showModalBottomSheet(
           context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
           ),

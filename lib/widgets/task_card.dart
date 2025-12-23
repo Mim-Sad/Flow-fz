@@ -282,6 +282,8 @@ class TaskCard extends ConsumerWidget {
             HapticFeedback.heavyImpact();
             showModalBottomSheet(
               context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
               ),
@@ -296,6 +298,8 @@ class TaskCard extends ConsumerWidget {
   void _showStatusPicker(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
