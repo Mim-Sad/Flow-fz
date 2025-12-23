@@ -85,7 +85,10 @@ class TaskCard extends ConsumerWidget {
                           context: context,
                           isScrollControlled: true,
                           useSafeArea: true,
-                          builder: (context) => AddTaskScreen(task: task),
+                          builder: (context) => AddTaskScreen(
+                            task: task,
+                            initialDate: task.dueDate,
+                          ),
                         );
                       } else if (value == 'duplicate') {
                         showModalBottomSheet(
@@ -289,7 +292,10 @@ class TaskCard extends ConsumerWidget {
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
               ),
-              builder: (context) => TaskStatusPickerSheet(task: task),
+              builder: (context) => TaskStatusPickerSheet(
+                task: task,
+                recurringDate: task.dueDate,
+              ),
             );
          },
          child: HugeIcon(icon: iconData, size: 24, color: color.withValues(alpha: 0.8)),
@@ -305,7 +311,10 @@ class TaskCard extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
-      builder: (context) => TaskStatusPickerSheet(task: task),
+      builder: (context) => TaskStatusPickerSheet(
+        task: task,
+        recurringDate: task.dueDate,
+      ),
     );
   }
 

@@ -67,42 +67,84 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     _descController = TextEditingController(text: widget.task?.description);
     _tagController = TextEditingController();
     
-    // Logic for date:
-    // 1. If it's a new task (no task provided), use initialDate or now.
-    // 2. If it's an existing task (edit), use its dueDate.
-    // 3. If it's a duplicated task (task provided but no ID):
-    //    - Always prioritize initialDate (this is the date the user was looking at/clicked on)
-    //    - Otherwise use the task's existing dueDate
-    
-    if (widget.task == null) {
-      _selectedDate = widget.initialDate ?? DateTime.now();
-    } else {
-      // Logic for existing or duplicated tasks:
-      // For recurring tasks, we usually want to preserve/show the original series start date (task.dueDate)
-      // because editing or duplicating a recurring task usually means working with the whole series.
-      // For regular tasks, initialDate (the day the user clicked/is looking at) is a better default.
-      
-      final isRecurring = widget.task!.recurrence != null && 
-                          widget.task!.recurrence!.type != RecurrenceType.none;
-      
-      if (isRecurring) {
-        _selectedDate = widget.task!.dueDate;
-      } else {
-        _selectedDate = widget.initialDate ?? widget.task!.dueDate;
-      }
-    }
-    
+    _recurrence = widget.task?.recurrence;
     _priority = widget.task?.priority ?? TaskPriority.medium;
     _selectedCategories = widget.task?.categories ?? 
         (widget.task?.category != null ? [widget.task!.category!] : []);
     _tags = List.from(widget.task?.tags ?? []);
     _selectedEmoji = widget.task?.taskEmoji;
     _attachments = widget.task?.attachments ?? [];
-    _recurrence = widget.task?.recurrence;
+    
     if (widget.task != null) {
       _hasTime = widget.task!.metadata['hasTime'] ?? true;
     } else {
       _hasTime = false;
+    }
+
+    // Logic for date:
+    // 1. If it's a new task (no task provided):
+    //    - Use initialDate (date user clicked on) or now.
+    // 2. If it's a duplicated task (task provided but no ID):
+    //    - Use initialDate but preserve time from original task if possible.
+    // 3. If it's an existing task (edit, has ID):
+    //    - ALWAYS use the task's original dueDate. initialDate should be ignored for edits.
+
+    final isNew = widget.task == null;
+    final isDuplicated = widget.task != null && widget.task!.id == null;
+
+    if (isNew) {
+      _selectedDate = widget.initialDate ?? DateTime.now();
+    } else if (isDuplicated) {
+      final isRecurring = widget.task!.recurrence != null && widget.task!.recurrence!.type != RecurrenceType.none;
+      
+      if (isRecurring) {
+        // For recurring tasks, we want to preserve the original start date of the series
+        final allTasks = ref.read(tasksProvider);
+        final duplicatedFromId = widget.task!.metadata['duplicatedFromId'];
+        final originalTask = allTasks.cast<Task?>().firstWhere(
+          (t) => t?.id == duplicatedFromId,
+          orElse: () => null,
+        );
+        
+        if (originalTask != null) {
+          _selectedDate = originalTask.dueDate;
+        } else {
+          _selectedDate = widget.task!.dueDate;
+        }
+      } else {
+        // For normal tasks, we can use the target date (e.g. today or selected date)
+        final originalDate = widget.task!.dueDate;
+        final targetDate = widget.initialDate ?? originalDate;
+        _selectedDate = DateTime(
+          targetDate.year,
+          targetDate.month,
+          targetDate.day,
+          originalDate.hour,
+          originalDate.minute,
+        );
+      }
+      
+      // If duplicated task's start date is after its recurrence end date, clear the end date
+      if (_recurrence?.endDate != null && _selectedDate.isAfter(_recurrence!.endDate!)) {
+        _recurrence = RecurrenceConfig(
+          type: _recurrence!.type,
+          interval: _recurrence!.interval,
+          daysOfWeek: _recurrence!.daysOfWeek,
+          specificDates: _recurrence!.specificDates,
+          dayOfMonth: _recurrence!.dayOfMonth,
+          endDate: null,
+        );
+      }
+    } else { // isEditing
+      // Find the original task from provider to get the true start date (dueDate)
+      // because the task passed in widget.task might be a copy from activeTasksProvider
+      // which has its dueDate modified to the occurrence date.
+      final allTasks = ref.read(tasksProvider);
+      final originalTask = allTasks.cast<Task?>().firstWhere(
+        (t) => t?.id == widget.task!.id, 
+        orElse: () => widget.task
+      );
+      _selectedDate = originalTask?.dueDate ?? widget.task!.dueDate;
     }
   }
 
@@ -345,8 +387,12 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                 final pickedDate = await showPersianDatePicker(
                                   context: context,
                                   initialDate: Jalali.fromDateTime(_selectedDate),
-                                  firstDate: Jalali.fromDateTime(DateTime.now().subtract(const Duration(days: 365))),
-                                  lastDate: Jalali.fromDateTime(DateTime.now().add(const Duration(days: 365 * 2))),
+                                  firstDate: Jalali.fromDateTime(
+                                    _selectedDate.isBefore(DateTime.now()) 
+                                        ? _selectedDate.subtract(const Duration(days: 365)) 
+                                        : DateTime.now().subtract(const Duration(days: 365))
+                                  ),
+                                  lastDate: Jalali.fromDateTime(DateTime.now().add(const Duration(days: 365 * 10))),
                                 );
                                 if (pickedDate != null) {
                                   final dt = pickedDate.toDateTime();
@@ -358,6 +404,18 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                       _selectedDate.hour,
                                       _selectedDate.minute,
                                     );
+                                    
+                                    // If new start date is after current recurrence end date, clear end date
+                                    if (_recurrence?.endDate != null && _selectedDate.isAfter(_recurrence!.endDate!)) {
+                                      _recurrence = RecurrenceConfig(
+                                        type: _recurrence!.type,
+                                        interval: _recurrence!.interval,
+                                        daysOfWeek: _recurrence!.daysOfWeek,
+                                        specificDates: _recurrence!.specificDates,
+                                        dayOfMonth: _recurrence!.dayOfMonth,
+                                        endDate: null,
+                                      );
+                                    }
                                   });
                                 }
                               },
@@ -558,8 +616,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                   suffixIcon: IconButton(
                                     icon: HugeIcon(
                                       icon: HugeIcons.strokeRoundedAddCircle, 
-                                      size: 20,
-                                      color: Colors.white,
+                                      size: 20
                                     ),
                                     onPressed: () {
                                       final tag = _tagController.text.trim();
@@ -1000,8 +1057,8 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                     onPressed: () async {
                       final picked = await showPersianDatePicker(
                         context: context,
-                        initialDate: Jalali.fromDateTime(_recurrence?.endDate ?? DateTime.now().add(const Duration(days: 30))),
-                        firstDate: Jalali.fromDateTime(DateTime.now()),
+                        initialDate: Jalali.fromDateTime(_recurrence?.endDate ?? _selectedDate.add(const Duration(days: 30))),
+                        firstDate: Jalali.fromDateTime(_selectedDate),
                         lastDate: Jalali(1500, 1, 1),
                       );
                       if (picked != null) {

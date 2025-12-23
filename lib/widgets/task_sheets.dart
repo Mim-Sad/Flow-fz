@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shamsi_date/shamsi_date.dart';
+import 'package:text_scroll/text_scroll.dart';
 import '../models/task.dart';
 import '../models/category_data.dart';
 import '../providers/task_provider.dart';
@@ -281,6 +282,18 @@ class TaskOptionsSheet extends ConsumerWidget {
     final taskCategories = task.categories.isNotEmpty 
         ? task.categories 
         : (task.category != null ? [task.category!] : <String>[]);
+
+    // Find the original task to get the true start date if it's a recurring task
+     final allTasks = ref.watch(tasksProvider);
+     final originalTask = allTasks.cast<Task?>().firstWhere(
+      (t) => t?.id == task.id,
+      orElse: () => task,
+    );
+    
+    final displayDate = originalTask?.dueDate ?? task.dueDate;
+    final occurrenceDate = date ?? task.dueDate;
+    final isRecurring = task.recurrence != null && task.recurrence!.type != RecurrenceType.none;
+    final isOccurrenceDifferent = isRecurring && !DateUtils.isSameDay(displayDate, occurrenceDate);
     
     return Container(
       decoration: BoxDecoration(
@@ -366,24 +379,67 @@ class TaskOptionsSheet extends ConsumerWidget {
                           textDirection: TextDirection.rtl,
                           children: [
                             Expanded(
-                              child: Row(
-                                textDirection: TextDirection.rtl,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  HugeIcon(
-                                    icon: HugeIcons.strokeRoundedCalendar03,
-                                    size: 18,
-                                    color: Theme.of(context).colorScheme.primary,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    _formatDate(task.dueDate),
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     textDirection: TextDirection.rtl,
+                                    children: [
+                                      HugeIcon(
+                                        icon: HugeIcons.strokeRoundedCalendar03,
+                                        size: 18,
+                                        color: Theme.of(context).colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        isRecurring ? 'تاریخ شروع:' : 'تاریخ انجام:',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        ),
+                                        textDirection: TextDirection.rtl,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        _formatDate(displayDate),
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        textDirection: TextDirection.rtl,
+                                      ),
+                                    ],
                                   ),
+                                  if (isOccurrenceDifferent) ...[
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      textDirection: TextDirection.rtl,
+                                      children: [
+                                        const SizedBox(width: 26), // Align with icon above
+                                        Text(
+                                          'تاریخ این تکرار:',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                          ),
+                                          textDirection: TextDirection.rtl,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          _formatDate(occurrenceDate),
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          textDirection: TextDirection.rtl,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -392,6 +448,7 @@ class TaskOptionsSheet extends ConsumerWidget {
                               Expanded(
                                 child: Row(
                                   textDirection: TextDirection.rtl,
+                                  mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
                                     HugeIcon(
                                       icon: HugeIcons.strokeRoundedClock01,
@@ -400,7 +457,7 @@ class TaskOptionsSheet extends ConsumerWidget {
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
-                                      _toPersianDigit(_formatTime(task.dueDate)),
+                                      _toPersianDigit(_formatTime(displayDate)),
                                       style: TextStyle(
                                         fontSize: 13,
                                         color: Theme.of(context).colorScheme.onSurface,
@@ -427,14 +484,21 @@ class TaskOptionsSheet extends ConsumerWidget {
                                  color: Theme.of(context).colorScheme.primary,
                                ),
                               const SizedBox(width: 8),
-                              Text(
-                                _getRecurrenceText(task.recurrence!),
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Theme.of(context).colorScheme.onSurface,
-                                  fontWeight: FontWeight.w600,
+                              Expanded(
+                                child: TextScroll(
+                                  _getRecurrenceText(task.recurrence!),
+                                  mode: TextScrollMode.endless,
+                                  velocity: const Velocity(pixelsPerSecond: Offset(30, 0)),
+                                  delayBefore: const Duration(seconds: 2),
+                                  pauseBetween: const Duration(seconds: 2),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  textDirection: TextDirection.rtl,
+                                  textAlign: TextAlign.right,
                                 ),
-                                textDirection: TextDirection.rtl,
                               ),
                             ],
                           ),
