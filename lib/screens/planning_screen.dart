@@ -1345,12 +1345,26 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       color = catData.color;
     }
 
+    final completions = ref.watch(taskCompletionsProvider);
+
     // Calculate progress (excluding cancelled and deferred tasks)
-    final relevantTasks = tasks.where((t) => 
-      t.status != TaskStatus.cancelled && t.status != TaskStatus.deferred
-    ).toList();
-    final total = relevantTasks.length;
-    final completed = relevantTasks.where((t) => t.status == TaskStatus.success).length;
+    int total = 0;
+    int completed = 0;
+
+    for (var t in tasks) {
+      final rootId = t.rootId ?? t.id!;
+      final dateKey = getDateKey(t.dueDate);
+      final statusIndex = completions[rootId]?[dateKey];
+      final status = statusIndex != null ? TaskStatus.values[statusIndex] : t.status;
+
+      if (status != TaskStatus.cancelled && status != TaskStatus.deferred) {
+        total++;
+        if (status == TaskStatus.success) {
+          completed++;
+        }
+      }
+    }
+
     final progress = total > 0 ? completed / total : 0.0;
 
     return Container(
@@ -1445,7 +1459,15 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   }
 
   Widget _buildCompactTaskRow(Task task) {
-    final isCancelled = task.status == TaskStatus.cancelled;
+    final completions = ref.watch(taskCompletionsProvider);
+    final rootId = task.rootId ?? task.id!;
+    final dateKey = getDateKey(task.dueDate);
+    final statusIndex = completions[rootId]?[dateKey];
+    final status = statusIndex != null ? TaskStatus.values[statusIndex] : task.status;
+
+    final isCancelled = status == TaskStatus.cancelled;
+    final isSuccess = status == TaskStatus.success;
+
     final row = Opacity(
       opacity: isCancelled ? 0.6 : 1.0,
       child: Container(
@@ -1491,10 +1513,10 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                         textAlign: TextAlign.right,
                         style: TextStyle(
                           fontSize: 13,
-                          decoration: task.status == TaskStatus.success
+                          decoration: isSuccess
                               ? TextDecoration.lineThrough
                               : null,
-                          color: task.status == TaskStatus.success
+                          color: isSuccess
                               ? Theme.of(context).colorScheme.onSurfaceVariant
                                     .withValues(alpha: 0.5)
                               : Theme.of(context).colorScheme.onSurface,

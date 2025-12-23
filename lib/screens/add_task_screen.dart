@@ -252,10 +252,13 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                           return categoriesAsync.when(
                             data: (categories) {
                               final cats = categories.isEmpty ? defaultCategories : categories;
-                              return Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: cats.map((cat) {
+                              return SizedBox(
+                                width: double.infinity,
+                                child: Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  alignment: WrapAlignment.center,
+                                  children: cats.map((cat) {
                                   final isSelected = _selectedCategories.contains(cat.id);
                                   return GestureDetector(
                                     onTap: () {
@@ -300,6 +303,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                     ),
                                   );
                                 }).toList(),
+                                ),
                               );
                             },
                             loading: () => const Center(child: CircularProgressIndicator()),
