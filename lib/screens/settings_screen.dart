@@ -391,56 +391,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             segments: [
                               ButtonSegment<ThemeMode>(
                                 value: ThemeMode.light,
-                                label: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    HugeIcon(
-                                      icon: HugeIcons.strokeRoundedSun01,
-                                      size: 18,
-                                      color: themeState.themeMode == ThemeMode.light
-                                          ? Theme.of(context).colorScheme.primary
-                                          : Theme.of(context).colorScheme.onSurfaceVariant,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    const Text('چو خورشید', style: TextStyle(fontSize: 12)),
-                                  ],
+                                label: const Text('آفتاب'),
+                                icon: HugeIcon(
+                                  icon: HugeIcons.strokeRoundedSun01,
+                                  size: 18,
                                 ),
                               ),
                               ButtonSegment<ThemeMode>(
                                 value: ThemeMode.dark,
-                                label: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    HugeIcon(
-                                      icon: HugeIcons.strokeRoundedMoon02,
-                                      size: 18,
-                                      color: themeState.themeMode == ThemeMode.dark
-                                          ? Theme.of(context).colorScheme.primary
-                                          : Theme.of(context).colorScheme.onSurfaceVariant,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    const Text('چو ماه', style: TextStyle(fontSize: 12)),
-                                  ],
+                                label: const Text('مهتاب'),
+                                icon: HugeIcon(
+                                  icon: HugeIcons.strokeRoundedMoon02,
+                                  size: 18,
                                 ),
                               ),
                               ButtonSegment<ThemeMode>(
                                 value: ThemeMode.system,
-                                label: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    HugeIcon(
-                                      icon: HugeIcons.strokeRoundedSettings01,
-                                      size: 18,
-                                      color: themeState.themeMode == ThemeMode.system
-                                          ? Theme.of(context).colorScheme.primary
-                                          : Theme.of(context).colorScheme.onSurfaceVariant,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    const Text('سیستم', style: TextStyle(fontSize: 12)),
-                                  ],
+                                label: const Text('سیستم'),
+                                icon: HugeIcon(
+                                  icon: HugeIcons.strokeRoundedSettings01,
+                                  size: 18,
                                 ),
                               ),
                             ],
@@ -454,15 +424,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 onUpdateState: () => themeNotifier.setThemeMode(newSelection.first),
                               );
                             },
-                            showSelectedIcon: false,
-                            style: SegmentedButton.styleFrom(
-                              backgroundColor: Theme.of(context).colorScheme.surface,
-                              selectedBackgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                              selectedForegroundColor: Theme.of(context).colorScheme.primary,
-                              side: BorderSide(color: onCardColor.withValues(alpha: 0.1), width: 1),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                              padding: const EdgeInsets.symmetric(vertical: 20),
-                            ),
                           ),
                         ),
                       ),

@@ -50,7 +50,7 @@ class NavigationWrapper extends StatelessWidget {
         leadingWidth: showLogo ? 52 : 0,
         leading: showLogo 
             ? Padding(
-                padding: const EdgeInsets.only(right: 12.0),
+                padding: const EdgeInsets.only(right: 12),
                 child: ColorFiltered(
                   colorFilter: theme.brightness == Brightness.light
                       ? const ColorFilter.matrix([

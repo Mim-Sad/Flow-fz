@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import '../providers/task_provider.dart';
@@ -174,10 +175,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         relevantTasks.length, // Total relevant tasks (excluding cancelled/deferred)
                       ),
                       const SizedBox(height: 32),
-                      Text(
-                        'وضعیت کلی تسک‌ها',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
+                      Center(
+                        child: Text(
+                          'وضعیت کلی تسک‌ها',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ).animate().fadeIn(delay: 200.ms),
                       const SizedBox(height: 24),
@@ -292,10 +295,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             ),
                             if (_viewMode != 0) ...[
                               const SizedBox(height: 32),
-                              Text(
-                                'روند موفقیت',
-                                style: Theme.of(context).textTheme.titleLarge
-                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              Center(
+                                child: Text(
+                                  'روند موفقیت',
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                ),
                               ).animate().fadeIn(delay: 400.ms),
                               const SizedBox(height: 24),
                               SizedBox(
@@ -306,10 +311,24 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           ],
                         )
                       else
-                        const SizedBox(
-                          height: 250,
-                          child: Center(
-                            child: Text('تسک برای این بازه وجود ندارد'),
+                        Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(height: 40),
+                              Lottie.asset(
+                                'assets/images/TheSoul/24 news b.json',
+                                height: 120,
+                                repeat: true,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'تسکی برای این بازه پیدا نکردم!',
+                                style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                              ),
+                            ],
                           ),
                         ),
                     ],
@@ -358,25 +377,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         selected: {_viewMode},
                         onSelectionChanged: (val) =>
                             setState(() => _viewMode = val.first),
-                        style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.resolveWith<
-                            Color?
-                          >((states) {
-                            if (states.contains(WidgetState.selected)) {
-                              return Theme.of(
-                                context,
-                              ).colorScheme.secondaryContainer;
-                            }
-                            return Colors.transparent;
-                          }),
-                          side: WidgetStateProperty.all(
-                            BorderSide(
-                              color:
-                                  Theme.of(context).colorScheme.outlineVariant,
-                            ),
-                          ),
-                          elevation: WidgetStateProperty.all(0),
-                        ),
                       ),
                     ),
                   ),
@@ -504,7 +504,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   Widget _buildStatSummary(BuildContext context, int success, int failed, int total) {
     // Productivity formula: success / (success + failed)
     final int denominator = success + failed;
-    double percentage = denominator == 0 ? 0 : (success / denominator) * 100;
+    double percentage = denominator == 0 ? -1.0 : (success / denominator) * 100;
     
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -535,12 +535,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 10),
                   Text(
-                    '${_toPersianDigit(percentage.toStringAsFixed(1))}%',
+                    percentage < 0 
+                        ? 'داده‌ای نداریم'
+                        : '${_toPersianDigit(percentage.toStringAsFixed(1))}%',
                     style: TextStyle(
                       color: _getSpectrumColor(percentage),
-                      fontSize: 28,
+                      fontSize: percentage < 0 ? 20 : 28,
                       fontWeight: FontWeight.bold,
                       height: 1,
                     ),
@@ -562,6 +564,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Color _getSpectrumColor(double value) {
+    if (value < 0) {
+      return Theme.of(context).colorScheme.primary;
+    }
     // Clamp value between 0 and 100
     double t = value.clamp(0, 100);
 
@@ -647,9 +652,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         final success = dayTasks
             .where((t) => t.status == TaskStatus.success)
             .length;
-        final total = dayTasks.length;
-        double rate = total == 0 ? 0 : (success / total) * 100;
-        spots.add(FlSpot(i.toDouble(), rate));
+        final failed = dayTasks
+            .where((t) => t.status == TaskStatus.failed)
+            .length;
+        final denominator = success + failed;
+
+        final isFuture = day.isAfter(DateTime.now()) && !DateUtils.isSameDay(day, DateTime.now());
+        if (!isFuture) {
+          double rate = denominator == 0 ? -1.0 : (success / denominator) * 100;
+          spots.add(FlSpot(i.toDouble(), rate));
+        }
+        
         final j = Jalali.fromDateTime(day);
         labels.add('${j.formatter.wN.substring(0, 1)} ${j.day}');
       }
@@ -665,9 +678,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         final success = dayTasks
             .where((t) => t.status == TaskStatus.success)
             .length;
-        final total = dayTasks.length;
-        double rate = total == 0 ? 0 : (success / total) * 100;
-        spots.add(FlSpot(i.toDouble(), rate));
+        final failed = dayTasks
+            .where((t) => t.status == TaskStatus.failed)
+            .length;
+        final denominator = success + failed;
+
+        final isFuture = day.isAfter(DateTime.now()) && !DateUtils.isSameDay(day, DateTime.now());
+        if (!isFuture) {
+          double rate = denominator == 0 ? -1.0 : (success / denominator) * 100;
+          spots.add(FlSpot(i.toDouble(), rate));
+        }
+
         if (i % 5 == 0 || i == 1 || i == daysInMonth) {
           labels.add(i.toString());
         } else {
@@ -678,6 +699,33 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return LineChart(
       LineChartData(
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (spot) => Theme.of(context).colorScheme.surfaceContainerHighest,
+            getTooltipItems: (List<LineBarSpot> touchedSpots) {
+              return touchedSpots.map((LineBarSpot touchedSpot) {
+                if (touchedSpot.y < 0) {
+                  return LineTooltipItem(
+                    'داده‌ای نداریم',
+                    TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  );
+                }
+                return LineTooltipItem(
+                  '${_toPersianDigit(touchedSpot.y.toInt().toString())}٪',
+                  TextStyle(
+                    color: _getSpectrumColor(touchedSpot.y),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                );
+              }).toList();
+            },
+          ),
+        ),
         minY: -10,
         maxY: 110,
         gridData: FlGridData(

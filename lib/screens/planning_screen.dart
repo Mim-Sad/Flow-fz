@@ -208,25 +208,6 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                             _viewMode = newSelection.first;
                           });
                         },
-                        style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.resolveWith<
-                            Color?
-                          >((states) {
-                            if (states.contains(WidgetState.selected)) {
-                              return Theme.of(
-                                context,
-                              ).colorScheme.secondaryContainer;
-                            }
-                            return Colors.transparent;
-                          }),
-                          side: WidgetStateProperty.all(
-                            BorderSide(
-                              color:
-                                  Theme.of(context).colorScheme.outlineVariant,
-                            ),
-                          ),
-                          elevation: WidgetStateProperty.all(0),
-                        ),
                       ),
                     ),
                   ),
@@ -829,7 +810,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
   Widget _buildDailyView(List<Task> dailyTasks, List<CategoryData> categories) {
     if (dailyTasks.isEmpty) {
-      return _buildEmptyState('برای این روز برنامه‌ای نداری.');
+      return _buildEmptyState('برای این روز برنامه‌ای نداری!');
     }
 
 
@@ -917,7 +898,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     }
 
     if (regularTasksForWeek.isEmpty && recurringTasksForWeek.isEmpty) {
-      return _buildEmptyState('برای این هفته برنامه‌ای نداری.');
+      return _buildEmptyState('برای این هفته برنامه‌ای نداری!');
     }
 
     return ListView(
@@ -1023,7 +1004,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       }
 
       if (recurringTasksByWeek.isEmpty && regularTasksForMonth.isEmpty) {
-        return _buildEmptyState('برای این ماه برنامه‌ای نداری.');
+        return _buildEmptyState('برای این ماه برنامه‌ای نداری!');
       }
 
       return ListView(
