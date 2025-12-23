@@ -88,19 +88,7 @@ class TaskCard extends ConsumerWidget {
                           isScrollControlled: true,
                           useSafeArea: true,
                           builder: (context) => AddTaskScreen(
-                            task: Task(
-                              title: task.title,
-                              description: task.description,
-                              dueDate: task.dueDate,
-                              priority: task.priority,
-                              categories: task.categories,
-                              category: task.category,
-                              taskEmoji: task.taskEmoji,
-                              attachments: task.attachments,
-                              recurrence: task.recurrence,
-                              metadata: task.metadata,
-                              status: TaskStatus.pending,
-                            ),
+                            task: task.duplicate(),
                           ),
                         );
                       } else if (value == 'delete') {

@@ -115,6 +115,25 @@ class Task {
     updatedAt = updatedAt ?? (createdAt ?? DateTime.now()),
     categories = categories ?? (category != null ? [category] : []);
 
+  Task duplicate() {
+    final newMetadata = Map<String, dynamic>.from(metadata);
+    newMetadata['duplicatedAt'] = DateTime.now().toIso8601String();
+    newMetadata['duplicatedFromId'] = id;
+
+    return Task(
+      title: title,
+      description: description,
+      dueDate: dueDate,
+      status: TaskStatus.pending,
+      priority: priority,
+      categories: List.from(categories),
+      taskEmoji: taskEmoji,
+      attachments: List.from(attachments),
+      recurrence: recurrence,
+      metadata: newMetadata,
+    );
+  }
+
   int get deferCount => metadata['deferCount'] ?? 0;
 
   Map<String, dynamic> toMap() {

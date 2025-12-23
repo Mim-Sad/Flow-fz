@@ -260,18 +260,12 @@ class TaskStatusPickerSheet extends ConsumerWidget {
             title: const Text('تکثیر تسک'),
             onTap: () {
               Navigator.pop(context);
-              // Create a copy of the task without the ID to trigger a new creation
-              final taskCopy = task.copyWith(
-                id: null,
-                createdAt: DateTime.now(),
-                updatedAt: DateTime.now(),
-              );
               showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
                 useSafeArea: true,
                 backgroundColor: Colors.transparent,
-                builder: (context) => AddTaskScreen(task: taskCopy),
+                builder: (context) => AddTaskScreen(task: task.duplicate()),
               );
             },
           ),

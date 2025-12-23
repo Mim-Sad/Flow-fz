@@ -160,7 +160,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            widget.task == null ? 'تسک جدید' : 'ویرایش تسک',
+                            (widget.task == null || widget.task?.id == null) ? 'تسک جدید' : 'ویرایش تسک',
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -976,7 +976,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
       metadata: metadata,
     );
     
-    if (widget.task == null) {
+    if (task.id == null) {
       await ref.read(tasksProvider.notifier).addTask(task);
     } else {
       await ref.read(tasksProvider.notifier).updateTask(task);
