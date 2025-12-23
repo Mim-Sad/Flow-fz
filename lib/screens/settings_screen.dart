@@ -143,6 +143,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Widget _buildIconWithBackground(BuildContext context, dynamic icon, {Color? color}) {
+    return Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      alignment: Alignment.center,
+      child: HugeIcon(
+        icon: icon,
+        color: color ?? Theme.of(context).colorScheme.primary,
+        size: 24,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // We only watch isInitialized to know when to show the content.
@@ -229,7 +246,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               ),
                               const SizedBox(height: 24),
                               ListTile(
-                                leading: const HugeIcon(icon: HugeIcons.strokeRoundedUpload01, color: Colors.blue),
+                                leading: _buildIconWithBackground(context, HugeIcons.strokeRoundedUpload01, color: Colors.blue),
                                 title: const Text('خروجی گرفتن از اطلاعات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                                 subtitle: const Text('ذخیره تمام اطلاعات در یک فایل', style: TextStyle(fontSize: 10)),
                                 onTap: () {
@@ -238,7 +255,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 },
                               ),
                               ListTile(
-                                leading: const HugeIcon(icon: HugeIcons.strokeRoundedDownload01, color: Colors.green),
+                                leading: _buildIconWithBackground(context, HugeIcons.strokeRoundedDownload01, color: Colors.green),
                                 title: const Text('وارد کردن اطلاعات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                                 subtitle: const Text('بازگردانی اطلاعات از فایل ذخیره شده', style: TextStyle(fontSize: 10)),
                                 onTap: () {
@@ -265,8 +282,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     children: [
                       Row(
                         children: [
-                          HugeIcon(icon: HugeIcons.strokeRoundedPaintBoard, color: Theme.of(context).colorScheme.primary, size: 20),
-                          const SizedBox(width: 8),
+                          _buildIconWithBackground(context, HugeIcons.strokeRoundedPaintBoard),
+                          const SizedBox(width: 12),
                           const Text(
                             'حال و هوای جریان',
                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -357,8 +374,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     children: [
                       Row(
                         children: [
-                          HugeIcon(icon: HugeIcons.strokeRoundedMoon, color: Theme.of(context).colorScheme.primary, size: 20),
-                          const SizedBox(width: 8),
+                          _buildIconWithBackground(context, HugeIcons.strokeRoundedMoon),
+                          const SizedBox(width: 12),
                           const Text(
                             'خورشید و ماه جریان',
                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
