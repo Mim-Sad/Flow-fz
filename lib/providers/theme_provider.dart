@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeState {
   final Color seedColor;
@@ -22,20 +23,56 @@ class ThemeState {
 }
 
 class ThemeNotifier extends Notifier<ThemeState> {
+  static const String _seedColorKey = 'theme_seed_color';
+  static const String _themeModeKey = 'theme_mode';
+  late SharedPreferences _prefs;
+
   @override
   ThemeState build() {
+    // We return a default state first, then load from prefs asynchronously
+    _initPrefs();
+    
     return ThemeState(
       seedColor: const Color(0xFF6750A4), // Default color
       themeMode: ThemeMode.dark,
     );
   }
 
-  void setSeedColor(Color color) {
-    state = state.copyWith(seedColor: color);
+  Future<void> _initPrefs() async {
+    _prefs = await SharedPreferences.getInstance();
+    _loadSettings();
   }
 
-  void setThemeMode(ThemeMode mode) {
+  void _loadSettings() {
+    final int? colorValue = _prefs.getInt(_seedColorKey);
+    final int? modeIndex = _prefs.getInt(_themeModeKey);
+
+    Color seedColor = const Color(0xFF6750A4);
+    if (colorValue != null) {
+      seedColor = Color(colorValue);
+    }
+
+    ThemeMode themeMode = ThemeMode.dark;
+    if (modeIndex != null) {
+      themeMode = ThemeMode.values[modeIndex];
+    }
+
+    state = ThemeState(
+      seedColor: seedColor,
+      themeMode: themeMode,
+    );
+  }
+
+  Future<void> setSeedColor(Color color) async {
+    state = state.copyWith(seedColor: color);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_seedColorKey, color.toARGB32());
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
     state = state.copyWith(themeMode: mode);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_themeModeKey, mode.index);
   }
 
   static final List<Color> availableColors = [
