@@ -35,6 +35,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  Offset? _tapOffset;
   
   void _switchTheme({
     required BuildContext context,
@@ -144,14 +145,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final themeState = ref.watch(themeProvider);
+    // We only watch isInitialized to know when to show the content.
+    // The actual theme values are handled by ThemeSwitcher and Theme.of(context).
+    final isInitialized = ref.watch(themeProvider.select((s) => s.isInitialized));
     final themeNotifier = ref.read(themeProvider.notifier);
-    
-    // We use Theme.of(context) which now comes from ThemeSwitcher (via main.dart)
-    final onCardColor = Theme.of(context).colorScheme.onSurface;
+
+    if (!isInitialized) return const Scaffold();
 
     return ats.ThemeSwitcher(
+      clipper: const ats.ThemeSwitcherCircleClipper(),
       builder: (context) {
+        final theme = Theme.of(context);
+        final onCardColor = theme.colorScheme.onSurface;
+        // We still need the current state for selection indicators, 
+        // but we read it inside the builder to get the current values
+        // without subscribing to further updates that might interrupt the switcher.
+        final themeState = ref.read(themeProvider);
+
         return Scaffold(
           appBar: AppBar(
             title: const Text('تنظیمات'),
@@ -358,80 +368,84 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
-                        child: SegmentedButton<ThemeMode>(
-                          segments: [
-                            ButtonSegment<ThemeMode>(
-                              value: ThemeMode.light,
-                              label: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  HugeIcon(
-                                    icon: HugeIcons.strokeRoundedSun01,
-                                    size: 18,
-                                    color: themeState.themeMode == ThemeMode.light
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Text('چو خورشید', style: TextStyle(fontSize: 12)),
-                                ],
+                        child: Listener(
+                          onPointerDown: (event) => _tapOffset = event.position,
+                          child: SegmentedButton<ThemeMode>(
+                            segments: [
+                              ButtonSegment<ThemeMode>(
+                                value: ThemeMode.light,
+                                label: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    HugeIcon(
+                                      icon: HugeIcons.strokeRoundedSun01,
+                                      size: 18,
+                                      color: themeState.themeMode == ThemeMode.light
+                                          ? Theme.of(context).colorScheme.primary
+                                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Text('چو خورشید', style: TextStyle(fontSize: 12)),
+                                  ],
+                                ),
                               ),
-                            ),
-                            ButtonSegment<ThemeMode>(
-                              value: ThemeMode.dark,
-                              label: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  HugeIcon(
-                                    icon: HugeIcons.strokeRoundedMoon02,
-                                    size: 18,
-                                    color: themeState.themeMode == ThemeMode.dark
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Text('چو ماه', style: TextStyle(fontSize: 12)),
-                                ],
+                              ButtonSegment<ThemeMode>(
+                                value: ThemeMode.dark,
+                                label: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    HugeIcon(
+                                      icon: HugeIcons.strokeRoundedMoon02,
+                                      size: 18,
+                                      color: themeState.themeMode == ThemeMode.dark
+                                          ? Theme.of(context).colorScheme.primary
+                                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Text('چو ماه', style: TextStyle(fontSize: 12)),
+                                  ],
+                                ),
                               ),
-                            ),
-                            ButtonSegment<ThemeMode>(
-                              value: ThemeMode.system,
-                              label: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  HugeIcon(
-                                    icon: HugeIcons.strokeRoundedSettings01,
-                                    size: 18,
-                                    color: themeState.themeMode == ThemeMode.system
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Text('سیستم', style: TextStyle(fontSize: 12)),
-                                ],
+                              ButtonSegment<ThemeMode>(
+                                value: ThemeMode.system,
+                                label: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    HugeIcon(
+                                      icon: HugeIcons.strokeRoundedSettings01,
+                                      size: 18,
+                                      color: themeState.themeMode == ThemeMode.system
+                                          ? Theme.of(context).colorScheme.primary
+                                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Text('سیستم', style: TextStyle(fontSize: 12)),
+                                  ],
+                                ),
                               ),
+                            ],
+                            selected: {themeState.themeMode},
+                            onSelectionChanged: (newSelection) {
+                              _switchTheme(
+                                context: context,
+                                seedColor: themeState.seedColor,
+                                themeMode: newSelection.first,
+                                offset: _tapOffset,
+                                onUpdateState: () => themeNotifier.setThemeMode(newSelection.first),
+                              );
+                            },
+                            showSelectedIcon: false,
+                            style: SegmentedButton.styleFrom(
+                              backgroundColor: Theme.of(context).colorScheme.surface,
+                              selectedBackgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                              selectedForegroundColor: Theme.of(context).colorScheme.primary,
+                              side: BorderSide(color: onCardColor.withValues(alpha: 0.1), width: 1),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              padding: const EdgeInsets.symmetric(vertical: 20),
                             ),
-                          ],
-                          selected: {themeState.themeMode},
-                          onSelectionChanged: (newSelection) {
-                            _switchTheme(
-                              context: context,
-                              seedColor: themeState.seedColor,
-                              themeMode: newSelection.first,
-                              onUpdateState: () => themeNotifier.setThemeMode(newSelection.first),
-                            );
-                          },
-                          showSelectedIcon: false,
-                          style: SegmentedButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.surface,
-                            selectedBackgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                            selectedForegroundColor: Theme.of(context).colorScheme.primary,
-                            side: BorderSide(color: onCardColor.withValues(alpha: 0.1), width: 1),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                            padding: const EdgeInsets.symmetric(vertical: 20),
                           ),
                         ),
                       ),

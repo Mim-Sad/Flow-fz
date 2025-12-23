@@ -56,7 +56,18 @@ class FlowApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final themeState = ref.watch(themeProvider);
+    final isInitialized = ref.watch(themeProvider.select((s) => s.isInitialized));
+    
+    if (!isInitialized) {
+      return const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(),
+      );
+    }
+
+    // Read the theme state once for initialization.
+    // We don't watch it here because ThemeSwitcher handles updates with animation.
+    final themeState = ref.read(themeProvider);
     
     final brightness = themeState.themeMode == ThemeMode.system
         ? PlatformDispatcher.instance.platformBrightness
@@ -68,8 +79,8 @@ class FlowApp extends ConsumerWidget {
     );
 
     return ats.ThemeProvider(
-      key: ValueKey(themeState.isInitialized),
       initTheme: initialTheme,
+      duration: const Duration(milliseconds: 700),
       builder: (context, theme) {
         return MaterialApp.router(
           title: 'Flow',
