@@ -88,6 +88,7 @@ class Task {
   final int position;
   final String? taskEmoji;
   final List<String> attachments;
+  final List<String> tags;
   final RecurrenceConfig? recurrence;
   final Map<String, dynamic> metadata;
 
@@ -101,6 +102,7 @@ class Task {
     this.priority = TaskPriority.medium,
     this.category,
     List<String>? categories,
+    List<String>? tags,
     DateTime? createdAt,
     DateTime? updatedAt,
     this.isDeleted = false,
@@ -113,7 +115,8 @@ class Task {
   }) : 
     createdAt = createdAt ?? DateTime.now(),
     updatedAt = updatedAt ?? (createdAt ?? DateTime.now()),
-    categories = categories ?? (category != null ? [category] : []);
+    categories = categories ?? (category != null ? [category] : []),
+    tags = tags ?? const [];
 
   Task duplicate() {
     final newMetadata = Map<String, dynamic>.from(metadata);
@@ -127,6 +130,7 @@ class Task {
       status: TaskStatus.pending,
       priority: priority,
       categories: List.from(categories),
+      tags: List.from(tags),
       taskEmoji: taskEmoji,
       attachments: List.from(attachments),
       recurrence: recurrence,
@@ -147,6 +151,7 @@ class Task {
       'priority': priority.index,
       'category': category, // maintain for compatibility if needed, or update based on categories.first
       'categories': json.encode(categories),
+      'tags': json.encode(tags),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
       'isDeleted': isDeleted ? 1 : 0,
@@ -171,6 +176,15 @@ class Task {
       loadedCategories = [map['category']];
     }
 
+    List<String> loadedTags = [];
+    if (map['tags'] != null) {
+      try {
+        loadedTags = List<String>.from(json.decode(map['tags']));
+      } catch (e) {
+        // Fallback
+      }
+    }
+
     Map<String, dynamic> loadedMetadata = {};
     if (map['metadata'] != null) {
       try {
@@ -190,6 +204,7 @@ class Task {
       priority: TaskPriority.values[map['priority']],
       category: map['category'],
       categories: loadedCategories,
+      tags: loadedTags,
       createdAt: DateTime.parse(map['createdAt']),
       updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
       isDeleted: (map['isDeleted'] ?? 0) == 1,
@@ -216,6 +231,7 @@ class Task {
     TaskPriority? priority,
     String? category,
     List<String>? categories,
+    List<String>? tags,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
@@ -236,6 +252,7 @@ class Task {
       priority: priority ?? this.priority,
       category: category ?? this.category,
       categories: categories ?? this.categories,
+      tags: tags ?? this.tags,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,

@@ -27,9 +27,11 @@ class AddTaskScreen extends ConsumerStatefulWidget {
 class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   late TextEditingController _titleController;
   late TextEditingController _descController;
+  late TextEditingController _tagController;
   late DateTime _selectedDate;
   late TaskPriority _priority;
   List<String> _selectedCategories = [];
+  List<String> _tags = [];
   String? _selectedEmoji;
   List<String> _attachments = [];
   RecurrenceConfig? _recurrence;
@@ -63,6 +65,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     super.initState();
     _titleController = TextEditingController(text: widget.task?.title);
     _descController = TextEditingController(text: widget.task?.description);
+    _tagController = TextEditingController();
     
     // Logic for date:
     // 1. If it's a new task (no task provided), use initialDate or now.
@@ -92,6 +95,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     _priority = widget.task?.priority ?? TaskPriority.medium;
     _selectedCategories = widget.task?.categories ?? 
         (widget.task?.category != null ? [widget.task!.category!] : []);
+    _tags = List.from(widget.task?.tags ?? []);
     _selectedEmoji = widget.task?.taskEmoji;
     _attachments = widget.task?.attachments ?? [];
     _recurrence = widget.task?.recurrence;
@@ -529,7 +533,108 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                 ),
                               ),
                             ),
-                            
+                            const SizedBox(height: 20),
+
+                            // Tags
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: TextField(
+                                controller: _tagController,
+                                decoration: InputDecoration(
+                                  hintText: 'افزودن تگ جدید...',
+                                  hintStyle: const TextStyle(fontSize: 12),
+                                  prefixIcon: Container(
+                                    margin: const EdgeInsetsDirectional.only(start: 14, end: 10),
+                                    child: HugeIcon(
+                                      icon: HugeIcons.strokeRoundedTag01, 
+                                      size: 20,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                  prefixIconConstraints: const BoxConstraints(
+                                    minWidth: 0,
+                                    minHeight: 0,
+                                  ),
+                                  suffixIcon: IconButton(
+                                    icon: HugeIcon(
+                                      icon: HugeIcons.strokeRoundedAddCircle, 
+                                      size: 20,
+                                      color: Colors.white,
+                                    ),
+                                    onPressed: () {
+                                      final tag = _tagController.text.trim();
+                                      if (tag.isNotEmpty && !_tags.contains(tag)) {
+                                        setState(() {
+                                          _tags.add(tag);
+                                          _tagController.clear();
+                                        });
+                                      }
+                                    },
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(15),
+                                    borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(15),
+                                    borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                ),
+                                onSubmitted: (val) {
+                                  final tag = val.trim();
+                                  if (tag.isNotEmpty && !_tags.contains(tag)) {
+                                    setState(() {
+                                      _tags.add(tag);
+                                      _tagController.clear();
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                            if (_tags.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                child: Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: _tags.map((tag) => InputChip(
+                                    label: Text(tag, style: const TextStyle(fontSize: 11)),
+                                    onDeleted: () => setState(() => _tags.remove(tag)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    backgroundColor: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
+                                    deleteIcon: const Icon(Icons.close, size: 14),
+                                  )).toList(),
+                                ),
+                              ),
+                            ],
+
+                            const SizedBox(height: 20),
+
+                            // Description (Moved here and styled smaller)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: TextField(
+                                controller: _descController,
+                                maxLines: 2,
+                                style: const TextStyle(fontSize: 13),
+                                decoration: InputDecoration(
+                                  hintText: 'توضیحات بیشتر...',
+                                  hintStyle: const TextStyle(fontSize: 13),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(15),
+                                    borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(15),
+                                    borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                ),
+                              ),
+                            ),
+
                             const SizedBox(height: 16),
                             
                             // Attachments
@@ -604,30 +709,6 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                 ),
                               ),
                             ],
-                            const SizedBox(height: 20),
-
-                            // Description (Moved here and styled smaller)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              child: TextField(
-                                controller: _descController,
-                                maxLines: 2,
-                                style: const TextStyle(fontSize: 13),
-                                decoration: InputDecoration(
-                                  hintText: 'توضیحات بیشتر...',
-                                  hintStyle: const TextStyle(fontSize: 13),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                    borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                    borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                ),
-                              ),
-                            ),
                           ],
                         ),
                       ),
@@ -1120,6 +1201,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
       updatedAt: widget.task?.updatedAt,
       taskEmoji: _selectedEmoji,
       attachments: _attachments,
+      tags: _tags,
       recurrence: _recurrence,
       metadata: metadata,
     );

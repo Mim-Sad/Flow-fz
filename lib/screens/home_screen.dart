@@ -257,6 +257,7 @@ class TaskListTile extends ConsumerWidget {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Row(
                       children: [
@@ -285,34 +286,40 @@ class TaskListTile extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    SizedBox(
-                      height: 24,
-                      child: _AutoScrollCapsules(
-                        children: [
-                          _buildPriorityCapsule(context),
-                          if (task.priority != TaskPriority.medium && (task.categories.isNotEmpty || (task.category != null && task.category!.isNotEmpty)))
-                            const SizedBox(width: 6),
-                          _buildCategoryCapsules(context, ref),
-                          if (task.recurrence != null && task.recurrence!.type != RecurrenceType.none) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
+                    if (task.priority != TaskPriority.medium || 
+                        task.categories.isNotEmpty || 
+                        (task.category != null && task.category!.isNotEmpty) ||
+                        (task.recurrence != null && task.recurrence!.type != RecurrenceType.none)) ...[
+                      const SizedBox(height: 4),
+                      SizedBox(
+                        height: 24,
+                        child: _AutoScrollCapsules(
+                          children: [
+                            _buildPriorityCapsule(context),
+                            if (task.priority != TaskPriority.medium && (task.categories.isNotEmpty || (task.category != null && task.category!.isNotEmpty)))
+                              const SizedBox(width: 6),
+                            _buildCategoryCapsules(context, ref),
+                            if (task.recurrence != null && task.recurrence!.type != RecurrenceType.none) ...[
+                              if (task.priority != TaskPriority.medium || task.categories.isNotEmpty || (task.category != null && task.category!.isNotEmpty))
+                                const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
+                                ),
+                                child: HugeIcon(
+                                  icon: HugeIcons.strokeRoundedRepeat, 
+                                  size: 12, 
+                                  color: Theme.of(context).colorScheme.primary
+                                ),
                               ),
-                              child: HugeIcon(
-                                icon: HugeIcons.strokeRoundedRepeat, 
-                                size: 12, 
-                                color: Theme.of(context).colorScheme.primary
-                              ),
-                            ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),

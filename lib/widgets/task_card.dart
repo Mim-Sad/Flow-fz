@@ -41,6 +41,10 @@ class TaskCard extends ConsumerWidget {
       onCardColor = Theme.of(context).colorScheme.onSurfaceVariant;
     }
 
+    final hasCapsules = task.priority != TaskPriority.medium || 
+                        task.categories.isNotEmpty || 
+                        (task.category != null && task.category!.isNotEmpty);
+
     return Card(
       elevation: 0,
       color: cardColor,
@@ -64,6 +68,7 @@ class TaskCard extends ConsumerWidget {
           padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: hasCapsules ? MainAxisAlignment.start : MainAxisAlignment.center,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -156,19 +161,21 @@ class TaskCard extends ConsumerWidget {
                   decoration: task.status == TaskStatus.success ? TextDecoration.lineThrough : null,
                 ),
               ),
-              const SizedBox(height: 10),
-              SizedBox(
-                height: 24,
-                child: _AutoScrollCapsules(
-                  children: [
-                    _buildPriorityCapsule(context, onCardColor),
-                    if (task.priority != TaskPriority.medium && (task.categories.isNotEmpty || (task.category != null && task.category!.isNotEmpty)))
-                      const SizedBox(width: 6),
-                    if (task.categories.isNotEmpty || (task.category != null && task.category!.isNotEmpty))
-                      _buildCategoryCapsules(onCardColor, ref),
-                  ],
+              if (hasCapsules) ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 24,
+                  child: _AutoScrollCapsules(
+                    children: [
+                      _buildPriorityCapsule(context, onCardColor),
+                      if (task.priority != TaskPriority.medium && (task.categories.isNotEmpty || (task.category != null && task.category!.isNotEmpty)))
+                        const SizedBox(width: 6),
+                      if (task.categories.isNotEmpty || (task.category != null && task.category!.isNotEmpty))
+                        _buildCategoryCapsules(onCardColor, ref),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),

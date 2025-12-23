@@ -23,7 +23,7 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'flow_database.db');
     return await openDatabase(
       path,
-      version: 10,
+      version: 11,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -99,6 +99,9 @@ class DatabaseService {
         )
       ''');
     }
+    if (oldVersion < 11) {
+      await db.execute('ALTER TABLE tasks ADD COLUMN tags TEXT');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -113,6 +116,7 @@ class DatabaseService {
         priority INTEGER NOT NULL,
         category TEXT,
         categories TEXT,
+        tags TEXT,
         taskEmoji TEXT,
         attachments TEXT,
         recurrence TEXT,
