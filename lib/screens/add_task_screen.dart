@@ -667,6 +667,13 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
 
   void _showEmojiInput() {
     final controller = TextEditingController(text: _selectedEmoji);
+    if (_selectedEmoji != null) {
+      controller.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _selectedEmoji!.length,
+      );
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -680,7 +687,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
               controller: controller,
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 40),
-              maxLength: 1,
+              autofocus: true,
               keyboardType: TextInputType.text,
               decoration: const InputDecoration(
                 hintText: '🫥',
@@ -688,10 +695,12 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                 border: OutlineInputBorder(),
               ),
               onChanged: (value) {
-                if (value.isNotEmpty) {
+                if (value.characters.isNotEmpty) {
                   final char = value.characters.last;
                   controller.text = char;
-                  controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
+                  controller.selection = TextSelection.fromPosition(
+                    TextPosition(offset: controller.text.length),
+                  );
                 }
               },
             ),
