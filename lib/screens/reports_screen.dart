@@ -529,7 +529,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: BoxDecoration(
             color: isDark
                 ? theme.colorScheme.surfaceContainerHighest

@@ -74,7 +74,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -88,7 +88,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.only(left: 20, right: 20, bottom: 80),
+            padding: const EdgeInsets.only(left: 12, right: 12, bottom: 80),
             sliver: todayTasks.isEmpty 
               ? SliverToBoxAdapter(
                   child: Column(
@@ -380,7 +380,7 @@ class TaskListTile extends ConsumerWidget {
           borderRadius: BorderRadius.circular(20),
           child: Container(
             alignment: Alignment.centerRight,
-            padding: const EdgeInsets.only(right: 20),
+            padding: const EdgeInsets.only(right: 12),
             decoration: BoxDecoration(color: Colors.green.shade400),
             child: const HugeIcon(icon: HugeIcons.strokeRoundedCheckmarkCircle03, size: 24, color: Colors.white),
           ),
@@ -389,7 +389,7 @@ class TaskListTile extends ConsumerWidget {
           borderRadius: BorderRadius.circular(20),
           child: Container(
             alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.only(left: 20),
+            padding: const EdgeInsets.only(left: 12),
             decoration: BoxDecoration(color: Colors.orange.shade400),
             child: const HugeIcon(icon: HugeIcons.strokeRoundedClock01, size: 24, color: Colors.white),
           ),

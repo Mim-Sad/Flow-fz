@@ -85,6 +85,10 @@ CategoryData getCategoryById(String id, [List<CategoryData>? categories]) {
   final list = categories ?? defaultCategories;
   return list.firstWhere(
     (c) => c.id == id || c.label == id,
-    orElse: () => CategoryData(id: 'other', label: id, emoji: DuckEmojis.other, color: Colors.grey),
+    orElse: () {
+      // Prevent showing long UUIDs as labels while categories are loading
+      final fallbackLabel = id.length > 20 ? '...' : id;
+      return CategoryData(id: 'other', label: fallbackLabel, emoji: DuckEmojis.other, color: Colors.grey);
+    },
   );
 }
