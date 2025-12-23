@@ -285,39 +285,33 @@ class TaskListTile extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    if (task.description != null && task.description!.isNotEmpty)
-                      Text(
-                        task.description!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
                     const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        _buildCategoryCapsule(context, ref),
-                        _buildPriorityCapsule(context),
-                        if (task.recurrence != null && task.recurrence!.type != RecurrenceType.none)
-                          Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
+                    SizedBox(
+                      height: 24,
+                      child: _AutoScrollCapsules(
+                        children: [
+                          _buildPriorityCapsule(context),
+                          if (task.priority != TaskPriority.medium && (task.categories.isNotEmpty || (task.category != null && task.category!.isNotEmpty)))
+                            const SizedBox(width: 6),
+                          _buildCategoryCapsules(context, ref),
+                          if (task.recurrence != null && task.recurrence!.type != RecurrenceType.none) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
+                              ),
+                              child: HugeIcon(
+                                icon: HugeIcons.strokeRoundedRepeat, 
+                                size: 12, 
+                                color: Theme.of(context).colorScheme.primary
+                              ),
                             ),
-                            child: HugeIcon(
-                              icon: HugeIcons.strokeRoundedRepeat, 
-                              size: 12, 
-                              color: Theme.of(context).colorScheme.primary
-                            ),
-                          ),
-                      ],
+                          ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -437,65 +431,49 @@ class TaskListTile extends ConsumerWidget {
     return result;
   }
 
-  Widget _buildCategoryCapsule(BuildContext context, WidgetRef ref) {
+  Widget _buildCategoryCapsules(BuildContext context, WidgetRef ref) {
     if (task.categories.isEmpty && (task.category == null || task.category!.isEmpty)) return const SizedBox.shrink();
     
-    // Use categories list if available, otherwise fallback to legacy category
     final categories = task.categories.isNotEmpty 
         ? task.categories 
         : (task.category != null ? [task.category!] : []);
     
-    // Show first category + count if more
-    final firstCatId = categories.first;
     final allCategories = ref.watch(categoryProvider).valueOrNull ?? defaultCategories;
-    final catData = getCategoryById(firstCatId, allCategories);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      constraints: const BoxConstraints(maxWidth: 100), // Limit width for marquee
-      decoration: BoxDecoration(
-        color: catData.color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: catData.color.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Lottie.asset(catData.emoji, width: 14, height: 14),
-          const SizedBox(width: 4),
-          Flexible(
-            child: TextScroll(
-              _toPersianDigit(catData.label),
-              mode: TextScrollMode.endless,
-              velocity: const Velocity(pixelsPerSecond: Offset(20, 0)),
-              delayBefore: const Duration(seconds: 2),
-              pauseBetween: const Duration(seconds: 2),
-              textDirection: TextDirection.rtl,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: catData.color,
-              ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: categories.asMap().entries.map((entry) {
+        final index = entry.key;
+        final catId = entry.value;
+        final catData = getCategoryById(catId, allCategories);
+        
+        return Container(
+          margin: EdgeInsetsDirectional.only(start: index == 0 ? 0 : 6),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: catData.color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: catData.color.withValues(alpha: 0.3),
             ),
           ),
-          if (categories.length > 1) ...[
-            const SizedBox(width: 4),
-            Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                color: catData.color,
-                shape: BoxShape.circle,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Lottie.asset(catData.emoji, width: 14, height: 14),
+              const SizedBox(width: 4),
+              Text(
+                _toPersianDigit(catData.label),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: catData.color,
+                ),
               ),
-              child: Text(
-                _toPersianDigit('+${categories.length - 1}'),
-                style: const TextStyle(fontSize: 8, color: Colors.white),
-              ),
-            ),
-          ],
-        ],
-      ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -539,6 +517,80 @@ class TaskListTile extends ConsumerWidget {
       child: Padding(
         padding: const EdgeInsets.all(4.0),
         child: HugeIcon(icon: icon, size: 28, color: color),
+      ),
+    );
+  }
+}
+
+class _AutoScrollCapsules extends StatefulWidget {
+  final List<Widget> children;
+  const _AutoScrollCapsules({required this.children});
+
+  @override
+  State<_AutoScrollCapsules> createState() => _AutoScrollCapsulesState();
+}
+
+class _AutoScrollCapsulesState extends State<_AutoScrollCapsules> {
+  final ScrollController _scrollController = ScrollController();
+  bool _shouldScroll = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startScrolling());
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _startScrolling() async {
+    if (!_scrollController.hasClients) return;
+    
+    // Wait for the next frame to ensure maxScrollExtent is calculated
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (!_scrollController.hasClients) return;
+
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    if (maxScroll <= 0) {
+      if (_shouldScroll) setState(() => _shouldScroll = false);
+      return;
+    }
+
+    if (!_shouldScroll) setState(() => _shouldScroll = true);
+
+    while (_scrollController.hasClients && _shouldScroll) {
+      await Future.delayed(const Duration(seconds: 2));
+      if (!_scrollController.hasClients) break;
+      
+      await _scrollController.animateTo(
+        maxScroll,
+        duration: Duration(milliseconds: (maxScroll * 40).toInt()),
+        curve: Curves.linear,
+      );
+      
+      await Future.delayed(const Duration(seconds: 2));
+      if (!_scrollController.hasClients) break;
+      
+      await _scrollController.animateTo(
+        0,
+        duration: Duration(milliseconds: (maxScroll * 40).toInt()),
+        curve: Curves.linear,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      controller: _scrollController,
+      scrollDirection: Axis.horizontal,
+      physics: _shouldScroll ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: widget.children,
       ),
     );
   }

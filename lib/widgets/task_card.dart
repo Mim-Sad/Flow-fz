@@ -156,27 +156,18 @@ class TaskCard extends ConsumerWidget {
                   decoration: task.status == TaskStatus.success ? TextDecoration.lineThrough : null,
                 ),
               ),
-              if (task.description != null && task.description!.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  task.description!,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: onCardColor.withValues(alpha: 0.8),
-                  ),
-                ),
-              ],
               const SizedBox(height: 10),
-              Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: [
-                  _buildPriorityCapsule(context, onCardColor),
-                  if (task.categories.isNotEmpty || (task.category != null && task.category!.isNotEmpty))
-                    _buildCategoryCapsule(onCardColor, ref),
-                ],
+              SizedBox(
+                height: 24,
+                child: _AutoScrollCapsules(
+                  children: [
+                    _buildPriorityCapsule(context, onCardColor),
+                    if (task.priority != TaskPriority.medium && (task.categories.isNotEmpty || (task.category != null && task.category!.isNotEmpty)))
+                      const SizedBox(width: 6),
+                    if (task.categories.isNotEmpty || (task.category != null && task.category!.isNotEmpty))
+                      _buildCategoryCapsules(onCardColor, ref),
+                  ],
+                ),
               ),
             ],
           ),
@@ -219,40 +210,44 @@ class TaskCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildCategoryCapsule(Color onCardColor, WidgetRef ref) {
+  Widget _buildCategoryCapsules(Color onCardColor, WidgetRef ref) {
     final categories = task.categories.isNotEmpty 
         ? task.categories 
         : (task.category != null ? [task.category!] : []);
     
-    final firstCatId = categories.first;
     final allCategories = ref.watch(categoryProvider).valueOrNull ?? defaultCategories;
-    final catData = getCategoryById(firstCatId, allCategories);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: onCardColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: onCardColor.withValues(alpha: 0.1)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Lottie.asset(catData.emoji, width: 14, height: 14),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              catData.label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: onCardColor,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: categories.asMap().entries.map((entry) {
+        final index = entry.key;
+        final catId = entry.value;
+        final catData = getCategoryById(catId, allCategories);
+        return Container(
+          margin: EdgeInsetsDirectional.only(start: index == 0 ? 0 : 6),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: onCardColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: onCardColor.withValues(alpha: 0.1)),
           ),
-        ],
-      ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Lottie.asset(catData.emoji, width: 14, height: 14),
+              const SizedBox(width: 4),
+              Text(
+                catData.label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: onCardColor,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -308,5 +303,79 @@ class TaskCard extends ConsumerWidget {
   }
 
   // Removed inline _buildStatusAction logic as it is now in TaskStatusPickerSheet
+}
+
+class _AutoScrollCapsules extends StatefulWidget {
+  final List<Widget> children;
+  const _AutoScrollCapsules({required this.children});
+
+  @override
+  State<_AutoScrollCapsules> createState() => _AutoScrollCapsulesState();
+}
+
+class _AutoScrollCapsulesState extends State<_AutoScrollCapsules> {
+  final ScrollController _scrollController = ScrollController();
+  bool _shouldScroll = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startScrolling());
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _startScrolling() async {
+    if (!_scrollController.hasClients) return;
+    
+    // Wait for the next frame to ensure maxScrollExtent is calculated
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (!_scrollController.hasClients) return;
+
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    if (maxScroll <= 0) {
+      if (_shouldScroll) setState(() => _shouldScroll = false);
+      return;
+    }
+
+    if (!_shouldScroll) setState(() => _shouldScroll = true);
+
+    while (_scrollController.hasClients && _shouldScroll) {
+      await Future.delayed(const Duration(seconds: 2));
+      if (!_scrollController.hasClients) break;
+      
+      await _scrollController.animateTo(
+        maxScroll,
+        duration: Duration(milliseconds: (maxScroll * 40).toInt()),
+        curve: Curves.linear,
+      );
+      
+      await Future.delayed(const Duration(seconds: 2));
+      if (!_scrollController.hasClients) break;
+      
+      await _scrollController.animateTo(
+        0,
+        duration: Duration(milliseconds: (maxScroll * 40).toInt()),
+        curve: Curves.linear,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      controller: _scrollController,
+      scrollDirection: Axis.horizontal,
+      physics: _shouldScroll ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: widget.children,
+      ),
+    );
+  }
 }
 
