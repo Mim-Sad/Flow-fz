@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -161,9 +160,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 child: SingleChildScrollView(
                   padding: EdgeInsets.only(
                     top: MediaQuery.of(context).padding.top + 80,
-                    left: 20,
-                    right: 20,
-                    bottom: 20,
+                    left: 12,
+                    right: 12,
+                    bottom: 12,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,12 +187,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         Column(
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
                                 color: Theme.of(
                                   context,
                                 ).colorScheme.surfaceContainerLow,
-                                borderRadius: BorderRadius.circular(24),
+                                borderRadius: BorderRadius.circular(20),
                               ),
                               child: Row(
                                 children: [
@@ -303,9 +302,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 ),
                               ).animate().fadeIn(delay: 400.ms),
                               const SizedBox(height: 24),
-                              SizedBox(
-                                height: 200,
-                                child: _buildSuccessRateChart(filteredTasks),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                child: SizedBox(
+                                  height: 200,
+                                  child: _buildSuccessRateChart(filteredTasks),
+                                ),
                               ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
                             ],
                           ],
@@ -342,48 +344,65 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             top: 0,
             left: 0,
             right: 0,
-            child: ClipRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surface.withValues(alpha: 0.7),
-                  child: SafeArea(
-                    bottom: false,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Theme.of(context).colorScheme.surface,
+                    Theme.of(
+                      context,
+                    ).colorScheme.surface.withValues(alpha: 0.8),
+                    Theme.of(
+                      context,
+                    ).colorScheme.surface.withValues(alpha: 0),
+                  ],
+                  stops: const [0, 0.6, 1.0],
+                ),
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  child: SegmentedButton<int>(
+                    segments: const [
+                      ButtonSegment(
+                        value: 0,
+                        label: Text('روزانه'),
+                        icon: HugeIcon(
+                          icon: HugeIcons.strokeRoundedCalendar03,
+                          size: 18,
+                        ),
                       ),
-                      child: SegmentedButton<int>(
-                        segments: const [
-                            ButtonSegment(
-                              value: 0,
-                              label: Text('روزانه'),
-                              icon: HugeIcon(icon: HugeIcons.strokeRoundedCalendar03, size: 18),
+                      ButtonSegment(
+                        value: 1,
+                        label: Text('هفتگی'),
+                        icon: HugeIcon(
+                          icon: HugeIcons.strokeRoundedCalendar02,
+                          size: 18,
+                        ),
+                      ),
+                      ButtonSegment(
+                        value: 2,
+                        label: Text('ماهانه'),
+                        icon: HugeIcon(
+                          icon: HugeIcons.strokeRoundedCalendar01,
+                          size: 18,
                             ),
-                            ButtonSegment(
-                              value: 1,
-                              label: Text('هفتگی'),
-                              icon: HugeIcon(icon: HugeIcons.strokeRoundedCalendar02, size: 18),
-                            ),
-                            ButtonSegment(
-                              value: 2,
-                              label: Text('ماهانه'),
-                              icon: HugeIcon(icon: HugeIcons.strokeRoundedCalendar01, size: 18),
-                            ),
-                          ],
+                          ),
+                        ],
                         selected: {_viewMode},
-                        onSelectionChanged: (val) =>
-                            setState(() => _viewMode = val.first),
+                        onSelectionChanged:
+                            (val) => setState(() => _viewMode = val.first),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ),
         ],
       ),
     );
@@ -410,7 +429,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
       decoration: BoxDecoration(
         color: Theme.of(
           context,
@@ -510,7 +529,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           decoration: BoxDecoration(
             color: isDark
                 ? theme.colorScheme.surfaceContainerHighest
@@ -563,15 +582,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         .blur(begin: const Offset(4, 4), end: Offset.zero);
   }
 
-  Color _getSpectrumColor(double value) {
-    if (value < 0) {
-      return Theme.of(context).colorScheme.primary;
-    }
+  Color _getSpectrumColor(double percentage) {
+    if (percentage < 0) return Theme.of(context).colorScheme.primary;
     // Clamp value between 0 and 100
-    double t = value.clamp(0, 100);
+    double t = percentage.clamp(0, 100);
 
-    // Define stops and colors
-    final stops = [0, 25, 50, 75, 100];
+    // Define stops and colors for a smooth transition
+    final stops = [0.0, 25.0, 50.0, 75.0, 100.0];
     final colors = [
       Colors.redAccent,
       Colors.orangeAccent,
@@ -580,7 +597,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       Colors.greenAccent,
     ];
 
-    // Find the segment
     for (int i = 0; i < stops.length - 1; i++) {
       if (t >= stops[i] && t <= stops[i + 1]) {
         double localT = (t - stops[i]) / (stops[i + 1] - stops[i]);
@@ -658,10 +674,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         final denominator = success + failed;
 
         final isFuture = day.isAfter(DateTime.now()) && !DateUtils.isSameDay(day, DateTime.now());
-        if (!isFuture) {
-          double rate = denominator == 0 ? -1.0 : (success / denominator) * 100;
-          spots.add(FlSpot(i.toDouble(), rate));
-        }
+      if (!isFuture && denominator > 0) {
+        double rate = (success / denominator) * 100;
+        spots.add(FlSpot(i.toDouble(), rate));
+      }
         
         final j = Jalali.fromDateTime(day);
         labels.add('${j.formatter.wN.substring(0, 1)} ${j.day}');
@@ -684,10 +700,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         final denominator = success + failed;
 
         final isFuture = day.isAfter(DateTime.now()) && !DateUtils.isSameDay(day, DateTime.now());
-        if (!isFuture) {
-          double rate = denominator == 0 ? -1.0 : (success / denominator) * 100;
-          spots.add(FlSpot(i.toDouble(), rate));
-        }
+      if (!isFuture && denominator > 0) {
+        double rate = (success / denominator) * 100;
+        spots.add(FlSpot(i.toDouble(), rate));
+      }
 
         if (i % 5 == 0 || i == 1 || i == daysInMonth) {
           labels.add(i.toString());
@@ -697,8 +713,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       }
     }
 
+    double minX = 0;
+    double maxX = 6;
+    if (_viewMode == 2) {
+      final jalali = Jalali.fromDateTime(_selectedDate);
+      minX = 1;
+      maxX = jalali.monthLength.toDouble();
+    }
+
     return LineChart(
       LineChartData(
+        minX: minX,
+        maxX: maxX,
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
             getTooltipColor: (spot) => Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -719,15 +745,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   TextStyle(
                     color: _getSpectrumColor(touchedSpot.y),
                     fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                    fontSize: 10,
                   ),
                 );
               }).toList();
             },
           ),
         ),
-        minY: -10,
-        maxY: 110,
+        minY: -5,
+        maxY: 105,
         gridData: FlGridData(
           show: true,
           drawVerticalLine: true,
@@ -811,6 +837,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           LineChartBarData(
             spots: spots,
             isCurved: true,
+            preventCurveOverShooting: true,
             gradient: _calculateGradient(spots),
             barWidth: 4,
             isStrokeCapRound: true,
@@ -818,10 +845,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             belowBarData: BarAreaData(
               show: true,
               gradient: LinearGradient(
-                colors: [
-                  _calculateGradient(spots).colors.first.withValues(alpha: 0.1),
-                  _calculateGradient(spots).colors.last.withValues(alpha: 0.1),
-                ],
+                colors: _calculateGradient(spots).colors.map((c) => c.withValues(alpha: 0.15)).toList(),
+                stops: _calculateGradient(spots).stops,
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
               ),

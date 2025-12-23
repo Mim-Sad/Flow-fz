@@ -685,21 +685,30 @@ class TaskOptionsSheet extends ConsumerWidget {
     return result;
   }
 
+  String _formatJalali(Jalali j) {
+    String weekday = j.formatter.wN;
+    if (weekday == 'یک شنبه') weekday = 'یک‌شنبه';
+    if (weekday == 'دو شنبه') weekday = 'دو‌شنبه';
+    if (weekday == 'سه شنبه') weekday = 'سه‌شنبه';
+    if (weekday == 'چهار شنبه') weekday = 'چهار‌شنبه';
+    if (weekday == 'پنج شنبه') weekday = 'پنج‌شنبه';
+    return _toPersianDigit('$weekday ${j.day} ${j.formatter.mN} ${j.year}');
+  }
+
   String _formatDate(DateTime date) {
     final jDate = Jalali.fromDateTime(date);
     final now = Jalali.now();
-    final dateStr = '${jDate.year}/${jDate.month.toString().padLeft(2, '0')}/${jDate.day.toString().padLeft(2, '0')}';
     
     if (jDate.year == now.year && jDate.month == now.month && jDate.day == now.day) {
-      return 'امروز (${_toPersianDigit(dateStr)})';
+      return 'امروز (${_formatJalali(jDate)})';
     }
     
     final tomorrow = now.addDays(1);
     if (jDate.year == tomorrow.year && jDate.month == tomorrow.month && jDate.day == tomorrow.day) {
-      return 'فردا';
+      return 'فردا (${_formatJalali(jDate)})';
     }
 
-    return _toPersianDigit(dateStr);
+    return _formatJalali(jDate);
   }
 
   String _formatTime(DateTime date) {

@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -149,10 +148,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         children: [
           Column(
             children: [
-              // Spacer for the top bar
-              SizedBox(height: MediaQuery.of(context).padding.top + 70),
-              
-              Expanded(child: _buildMainContent(allTasks, dailyTasks, categories)),
+              Expanded(
+                child: _buildMainContent(allTasks, dailyTasks, categories),
+              ),
               _buildRangePicker(),
             ],
           ),
@@ -160,56 +158,64 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             top: 0,
             left: 0,
             right: 0,
-            child: ClipRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surface.withValues(alpha: 0.7),
-                  child: SafeArea(
-                    bottom: false,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Theme.of(context).colorScheme.surface,
+                    Theme.of(
+                      context,
+                    ).colorScheme.surface.withValues(alpha: 0.8),
+                    Theme.of(
+                      context,
+                    ).colorScheme.surface.withValues(alpha: 0),
+                  ],
+                  stops: const [0, 0.6, 1.0],
+                ),
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  child: SegmentedButton<int>(
+                    segments: const [
+                      ButtonSegment(
+                        value: 0,
+                        label: Text('روزانه'),
+                        icon: HugeIcon(
+                          icon: HugeIcons.strokeRoundedCalendar03,
+                          size: 18,
+                        ),
                       ),
-                      child: SegmentedButton<int>(
-                        segments: const [
-                          ButtonSegment(
-                            value: 0,
-                            label: Text('روزانه'),
-                            icon: HugeIcon(
-                              icon: HugeIcons.strokeRoundedCalendar03,
-                              size: 18,
-                            ),
-                          ),
-                          ButtonSegment(
-                            value: 1,
-                            label: Text('هفتگی'),
-                            icon: HugeIcon(
-                              icon: HugeIcons.strokeRoundedCalendar02,
-                              size: 18,
-                            ),
-                          ),
-                          ButtonSegment(
-                            value: 2,
-                            label: Text('ماهانه'),
-                            icon: HugeIcon(
-                              icon: HugeIcons.strokeRoundedCalendar01,
-                              size: 18,
-                            ),
-                          ),
-                        ],
-                        selected: {_viewMode},
-                        onSelectionChanged: (Set<int> newSelection) {
-                          setState(() {
-                            _animatedKeys.clear();
-                            _viewMode = newSelection.first;
-                          });
-                        },
+                      ButtonSegment(
+                        value: 1,
+                        label: Text('هفتگی'),
+                        icon: HugeIcon(
+                          icon: HugeIcons.strokeRoundedCalendar02,
+                          size: 18,
+                        ),
                       ),
-                    ),
+                      ButtonSegment(
+                        value: 2,
+                        label: Text('ماهانه'),
+                        icon: HugeIcon(
+                          icon: HugeIcons.strokeRoundedCalendar01,
+                          size: 18,
+                        ),
+                      ),
+                    ],
+                    selected: {_viewMode},
+                    onSelectionChanged: (Set<int> newSelection) {
+                      setState(() {
+                        _animatedKeys.clear();
+                        _viewMode = newSelection.first;
+                      });
+                    },
                   ),
                 ),
               ),
@@ -327,7 +333,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       opacity: isCancelled ? 0.6 : 1.0,
       child: Container(
         color: Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 10.5, vertical: 3),
         child: Row(
           textDirection: TextDirection.ltr,
           children: [
@@ -401,13 +407,13 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       },
       background: Container(
         alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(left: 20),
+        padding: const EdgeInsets.only(left: 12),
         color: Colors.green.shade400,
         child: const Icon(Icons.check, color: Colors.white),
       ),
       secondaryBackground: Container(
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
+        padding: const EdgeInsets.only(right: 12),
         color: Colors.orange.shade400,
         child: const Icon(Icons.history, color: Colors.white),
       ),
@@ -481,7 +487,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
       decoration: BoxDecoration(
         color: Theme.of(
           context,
@@ -571,7 +577,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
     return Container(
       color: Colors.transparent,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10.5, vertical: 3),
       child: Row(
         textDirection: TextDirection.ltr,
         children: [
@@ -733,7 +739,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           
           // Day initials
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 10.5),
             child: Row(
               textDirection: TextDirection.ltr,
               children: [
@@ -787,23 +793,31 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
   Widget _buildEmptyState(String message) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Lottie.asset(
-            'assets/images/TheSoul/20 glasses.json',
-            width: 120,
-            height: 120,
-            fit: BoxFit.contain,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top + 80,
+          left: 12,
+          right: 12,
+          bottom: 12,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Lottie.asset(
+              'assets/images/TheSoul/12 glasses.json',
+              width: 120,
+              height: 120,
+              fit: BoxFit.contain,
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -826,7 +840,12 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     }
 
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 80,
+        left: 12,
+        right: 12,
+        bottom: 12,
+      ),
       children: [
         // Recurring Tasks Box
         if (recurringTasks.isNotEmpty) ...[
@@ -902,7 +921,12 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     }
 
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 80,
+        left: 12,
+        right: 12,
+        bottom: 12,
+      ),
       children: [
         // Recurring Tasks Section (Top)
         if (recurringTasksForWeek.isNotEmpty) ...[
@@ -1008,7 +1032,12 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       }
 
       return ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top + 80,
+          left: 12,
+          right: 12,
+          bottom: 12,
+        ),
         children: [
           // Consolidated Recurring Tasks Box
           if (recurringTasksByWeek.isNotEmpty) ...[
@@ -1202,7 +1231,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
                 // Day initials (Hints above each week)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  padding: const EdgeInsets.symmetric(horizontal: 10.5),
                   child: Row(
                     textDirection: TextDirection.ltr,
                     children: [
@@ -1390,7 +1419,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   child: TextScroll(
                     title,
                     mode: TextScrollMode.endless,
-                    velocity: const Velocity(pixelsPerSecond: Offset(20, 0)),
+                    velocity: const Velocity(pixelsPerSecond: Offset(12, 0)),
                     delayBefore: const Duration(seconds: 2),
                     pauseBetween: const Duration(seconds: 2),
                     textDirection: TextDirection.rtl,
@@ -1408,7 +1437,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           
           // Thin divider line
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 10.5),
             child: Divider(
               height: 1,
               thickness: 0.5,
@@ -1469,7 +1498,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       child: Container(
         // Add transparent background to catch drag gestures effectively
         color: Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 10.5, vertical: 3),
         child: Row(
           textDirection: TextDirection.ltr,
           children: [
@@ -1546,13 +1575,13 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       },
       background: Container(
         alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(left: 20),
+        padding: const EdgeInsets.only(left: 12),
         color: Colors.green.shade400,
         child: const Icon(Icons.check, color: Colors.white),
       ),
       secondaryBackground: Container(
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
+        padding: const EdgeInsets.only(right: 12),
         color: Colors.orange.shade400,
         child: const Icon(Icons.history, color: Colors.white),
       ),
