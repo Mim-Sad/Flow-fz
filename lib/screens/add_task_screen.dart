@@ -227,7 +227,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                               controller: _titleController,
                               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                               decoration: InputDecoration(
-                                hintText: 'چه کاری باید انجام شه؟',
+                                hintText: 'چه کاری باید انجام بشه؟',
                                 hintStyle: const TextStyle(fontSize: 14),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(18),
@@ -676,54 +676,163 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('انتخاب ایموجی', textAlign: TextAlign.center),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('از کیبورد خود ایموجی وارد کنید', style: TextStyle(fontSize: 12, color: Colors.grey)),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 40),
-              autofocus: true,
-              keyboardType: TextInputType.text,
-              decoration: const InputDecoration(
-                hintText: '🫥',
-                counterText: '',
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                if (value.characters.isNotEmpty) {
-                  final char = value.characters.last;
-                  controller.text = char;
-                  controller.selection = TextSelection.fromPosition(
-                    TextPosition(offset: controller.text.length),
-                  );
-                }
-              },
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: SingleChildScrollView(
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.85,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-          ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: HugeIcon(
+                          icon: HugeIcons.strokeRoundedSmile,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Text(
+                        'انتخاب ایموجی',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Body
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                  child: Column(
+                    children: [
+                      Text(
+                        'از کیبورد خود یک ایموجی انتخاب کنید تا جایگزین شود',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      // Emoji Preview/Input Circle
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                            width: 2.5,
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: TextField(
+                          controller: controller,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 36),
+                          autofocus: true,
+                          keyboardType: TextInputType.text,
+                          decoration: const InputDecoration(
+                            hintText: '🫥',
+                            hintStyle: TextStyle(fontSize: 36),
+                            counterText: '',
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                            isDense: true,
+                          ),
+                          onChanged: (value) {
+                            if (value.characters.isNotEmpty) {
+                              final char = value.characters.last;
+                              controller.text = char;
+                              controller.selection = TextSelection.fromPosition(
+                                TextPosition(offset: controller.text.length),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Footer Actions
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () {
+                            setState(() => _selectedEmoji = null);
+                            Navigator.pop(context);
+                          },
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: const Text('حذف', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () {
+                            if (controller.text.isNotEmpty) {
+                              setState(() => _selectedEmoji = controller.text);
+                            }
+                            Navigator.pop(context);
+                          },
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: const Text('تایید', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() => _selectedEmoji = null);
-              Navigator.pop(context);
-            },
-            child: const Text('حذف', style: TextStyle(color: Colors.red)),
-          ),
-          TextButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                 setState(() => _selectedEmoji = controller.text);
-              }
-              Navigator.pop(context);
-            },
-            child: const Text('تایید'),
-          ),
-        ],
       ),
     );
   }
