@@ -6,19 +6,23 @@ import '../services/database_service.dart';
 class ThemeState {
   final Color seedColor;
   final ThemeMode themeMode;
+  final bool isInitialized;
 
   ThemeState({
     required this.seedColor,
     required this.themeMode,
+    this.isInitialized = false,
   });
 
   ThemeState copyWith({
     Color? seedColor,
     ThemeMode? themeMode,
+    bool? isInitialized,
   }) {
     return ThemeState(
       seedColor: seedColor ?? this.seedColor,
       themeMode: themeMode ?? this.themeMode,
+      isInitialized: isInitialized ?? this.isInitialized,
     );
   }
 }
@@ -37,6 +41,7 @@ class ThemeNotifier extends Notifier<ThemeState> {
     return ThemeState(
       seedColor: const Color(0xFF6750A4), // Default color
       themeMode: ThemeMode.dark,
+      isInitialized: false,
     );
   }
 
@@ -84,6 +89,7 @@ class ThemeNotifier extends Notifier<ThemeState> {
     state = ThemeState(
       seedColor: seedColor,
       themeMode: themeMode,
+      isInitialized: true,
     );
   }
 

@@ -1,14 +1,17 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
+import 'package:animated_theme_switcher/animated_theme_switcher.dart' as ats;
 import 'screens/home_screen.dart';
 import 'screens/planning_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/settings_screen.dart';
 import 'widgets/navigation_wrapper.dart';
 import 'providers/theme_provider.dart';
+import 'utils/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,90 +57,36 @@ class FlowApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeState = ref.watch(themeProvider);
+    
+    final brightness = themeState.themeMode == ThemeMode.system
+        ? PlatformDispatcher.instance.platformBrightness
+        : (themeState.themeMode == ThemeMode.dark ? Brightness.dark : Brightness.light);
 
-    return MaterialApp.router(
-      title: 'Flow',
-      debugShowCheckedModeBanner: false,
-      locale: const Locale('fa', 'IR'),
-      supportedLocales: const [Locale('fa', 'IR')],
-      localizationsDelegates: const [
-        PersianMaterialLocalizations.delegate,
-        PersianCupertinoLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      themeMode: themeState.themeMode,
-      theme: ThemeData(
-        useMaterial3: true,
-        fontFamily: 'IRANSansX',
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: themeState.seedColor,
-          brightness: Brightness.light,
-        ),
-        textTheme: const TextTheme(
-          displayLarge: TextStyle(fontWeight: FontWeight.w900, fontSize: 32, fontFeatures: [FontFeature.enable('ss01')]),
-          displayMedium: TextStyle(fontWeight: FontWeight.w800, fontSize: 28, fontFeatures: [FontFeature.enable('ss01')]),
-          displaySmall: TextStyle(fontWeight: FontWeight.w700, fontSize: 24, fontFeatures: [FontFeature.enable('ss01')]),
-          headlineLarge: TextStyle(fontWeight: FontWeight.w700, fontSize: 22, fontFeatures: [FontFeature.enable('ss01')]),
-          headlineMedium: TextStyle(fontWeight: FontWeight.w600, fontSize: 20, fontFeatures: [FontFeature.enable('ss01')]),
-          titleLarge: TextStyle(fontWeight: FontWeight.w600, fontSize: 18, fontFeatures: [FontFeature.tabularFigures(), FontFeature.enable('ss01')]),
-          titleMedium: TextStyle(fontWeight: FontWeight.w500, fontSize: 16, fontFeatures: [FontFeature.enable('ss01')]),
-          bodyLarge: TextStyle(fontWeight: FontWeight.w400, fontSize: 16, fontFeatures: [FontFeature.tabularFigures(), FontFeature.enable('ss01')]),
-          bodyMedium: TextStyle(fontWeight: FontWeight.w400, fontSize: 14, fontFeatures: [FontFeature.tabularFigures(), FontFeature.enable('ss01')]),
-          labelLarge: TextStyle(fontWeight: FontWeight.w500, fontSize: 14, fontFeatures: [FontFeature.enable('ss01')]),
-        ),
-        appBarTheme: const AppBarTheme(
-          centerTitle: false,
-          elevation: 0,
-          titleTextStyle: TextStyle(
-            fontFamily: 'IRANSansX',
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-            color: Colors.black,
-          ),
-        ),
-        cardTheme: CardThemeData(
-          elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        ),
-        segmentedButtonTheme: SegmentedButtonThemeData(
-          style: ButtonStyle(
-            padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
-          ),
-        ),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        fontFamily: 'IRANSansX',
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: themeState.seedColor,
-          brightness: Brightness.dark,
-        ),
-        textTheme: const TextTheme(
-          displayLarge: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontFeatures: [FontFeature.enable('ss01')]),
-          titleLarge: TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontFeatures: [FontFeature.tabularFigures(), FontFeature.enable('ss01')]),
-          bodyLarge: TextStyle(fontFeatures: [FontFeature.tabularFigures(), FontFeature.enable('ss01')]),
-          bodyMedium: TextStyle(fontFeatures: [FontFeature.tabularFigures(), FontFeature.enable('ss01')]),
-        ),
-        appBarTheme: const AppBarTheme(
-          centerTitle: false,
-          elevation: 0,
-          titleTextStyle: TextStyle(
-            fontFamily: 'IRANSansX',
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-            color: Colors.white,
-          ),
-        ),
-        segmentedButtonTheme: SegmentedButtonThemeData(
-          style: ButtonStyle(
-            padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
-          ),
-        ),
-      ),
-      routerConfig: _router,
+    final initialTheme = AppTheme.getTheme(
+      seedColor: themeState.seedColor,
+      brightness: brightness,
+    );
+
+    return ats.ThemeProvider(
+      key: ValueKey(themeState.isInitialized),
+      initTheme: initialTheme,
+      builder: (context, theme) {
+        return MaterialApp.router(
+          title: 'Flow',
+          debugShowCheckedModeBanner: false,
+          locale: const Locale('fa', 'IR'),
+          supportedLocales: const [Locale('fa', 'IR')],
+          localizationsDelegates: const [
+            PersianMaterialLocalizations.delegate,
+            PersianCupertinoLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          routerConfig: _router,
+          theme: theme,
+        );
+      },
     );
   }
 }
-

@@ -93,7 +93,7 @@ class DatabaseService {
     }
     if (oldVersion < 10) {
       await db.execute('''
-        CREATE TABLE settings(
+        CREATE TABLE IF NOT EXISTS settings(
           key TEXT PRIMARY KEY,
           value TEXT
         )
@@ -103,7 +103,7 @@ class DatabaseService {
 
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
-      CREATE TABLE tasks(
+      CREATE TABLE IF NOT EXISTS tasks(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         rootId INTEGER,
         title TEXT NOT NULL,
@@ -126,7 +126,7 @@ class DatabaseService {
     ''');
     await _createCategoriesTable(db);
     await db.execute('''
-      CREATE TABLE task_completions(
+      CREATE TABLE IF NOT EXISTS task_completions(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         taskId INTEGER NOT NULL,
         rootId INTEGER,
@@ -136,7 +136,7 @@ class DatabaseService {
       )
     ''');
     await db.execute('''
-      CREATE TABLE task_events(
+      CREATE TABLE IF NOT EXISTS task_events(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         taskId INTEGER NOT NULL,
         rootId INTEGER,
@@ -146,7 +146,7 @@ class DatabaseService {
       )
     ''');
     await db.execute('''
-      CREATE TABLE settings(
+      CREATE TABLE IF NOT EXISTS settings(
         key TEXT PRIMARY KEY,
         value TEXT
       )
@@ -155,7 +155,7 @@ class DatabaseService {
 
   Future<void> _createCategoriesTable(Database db) async {
     await db.execute('''
-      CREATE TABLE categories(
+      CREATE TABLE IF NOT EXISTS categories(
         id TEXT PRIMARY KEY,
         label TEXT NOT NULL,
         emoji TEXT NOT NULL,
