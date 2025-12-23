@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart' as intl;
+import 'package:flutter_animate/flutter_animate.dart';
 import '../services/database_service.dart';
 import '../providers/theme_provider.dart';
 import '../providers/task_provider.dart';
@@ -14,6 +15,17 @@ import 'categories_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
+
+  static const Map<int, String> _poeticColorNames = {
+    0xFF6750A4: 'رویای ارغوانی',
+    0xFF006494: 'آسمان بیکران',
+    0xFF006D3B: 'زمرد سبز',
+    0xFFBC004B: 'شکوفه انار',
+    0xFF8B5000: 'عطر پاییزی',
+    0xFF4355B9: 'موج اقیانوس',
+    0xFF00696D: 'فیروزه نیشابور',
+    0xFF745B00: 'پرتو آفتاب',
+  };
 
   @override
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
@@ -97,6 +109,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // Invalidate providers to refresh data
           ref.invalidate(tasksProvider);
           ref.invalidate(categoryProvider);
+          ref.invalidate(themeProvider); // Also invalidate theme to load imported settings
           
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -143,7 +156,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
               ),
-            ),
+            ).animate()
+              .fadeIn(duration: 600.ms)
+              .slideY(begin: 0.2, end: 0, curve: Curves.easeOutBack)
+              .scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1), curve: Curves.elasticOut, duration: 800.ms),
             const SizedBox(height: 16),
 
             // Backup & Restore
@@ -195,70 +211,98 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 );
               },
-            ),
+            ).animate()
+              .fadeIn(duration: 600.ms, delay: 100.ms)
+              .slideY(begin: 0.2, end: 0, curve: Curves.easeOutBack)
+              .scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1), curve: Curves.elasticOut, duration: 800.ms),
             const SizedBox(height: 32),
   
             // Color Selection
-            Row(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                HugeIcon(icon: HugeIcons.strokeRoundedPaintBoard, color: Theme.of(context).colorScheme.primary, size: 20),
-                const SizedBox(width: 8),
-                const Text(
-                  'رنگ اصلی نرم‌افزار',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                Row(
+                  children: [
+                    HugeIcon(icon: HugeIcons.strokeRoundedPaintBoard, color: Theme.of(context).colorScheme.primary, size: 20),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'حال و هوای جریان',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.center,
+                    children: ThemeNotifier.availableColors.map((color) {
+                      final isSelected = themeState.seedColor == color;
+                      final name = SettingsScreen._poeticColorNames[color.toARGB32()] ?? '';
+
+                      return GestureDetector(
+                        onTapDown: (details) {
+                          if (!isSelected) {
+                            _handleThemeChange(
+                              updateTheme: () => themeNotifier.setSeedColor(color),
+                              tapPosition: details.globalPosition,
+                            );
+                          }
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected 
+                                ? color.withValues(alpha: 0.15) 
+                                : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isSelected 
+                                  ? color.withValues(alpha: 0.5)
+                                  : Colors.transparent,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 22,
+                                height: 22,
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  borderRadius: BorderRadius.circular(6),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: color.withValues(alpha: 0.3),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                name,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                  color: isSelected ? color : Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 60,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: ThemeNotifier.availableColors.length,
-                separatorBuilder: (context, index) => const SizedBox(width: 12),
-                itemBuilder: (context, index) {
-                  final color = ThemeNotifier.availableColors[index];
-                  final isSelected = themeState.seedColor == color;
-                  
-                  return GestureDetector(
-                    onTapDown: (details) {
-                      if (!isSelected) {
-                        _handleThemeChange(
-                          updateTheme: () => themeNotifier.setSeedColor(color),
-                          tapPosition: details.globalPosition,
-                        );
-                      }
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: isSelected ? 50 : 40,
-                      height: isSelected ? 50 : 40,
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                        border: isSelected
-                            ? Border.all(color: Theme.of(context).colorScheme.onSurface, width: 2)
-                            : null,
-                        boxShadow: [
-                          BoxShadow(
-                            color: color.withValues(alpha: 0.4),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: isSelected
-                          ? Padding(
-                            padding: const EdgeInsets.all(10.0),
-                            child: const HugeIcon(icon: HugeIcons.strokeRoundedHeartCheck, color: Colors.white),
-                          )
-                          : null,
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 34),
+            const SizedBox(height: 40),
   
             // Mode Selection
             Row(
@@ -266,7 +310,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 HugeIcon(icon: HugeIcons.strokeRoundedMoon, color: Theme.of(context).colorScheme.primary, size: 20),
                 const SizedBox(width: 8),
                 const Text(
-                  'حالت نمایش',
+                  'خورشید و ماه جریان',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ],

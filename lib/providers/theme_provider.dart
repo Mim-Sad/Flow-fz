@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/database_service.dart';
 
 class ThemeState {
   final Color seedColor;
@@ -26,11 +27,12 @@ class ThemeNotifier extends Notifier<ThemeState> {
   static const String _seedColorKey = 'theme_seed_color';
   static const String _themeModeKey = 'theme_mode';
   late SharedPreferences _prefs;
+  final _dbService = DatabaseService();
 
   @override
   ThemeState build() {
     // We return a default state first, then load from prefs asynchronously
-    _initPrefs();
+    _initSettings();
     
     return ThemeState(
       seedColor: const Color(0xFF6750A4), // Default color
@@ -38,14 +40,36 @@ class ThemeNotifier extends Notifier<ThemeState> {
     );
   }
 
-  Future<void> _initPrefs() async {
+  Future<void> _initSettings() async {
     _prefs = await SharedPreferences.getInstance();
-    _loadSettings();
+    await _loadSettings();
   }
 
-  void _loadSettings() {
-    final int? colorValue = _prefs.getInt(_seedColorKey);
-    final int? modeIndex = _prefs.getInt(_themeModeKey);
+  Future<void> _loadSettings() async {
+    // Try SharedPreferences first
+    int? colorValue = _prefs.getInt(_seedColorKey);
+    int? modeIndex = _prefs.getInt(_themeModeKey);
+
+    // If not in SharedPreferences, try Database
+    if (colorValue == null) {
+      final dbColor = await _dbService.getSetting(_seedColorKey);
+      if (dbColor != null) {
+        colorValue = int.tryParse(dbColor);
+        if (colorValue != null) {
+          await _prefs.setInt(_seedColorKey, colorValue);
+        }
+      }
+    }
+
+    if (modeIndex == null) {
+      final dbMode = await _dbService.getSetting(_themeModeKey);
+      if (dbMode != null) {
+        modeIndex = int.tryParse(dbMode);
+        if (modeIndex != null) {
+          await _prefs.setInt(_themeModeKey, modeIndex);
+        }
+      }
+    }
 
     Color seedColor = const Color(0xFF6750A4);
     if (colorValue != null) {
@@ -65,14 +89,22 @@ class ThemeNotifier extends Notifier<ThemeState> {
 
   Future<void> setSeedColor(Color color) async {
     state = state.copyWith(seedColor: color);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_seedColorKey, color.toARGB32());
+    
+    // Save to SharedPreferences
+    await _prefs.setInt(_seedColorKey, color.toARGB32());
+    
+    // Save to Database
+    await _dbService.setSetting(_seedColorKey, color.toARGB32().toString());
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
     state = state.copyWith(themeMode: mode);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_themeModeKey, mode.index);
+    
+    // Save to SharedPreferences
+    await _prefs.setInt(_themeModeKey, mode.index);
+    
+    // Save to Database
+    await _dbService.setSetting(_themeModeKey, mode.index.toString());
   }
 
   static final List<Color> availableColors = [

@@ -23,7 +23,7 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'flow_database.db');
     return await openDatabase(
       path,
-      version: 9,
+      version: 10,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -91,6 +91,14 @@ class DatabaseService {
     if (oldVersion < 9) {
       await db.execute('ALTER TABLE tasks ADD COLUMN metadata TEXT');
     }
+    if (oldVersion < 10) {
+      await db.execute('''
+        CREATE TABLE settings(
+          key TEXT PRIMARY KEY,
+          value TEXT
+        )
+      ''');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -135,6 +143,12 @@ class DatabaseService {
         type TEXT NOT NULL,
         occurredAt TEXT NOT NULL,
         payload TEXT
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE settings(
+        key TEXT PRIMARY KEY,
+        value TEXT
       )
     ''');
   }
@@ -365,6 +379,7 @@ class DatabaseService {
     final completions = await getAllTaskCompletions();
     final db = await database;
     final events = await db.query('task_events');
+    final settings = await db.query('settings');
 
     // Convert completions to list for JSON serialization
     // Structure: [{taskId: 1, date: "2023-01-01", status: 1}, ...]
@@ -386,6 +401,7 @@ class DatabaseService {
       'categories': categories.map((c) => c.toMap()).toList(),
       'completions': completionsList,
       'events': events,
+      'settings': settings,
     };
   }
 
@@ -399,6 +415,9 @@ class DatabaseService {
       await txn.delete('task_completions');
       try {
         await txn.delete('task_events');
+      } catch (_) {}
+      try {
+        await txn.delete('settings');
       } catch (_) {}
 
       // Import Categories
@@ -431,7 +450,36 @@ class DatabaseService {
           await txn.insert('task_events', eventMap);
         }
       }
+
+      if (data['settings'] != null) {
+        final settingsList = (data['settings'] as List).cast<Map<String, dynamic>>();
+        for (var settingMap in settingsList) {
+          await txn.insert('settings', settingMap);
+        }
+      }
     });
+  }
+
+  // Settings methods
+  Future<void> setSetting(String key, String value) async {
+    Database db = await database;
+    await db.insert(
+      'settings',
+      {'key': key, 'value': value},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<String?> getSetting(String key) async {
+    Database db = await database;
+    final maps = await db.query(
+      'settings',
+      where: 'key = ?',
+      whereArgs: [key],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    return maps.first['value'] as String?;
   }
   Future<int> updateTaskStatus(int id, TaskStatus status) async {
     Database db = await database;
