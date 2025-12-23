@@ -89,7 +89,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           SliverPadding(
             padding: const EdgeInsets.only(left: 20, right: 20, bottom: 80),
-            sliver: SliverReorderableList(
+            sliver: todayTasks.isEmpty 
+              ? SliverToBoxAdapter(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 40),
+                      Lottie.asset(
+                        'assets/images/TheSoul/20 glasses.json',
+                        width: 120,
+                        height: 120,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'برای امروز برنامه‌ای نداری.',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : SliverReorderableList(
               itemBuilder: (context, index) {
                 final task = todayTasks[index];
                 bool shouldAnimate = !_animatedTaskIds.contains(task.id);
