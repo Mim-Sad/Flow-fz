@@ -172,7 +172,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                       title: const Text('مدیریت دسته‌بندی‌ها', style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16,)),
-                      subtitle: const Text('افزودن، ویرایش و حذف دسته‌بندی‌ها',style: TextStyle(fontSize: 10,),),
+                      subtitle: const Text('افزودن، ویرایش و حذف دسته‌بندی‌ها',style: TextStyle(fontSize: 12,),),
                       leading: HugeIcon(icon: HugeIcons.strokeRoundedTag01, color: Theme.of(context).colorScheme.primary),
                       trailing: const HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: Colors.grey, size: 20),
                       onTap: () {
@@ -198,8 +198,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                       title: const Text('پشتیبان‌گیری و بازگردانی', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      subtitle: const Text('ذخیره و بازیابی اطلاعات برنامه', style: TextStyle(fontSize: 10)),
+                      subtitle: const Text('ذخیره و بازیابی اطلاعات برنامه', style: TextStyle(fontSize: 12)),
                       leading: HugeIcon(icon: HugeIcons.strokeRoundedDatabase01, color: Theme.of(context).colorScheme.primary),
+                      trailing: const HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: Colors.grey, size: 20),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       onTap: () {
                       showModalBottomSheet(
@@ -219,8 +220,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               const SizedBox(height: 24),
                               ListTile(
                                 leading: const HugeIcon(icon: HugeIcons.strokeRoundedUpload01, color: Colors.blue),
-                                title: const Text('خروجی گرفتن از اطلاعات'),
-                                subtitle: const Text('ذخیره تمام اطلاعات در یک فایل'),
+                                title: const Text('خروجی گرفتن از اطلاعات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                subtitle: const Text('ذخیره تمام اطلاعات در یک فایل', style: TextStyle(fontSize: 10)),
                                 onTap: () {
                                   Navigator.pop(context);
                                   _exportData();
@@ -228,8 +229,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               ),
                               ListTile(
                                 leading: const HugeIcon(icon: HugeIcons.strokeRoundedDownload01, color: Colors.green),
-                                title: const Text('وارد کردن اطلاعات'),
-                                subtitle: const Text('بازگردانی اطلاعات از فایل ذخیره شده'),
+                                title: const Text('وارد کردن اطلاعات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                subtitle: const Text('بازگردانی اطلاعات از فایل ذخیره شده', style: TextStyle(fontSize: 10)),
                                 onTap: () {
                                   Navigator.pop(context);
                                   _importData();
@@ -258,7 +259,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           const SizedBox(width: 8),
                           const Text(
                             'حال و هوای جریان',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -350,7 +351,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           const SizedBox(width: 8),
                           const Text(
                             'خورشید و ماه جریان',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
