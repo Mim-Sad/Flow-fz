@@ -31,7 +31,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   String _formatJalali(Jalali j) {
-    return _toPersianDigit('${j.day} ${j.formatter.mN} ${j.year}');
+    String weekday = j.formatter.wN;
+    if (weekday == 'یک شنبه') weekday = 'یک‌شنبه';
+    if (weekday == 'دو شنبه') weekday = 'دو‌شنبه';
+    if (weekday == 'سه شنبه') weekday = 'سه‌شنبه';
+    if (weekday == 'چهار شنبه') weekday = 'چهار‌شنبه';
+    if (weekday == 'پنج شنبه') weekday = 'پنج‌شنبه';
+    return _toPersianDigit('$weekday ${j.day} ${j.formatter.mN} ${j.year}');
   }
 
   String _formatMiladi(DateTime dt, int viewMode) {

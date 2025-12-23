@@ -57,7 +57,12 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   }
 
   String _formatJalali(Jalali j) {
-    return _toPersianDigit('${j.day} ${j.formatter.mN} ${j.year}');
+    String weekday = j.formatter.wN;
+    if (weekday == 'یکشنبه') weekday = 'یک‌شنبه';
+    if (weekday == 'دوشنبه') weekday = 'دو‌شنبه';
+    if (weekday == 'سه شنبه') weekday = 'سه‌شنبه';
+    if (weekday == 'پنج شنبه') weekday = 'پنج‌شنبه';
+    return _toPersianDigit('$weekday ${j.day} ${j.formatter.mN} ${j.year}');
   }
 
   @override

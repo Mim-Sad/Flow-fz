@@ -40,7 +40,13 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   }
 
   String _formatJalali(Jalali j) {
-    return _toPersianDigit('${j.day} ${j.formatter.mN} ${j.year}');
+    String weekday = j.formatter.wN;
+    if (weekday == 'یک شنبه') weekday = 'یک‌شنبه';
+    if (weekday == 'دو شنبه') weekday = 'دو‌شنبه';
+    if (weekday == 'سه شنبه') weekday = 'سه‌شنبه';
+    if (weekday == 'چهار شنبه') weekday = 'چهار‌شنبه';
+    if (weekday == 'پنج شنبه') weekday = 'پنج‌شنبه';
+    return _toPersianDigit('$weekday ${j.day} ${j.formatter.mN} ${j.year}');
   }
 
   String _formatMiladi(DateTime dt, int viewMode) {
@@ -1699,9 +1705,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       case DateTime.saturday:
         return 'شنبه';
       case DateTime.sunday:
-        return 'یکشنبه';
+        return 'یک‌شنبه';
       case DateTime.monday:
-        return 'دوشنبه';
+        return 'دو‌شنبه';
       case DateTime.tuesday:
         return 'سه‌شنبه';
       case DateTime.wednesday:
