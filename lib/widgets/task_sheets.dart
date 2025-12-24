@@ -231,6 +231,199 @@ class TaskStatusPickerSheet extends ConsumerWidget {
   }
 }
 
+class BulkTaskStatusPickerSheet extends ConsumerWidget {
+  final Set<int> selectedTaskIds;
+  final DateTime todayDate;
+
+  const BulkTaskStatusPickerSheet({
+    super.key,
+    required this.selectedTaskIds,
+    required this.todayDate,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle Line
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              'تغییر وضعیت گروهی تسک‌ها',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatusAction(
+                  context,
+                  ref,
+                  TaskStatus.success,
+                  'انجام شده',
+                  HugeIcons.strokeRoundedCheckmarkCircle03,
+                  Colors.green,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildStatusAction(
+                  context,
+                  ref,
+                  TaskStatus.pending,
+                  'در جریان',
+                  HugeIcons.strokeRoundedCircle,
+                  Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildStatusAction(
+                  context,
+                  ref,
+                  TaskStatus.failed,
+                  'انجام نشده',
+                  HugeIcons.strokeRoundedCancelCircle,
+                  Colors.red,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatusAction(
+                  context,
+                  ref,
+                  TaskStatus.cancelled,
+                  'لغو شده',
+                  HugeIcons.strokeRoundedMinusSignCircle,
+                  Colors.grey,
+                  horizontal: true,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildStatusAction(
+                  context,
+                  ref,
+                  TaskStatus.deferred,
+                  'تعویق شده',
+                  HugeIcons.strokeRoundedClock01,
+                  Colors.orange,
+                  horizontal: true,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusAction(
+    BuildContext context,
+    WidgetRef ref,
+    TaskStatus status,
+    String label,
+    dynamic icon,
+    Color color, {
+    bool horizontal = false,
+  }) {
+    return InkWell(
+      onTap: () async {
+        HapticFeedback.mediumImpact();
+
+        if (status == TaskStatus.deferred) {
+          // For deferred, we might need a more complex dialog for each task or a bulk deferral logic
+          // For now, we'll just pop and not apply deferred status in bulk directly
+          Navigator.pop(context);
+          // Optionally, show a message that deferred status cannot be applied in bulk
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('وضعیت تعویق شده را نمی‌توان به صورت گروهی اعمال کرد.')),
+          );
+        } else {
+          for (var taskId in selectedTaskIds) {
+            ref.read(tasksProvider.notifier).updateStatus(taskId, status, date: todayDate);
+          }
+          if (context.mounted) Navigator.pop(context);
+        }
+      },
+      borderRadius: BorderRadius.circular(15),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color: Colors.transparent, // No selection state for bulk
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: horizontal
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  HugeIcon(
+                    icon: icon,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  HugeIcon(
+                    icon: icon,
+                    size: 28,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
 class TaskOptionsSheet extends ConsumerWidget {
   final Task task;
   final DateTime? date;

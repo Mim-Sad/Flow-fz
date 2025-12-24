@@ -24,9 +24,89 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   SortMode _sortMode = SortMode.manual;
+  
+  // Selection Mode State
+  bool _isSelectionMode = false;
+  final Set<int> _selectedTaskIds = {};
 
   // Set to track animated task IDs to prevent re-animation
   final Set<int> _animatedTaskIds = {};
+
+  void _toggleSelectionMode(bool enable) {
+    setState(() {
+      _isSelectionMode = enable;
+      if (!enable) {
+        _selectedTaskIds.clear();
+      }
+    });
+  }
+
+  void _toggleTaskSelection(int taskId) {
+    setState(() {
+      if (_selectedTaskIds.contains(taskId)) {
+        _selectedTaskIds.remove(taskId);
+        if (_selectedTaskIds.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedTaskIds.add(taskId);
+      }
+    });
+    HapticFeedback.lightImpact();
+  }
+
+  void _selectAll(List<Task> tasks) {
+    setState(() {
+      if (_selectedTaskIds.length == tasks.length) {
+        _selectedTaskIds.clear();
+        _isSelectionMode = false;
+      } else {
+        _selectedTaskIds.addAll(tasks.map((t) => t.id!));
+      }
+    });
+    HapticFeedback.mediumImpact();
+  }
+
+  void _deleteSelected(List<Task> allTasks) {
+    if (_selectedTaskIds.isEmpty) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف تسک‌ها', textAlign: TextAlign.right),
+        content: Text('آیا مطمئن هستید که می‌خواهید ${_selectedTaskIds.length} تسک را حذف کنید؟', textAlign: TextAlign.right),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('لغو'),
+          ),
+          TextButton(
+            onPressed: () {
+              for (var id in _selectedTaskIds) {
+                ref.read(tasksProvider.notifier).deleteTask(id);
+              }
+              Navigator.pop(context);
+              _toggleSelectionMode(false);
+            },
+            child: const Text('حذف', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _changeStatusSelected(DateTime today) {
+    if (_selectedTaskIds.isEmpty) return;
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => BulkTaskStatusPickerSheet(
+        selectedTaskIds: _selectedTaskIds,
+        todayDate: today,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,22 +150,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       });
     }
 
-    return Scaffold(
+    return PopScope(
+      canPop: !_isSelectionMode,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _toggleSelectionMode(false);
+      },
+      child: Scaffold(
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'تسک‌های امروز',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  _buildSortToggle(),
-                ],
-              ),
+              child: _isSelectionMode 
+                  ? SizedBox(height: 40, child: _buildSelectionHeader(todayTasks, today))
+                  : SizedBox(height: 40, child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'تسک‌های امروز',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                        ),
+                        _buildSortToggle(),
+                      ],
+                    )),
             ),
           ),
           SliverPadding(
@@ -182,19 +270,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           index: index,
                           onStatusToggle: () => _handleStatusToggle(task),
                           isReorderEnabled: _sortMode == SortMode.manual,
+                          isSelectionMode: _isSelectionMode,
+                          isSelected: _selectedTaskIds.contains(task.id),
+                          onSelect: () => _toggleTaskSelection(task.id!),
+                          onEnterSelectionMode: () {
+                            if (!_isSelectionMode) {
+                              _toggleSelectionMode(true);
+                            }
+                            _toggleTaskSelection(task.id!); // Always select the task
+                          },
                         ),
                       )
                     : TaskListTile(
-                        task: task, 
-                        index: index,
-                        onStatusToggle: () => _handleStatusToggle(task),
-                        isReorderEnabled: _sortMode == SortMode.manual,
-                      ),
+                          task: task, 
+                          index: index,
+                          onStatusToggle: () => _handleStatusToggle(task),
+                          isReorderEnabled: _sortMode == SortMode.manual,
+                          isSelectionMode: _isSelectionMode,
+                          isSelected: _selectedTaskIds.contains(task.id),
+                          onSelect: () => _toggleTaskSelection(task.id!),
+                          onEnterSelectionMode: () {
+                            if (!_isSelectionMode) {
+                              _toggleSelectionMode(true);
+                            }
+                            _toggleTaskSelection(task.id!); // Always select the task
+                          },
+                        ),
                 );
               },
               itemCount: todayTasks.length,
               onReorder: (oldIndex, newIndex) {
-                if (_sortMode != SortMode.manual) return;
+                // Allow reorder if manual sort OR selection mode is active
+                if (_sortMode != SortMode.manual && !_isSelectionMode) return;
                 
                 if (newIndex > oldIndex) newIndex -= 1;
                 final items = [...todayTasks];
@@ -222,6 +329,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         icon: const HugeIcon(icon: HugeIcons.strokeRoundedAdd01, size: 24),
         label: const Text('تسک جدید', style: TextStyle(fontWeight: FontWeight.w700)),
       ),
+      ),
+    );
+  }
+
+  Widget _buildSelectionHeader(List<Task> allTasks, DateTime today) {
+    return Row(
+      children: [
+        IconButton(
+          onPressed: () => _toggleSelectionMode(false),
+          icon: HugeIcon(icon: HugeIcons.strokeRoundedCancel01, size: 24, color: Theme.of(context).colorScheme.primary),
+          tooltip: 'لغو',
+        ),
+        const Spacer(),
+        IconButton(
+          onPressed: () => _deleteSelected(allTasks),
+          icon: const HugeIcon(icon: HugeIcons.strokeRoundedDelete02, size: 24, color: Colors.grey),
+          tooltip: 'حذف گروهی',
+        ),
+        IconButton(
+          onPressed: () => _changeStatusSelected(today),
+          icon: const HugeIcon(icon: HugeIcons.strokeRoundedTask01, size: 24, color: Colors.grey),
+          tooltip: 'تغییر وضعیت گروهی',
+        ),
+        IconButton(
+          onPressed: () => _selectAll(allTasks),
+          icon: const HugeIcon(icon: HugeIcons.strokeRoundedCheckList, size: 24, color: Colors.grey),
+          tooltip: 'انتخاب همه',
+        ),
+      ],
     );
   }
 
@@ -261,12 +397,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _handleStatusToggle(Task task) {
-    HapticFeedback.lightImpact();
-    ref.read(tasksProvider.notifier).updateStatus(
-      task.id!,
-      task.status == TaskStatus.success ? TaskStatus.pending : TaskStatus.success,
-      date: task.dueDate,
-    );
+    if (_isSelectionMode) {
+      _toggleTaskSelection(task.id!);
+    } else {
+      HapticFeedback.lightImpact();
+      ref.read(tasksProvider.notifier).updateStatus(
+        task.id!,
+        task.status == TaskStatus.success ? TaskStatus.pending : TaskStatus.success,
+        date: task.dueDate,
+      );
+    }
   }
 }
 
@@ -303,7 +443,22 @@ class TaskListTile extends ConsumerWidget {
   final int index;
   final VoidCallback onStatusToggle;
   final bool isReorderEnabled;
-  const TaskListTile({super.key, required this.task, required this.index, required this.onStatusToggle, this.isReorderEnabled = true});
+  final bool isSelectionMode;
+  final bool isSelected;
+  final VoidCallback? onSelect;
+  final VoidCallback? onEnterSelectionMode;
+
+  const TaskListTile({
+    super.key, 
+    required this.task, 
+    required this.index, 
+    required this.onStatusToggle, 
+    this.isReorderEnabled = true,
+    this.isSelectionMode = false,
+    this.isSelected = false,
+    this.onSelect,
+    this.onEnterSelectionMode,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -314,19 +469,30 @@ class TaskListTile extends ConsumerWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
-          width: 1,
+          color: isSelected 
+              ? Theme.of(context).colorScheme.primary 
+              : Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+          width: isSelected ? 2 : 1,
         ),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: onStatusToggle, 
-        onLongPress: null, 
+        onTap: isSelectionMode ? onSelect : onStatusToggle, 
+        onLongPress: isSelectionMode ? onSelect : onEnterSelectionMode,
         child: Padding(
           padding: const EdgeInsets.only(left: 6, right: 12, top: 12, bottom: 12),
           child: Row(
             children: [
-              _getStatusIconForTile(task, context, ref, onStatusToggle),
+              isSelectionMode 
+                ? Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: HugeIcon(
+                      icon: isSelected ? HugeIcons.strokeRoundedCheckmarkSquare02 : HugeIcons.strokeRoundedSquare,
+                      size: 28,
+                      color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  )
+                : _getStatusIconForTile(task, context, ref, onStatusToggle),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -397,12 +563,22 @@ class TaskListTile extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              IconButton(
-                icon: const HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical, size: 22, color: Colors.grey),
-                padding: const EdgeInsets.all(10),
-                constraints: const BoxConstraints(),
-                onPressed: () => _showTaskOptions(context, ref, task),
-              ),
+              isSelectionMode 
+                ? ReorderableDragStartListener(
+                    index: index,
+                    child: IconButton(
+                      icon: const HugeIcon(icon: HugeIcons.strokeRoundedMove, size: 24, color: Colors.grey),
+                      padding: const EdgeInsets.all(10),
+                      constraints: const BoxConstraints(),
+                      onPressed: null, // Drag handle, not clickable
+                    ),
+                  )
+                : IconButton(
+                    icon: const HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical, size: 22, color: Colors.grey),
+                    padding: const EdgeInsets.all(10),
+                    constraints: const BoxConstraints(),
+                    onPressed: () => _showTaskOptions(context, ref, task),
+                  ),
             ],
           ),
         ),
