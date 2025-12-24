@@ -106,8 +106,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         final confirm = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('بازگردانی اطلاعات'),
-            content: const Text('آیا مطمئن هستید؟ تمام اطلاعات فعلی حذف و با فایل انتخاب شده جایگزین خواهند شد.'),
+            title: const Text('درون‌ریزی اطلاعات'),
+            content: const Text('آیا مطمئن هستید؟ اطلاعات جدید به داده‌های فعلی شما اضافه خواهند شد و موارد تکراری شناسایی می‌شوند.'),
             actions: [
               TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('لغو')),
               TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('تایید')),
@@ -129,7 +129,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('اطلاعات با موفقیت بازگردانی شد.')),
+              const SnackBar(content: Text('اطلاعات با موفقیت درون‌ریزی و ادغام شد.')),
             );
           }
         }
@@ -137,7 +137,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطا در بازگردانی اطلاعات: $e')),
+          SnackBar(
+            content: Text('خطا در درون‌ریزی اطلاعات: $e'),
+            backgroundColor: Colors.red.shade800,
+          ),
         );
       }
     }

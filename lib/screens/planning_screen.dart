@@ -804,7 +804,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Lottie.asset(
-              'assets/images/TheSoul/12 glasses.json',
+              'assets/images/TheSoul/20 glasses.json',
               width: 120,
               height: 120,
               fit: BoxFit.contain,
