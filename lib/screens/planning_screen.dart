@@ -483,9 +483,10 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
       decoration: BoxDecoration(
+        
         color: Theme.of(
           context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        ).colorScheme.surfaceContainer,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Row(

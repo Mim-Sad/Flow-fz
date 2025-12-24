@@ -567,7 +567,7 @@ class DatabaseService {
           final settingsList = (data['settings'] as List).cast<Map<String, dynamic>>();
           debugPrint('Importing ${settingsList.length} settings...');
           for (var settingMap in settingsList) {
-            await txn.insert('settings', settingMap, conflictAlgorithm: ConflictAlgorithm.ignore);
+            await txn.insert('settings', settingMap, conflictAlgorithm: ConflictAlgorithm.replace);
           }
         }
       });

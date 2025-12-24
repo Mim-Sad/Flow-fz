@@ -128,12 +128,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     final filteredTasks = ref.watch(tasksForRangeProvider(range));
 
-    // For productivity: exclude cancelled and deferred tasks
+    // For productivity: only include success and failed tasks
     final relevantTasks = filteredTasks
         .where(
           (t) =>
-              t.status != TaskStatus.cancelled &&
-              t.status != TaskStatus.deferred,
+              t.status == TaskStatus.success ||
+              t.status == TaskStatus.failed,
         )
         .toList();
 
@@ -448,7 +448,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       decoration: BoxDecoration(
         color: Theme.of(
           context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        ).colorScheme.surfaceContainer,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Row(
@@ -541,7 +541,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     int failed,
     int total,
   ) {
-    // Productivity formula: success / total relevant tasks (success + failed + pending)
+    // Productivity formula: success / total relevant tasks (success + failed)
     double percentage = total == 0 ? -1.0 : (success / total) * 100;
 
     final theme = Theme.of(context);
@@ -678,12 +678,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             .where((t) => DateUtils.isSameDay(t.dueDate, day))
             .toList();
 
-        // Relevant tasks for trend: exclude cancelled and deferred
+        // Relevant tasks for trend: only include success and failed
         final relevantDayTasks = dayTasks
             .where(
               (t) =>
-                  t.status != TaskStatus.cancelled &&
-                  t.status != TaskStatus.deferred,
+                  t.status == TaskStatus.success ||
+                  t.status == TaskStatus.failed,
             )
             .toList();
 
@@ -713,12 +713,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             .where((t) => DateUtils.isSameDay(t.dueDate, day))
             .toList();
 
-        // Relevant tasks for trend: exclude cancelled and deferred
+        // Relevant tasks for trend: only include success and failed
         final relevantDayTasks = dayTasks
             .where(
               (t) =>
-                  t.status != TaskStatus.cancelled &&
-                  t.status != TaskStatus.deferred,
+                  t.status == TaskStatus.success ||
+                  t.status == TaskStatus.failed,
             )
             .toList();
 

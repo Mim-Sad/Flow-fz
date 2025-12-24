@@ -51,10 +51,8 @@ class ThemeNotifier extends Notifier<ThemeState> {
       themeMode = ThemeMode.values[modeIndex];
     }
     
-    // Check DB in background if needed, but return valid state immediately
-    if (colorValue == null || modeIndex == null) {
-       _syncWithDb();
-    }
+    // Always check DB in background to ensure sync, especially after import
+    _syncWithDb();
 
     return ThemeState(
       seedColor: seedColor,
@@ -64,48 +62,30 @@ class ThemeNotifier extends Notifier<ThemeState> {
   }
 
   Future<void> _syncWithDb() async {
-    // If not in SharedPreferences, try Database
-    int? colorValue = _prefs.getInt(_seedColorKey);
-    int? modeIndex = _prefs.getInt(_themeModeKey);
+    // Check Database for settings
+    final dbColor = await _dbService.getSetting(_seedColorKey);
+    final dbMode = await _dbService.getSetting(_themeModeKey);
+    
+    int? colorValue = dbColor != null ? int.tryParse(dbColor) : null;
+    int? modeIndex = dbMode != null ? int.tryParse(dbMode) : null;
+    
     bool changed = false;
 
-    if (colorValue == null) {
-      final dbColor = await _dbService.getSetting(_seedColorKey);
-      if (dbColor != null) {
-        colorValue = int.tryParse(dbColor);
-        if (colorValue != null) {
-          await _prefs.setInt(_seedColorKey, colorValue);
-          changed = true;
-        }
-      }
+    if (colorValue != null && colorValue != _prefs.getInt(_seedColorKey)) {
+      await _prefs.setInt(_seedColorKey, colorValue);
+      changed = true;
     }
 
-    if (modeIndex == null) {
-      final dbMode = await _dbService.getSetting(_themeModeKey);
-      if (dbMode != null) {
-        modeIndex = int.tryParse(dbMode);
-        if (modeIndex != null) {
-          await _prefs.setInt(_themeModeKey, modeIndex);
-          changed = true;
-        }
-      }
+    if (modeIndex != null && modeIndex != _prefs.getInt(_themeModeKey)) {
+      await _prefs.setInt(_themeModeKey, modeIndex);
+      changed = true;
     }
     
     if (changed) {
-       Color seedColor = state.seedColor;
-       if (colorValue != null) {
-          seedColor = Color(colorValue);
-       }
-       
-       ThemeMode themeMode = state.themeMode;
-       if (modeIndex != null) {
-          themeMode = ThemeMode.values[modeIndex];
-       }
-       
-       state = state.copyWith(
-         seedColor: seedColor,
-         themeMode: themeMode,
-       );
+      state = state.copyWith(
+        seedColor: colorValue != null ? Color(colorValue) : state.seedColor,
+        themeMode: modeIndex != null ? ThemeMode.values[modeIndex] : state.themeMode,
+      );
     }
   }
 

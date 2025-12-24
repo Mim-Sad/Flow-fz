@@ -26,6 +26,7 @@ class TasksNotifier extends StateNotifier<List<Task>> {
   // Public method to force reload tasks from database
   Future<void> reloadTasks() async {
     await _loadTasks();
+    _ref.invalidate(allTasksIncludingDeletedProvider);
   }
 
   Future<void> addTask(Task task, {bool isDuplicate = false}) async {
