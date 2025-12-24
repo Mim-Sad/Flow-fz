@@ -15,7 +15,6 @@ import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
 import '../utils/app_theme.dart'; // Added
 import 'categories_screen.dart';
-import 'database_viewer_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -272,32 +271,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ],
                           ),
                         ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Database Viewer (Experimental)
-              FadeInOnce(
-                delay: 150.ms,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                    title: const Text('مشاهده پایگاه داده', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    subtitle: const Text('بررسی جداول و داده‌های خام (آزمایشی)', style: TextStyle(fontSize: 12)),
-                    leading: HugeIcon(icon: HugeIcons.strokeRoundedDatabase02, color: Theme.of(context).colorScheme.primary),
-                    trailing: const HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: Colors.grey, size: 20),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const DatabaseViewerScreen()),
                       );
                     },
                   ),

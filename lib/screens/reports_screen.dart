@@ -541,9 +541,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     int failed,
     int total,
   ) {
-    // Productivity formula: success / (success + failed)
-    final int denominator = success + failed;
-    double percentage = denominator == 0 ? -1.0 : (success / denominator) * 100;
+    // Productivity formula: success / total relevant tasks (success + failed + pending)
+    double percentage = total == 0 ? -1.0 : (success / total) * 100;
 
     final theme = Theme.of(context);
 
@@ -678,13 +677,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         final dayTasks = filteredTasks
             .where((t) => DateUtils.isSameDay(t.dueDate, day))
             .toList();
-        final success = dayTasks
+
+        // Relevant tasks for trend: exclude cancelled and deferred
+        final relevantDayTasks = dayTasks
+            .where(
+              (t) =>
+                  t.status != TaskStatus.cancelled &&
+                  t.status != TaskStatus.deferred,
+            )
+            .toList();
+
+        final success = relevantDayTasks
             .where((t) => t.status == TaskStatus.success)
             .length;
-        final failed = dayTasks
-            .where((t) => t.status == TaskStatus.failed)
-            .length;
-        final denominator = success + failed;
+        final denominator = relevantDayTasks.length;
 
         final isFuture =
             day.isAfter(DateTime.now()) &&
@@ -706,13 +712,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         final dayTasks = filteredTasks
             .where((t) => DateUtils.isSameDay(t.dueDate, day))
             .toList();
-        final success = dayTasks
+
+        // Relevant tasks for trend: exclude cancelled and deferred
+        final relevantDayTasks = dayTasks
+            .where(
+              (t) =>
+                  t.status != TaskStatus.cancelled &&
+                  t.status != TaskStatus.deferred,
+            )
+            .toList();
+
+        final success = relevantDayTasks
             .where((t) => t.status == TaskStatus.success)
             .length;
-        final failed = dayTasks
-            .where((t) => t.status == TaskStatus.failed)
-            .length;
-        final denominator = success + failed;
+        final denominator = relevantDayTasks.length;
 
         final isFuture =
             day.isAfter(DateTime.now()) &&
