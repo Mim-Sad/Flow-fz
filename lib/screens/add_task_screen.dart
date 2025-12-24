@@ -30,6 +30,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   late TextEditingController _titleController;
   late TextEditingController _descController;
   late TextEditingController _tagController;
+  late TextEditingController _emojiController;
   late DateTime _selectedDate;
   late TaskPriority _priority;
   List<String> _selectedCategories = [];
@@ -74,6 +75,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     _titleController = TextEditingController(text: widget.task?.title);
     _descController = TextEditingController(text: widget.task?.description);
     _tagController = TextEditingController();
+    _emojiController = TextEditingController(text: widget.task?.taskEmoji);
     
     _recurrence = widget.task?.recurrence;
     _priority = widget.task?.priority ?? TaskPriority.medium;
@@ -194,6 +196,8 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     _audioPlayer.dispose();
     _titleController.dispose();
     _descController.dispose();
+    _emojiController.dispose();
+    _tagController.dispose();
     super.dispose();
   }
 
@@ -296,20 +300,41 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                       // Title and Emoji
                       Row(
                         children: [
-                          GestureDetector(
-                            onTap: _showEmojiInput,
-                            child: Container(
-                              width: 52,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                                borderRadius: BorderRadius.circular(18),
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            alignment: Alignment.center,
+                            child: TextField(
+                              controller: _emojiController,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 26),
+                              keyboardType: TextInputType.text,
+                              decoration: const InputDecoration(
+                                hintText: '🫥',
+                                hintStyle: TextStyle(fontSize: 26),
+                                counterText: '',
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.zero,
+                                isDense: true,
                               ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                _selectedEmoji ?? '🫥',
-                                style: const TextStyle(fontSize: 26),
-                              ),
+                              onChanged: (value) {
+                                setState(() {
+                                  if (value.characters.isNotEmpty) {
+                                    final char = value.characters.last;
+                                    _emojiController.text = char;
+                                    _emojiController.selection = TextSelection.fromPosition(
+                                      TextPosition(offset: _emojiController.text.length),
+                                    );
+                                    _selectedEmoji = char;
+                                  } else {
+                                    _selectedEmoji = null;
+                                  }
+                                });
+                              },
                             ),
                           ),
                           const SizedBox(width: 14),
@@ -884,178 +909,6 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showEmojiInput() {
-    final controller = TextEditingController(text: _selectedEmoji);
-    if (_selectedEmoji != null) {
-      controller.selection = TextSelection(
-        baseOffset: 0,
-        extentOffset: _selectedEmoji!.length,
-      );
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        child: SingleChildScrollView(
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.85,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Header
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: HugeIcon(
-                          icon: HugeIcons.strokeRoundedSmile,
-                          size: 18,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Text(
-                        'انتخاب ایموجی',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Body
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-                  child: Column(
-                    children: [
-                      Text(
-                        'از کیبورد خود یک ایموجی انتخاب کنید تا جایگزین شود',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      
-                      // Emoji Preview/Input Circle
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                            width: 2.5,
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: TextField(
-                          controller: controller,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 36),
-                          autofocus: true,
-                          keyboardType: TextInputType.text,
-                          decoration: const InputDecoration(
-                            hintText: '🫥',
-                            hintStyle: TextStyle(fontSize: 36),
-                            counterText: '',
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.zero,
-                            isDense: true,
-                          ),
-                          onChanged: (value) {
-                            if (value.characters.isNotEmpty) {
-                              final char = value.characters.last;
-                              controller.text = char;
-                              controller.selection = TextSelection.fromPosition(
-                                TextPosition(offset: controller.text.length),
-                              );
-                            }
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Footer Actions
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextButton(
-                          onPressed: () {
-                            setState(() => _selectedEmoji = null);
-                            Navigator.pop(context);
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.red,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: const Text('حذف', style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: () {
-                            if (controller.text.isNotEmpty) {
-                              setState(() => _selectedEmoji = controller.text);
-                            }
-                            Navigator.pop(context);
-                          },
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: const Text('تایید', style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       ),
