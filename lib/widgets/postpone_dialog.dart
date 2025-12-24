@@ -32,7 +32,7 @@ class PostponeDialog extends ConsumerWidget {
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       backgroundColor: colorScheme.surface,
-      surfaceTintColor: colorScheme.primaryContainer,
+      surfaceTintColor: Colors.transparent,
       contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
       title: Row(
         textDirection: TextDirection.rtl,
