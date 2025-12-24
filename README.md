@@ -1,4 +1,4 @@
-# flow_fz
+# Flow
 
 A new Flutter project.
 

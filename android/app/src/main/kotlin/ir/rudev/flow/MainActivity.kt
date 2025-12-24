@@ -1,4 +1,4 @@
-package com.flow.fz.flow_fz
+package ir.rudev.flow
 
 import io.flutter.embedding.android.FlutterActivity
 
