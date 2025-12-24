@@ -364,31 +364,31 @@ class TaskListTile extends ConsumerWidget {
         direction: DismissDirection.horizontal,
         confirmDismiss: (direction) async {
           if (direction == DismissDirection.startToEnd) {
-            // Swipe Right: Done
-            HapticFeedback.mediumImpact();
-            ref.read(tasksProvider.notifier).updateStatus(task.id!, TaskStatus.success, date: task.dueDate);
-            return false;
-          } else {
-            // Swipe Left: Defer
+            // Swipe Right: Defer
             HapticFeedback.mediumImpact();
             PostponeDialog.show(context, ref, task, targetDate: task.dueDate);
             return false;
+          } else {
+            // Swipe Left: Done
+            HapticFeedback.mediumImpact();
+            ref.read(tasksProvider.notifier).updateStatus(task.id!, TaskStatus.success, date: task.dueDate);
+            return false;
           }
         },
-        background: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            alignment: Alignment.centerRight,
-            padding: const EdgeInsets.only(right: 12),
-            decoration: BoxDecoration(color: Colors.green.shade400),
-            child: const HugeIcon(icon: HugeIcons.strokeRoundedCheckmarkCircle03, size: 24, color: Colors.white),
-          ),
-        ),
         secondaryBackground: ClipRRect(
           borderRadius: BorderRadius.circular(20),
           child: Container(
             alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.only(left: 12),
+            padding: const EdgeInsets.only(left: 20),
+            decoration: BoxDecoration(color: Colors.green.shade400),
+            child: const HugeIcon(icon: HugeIcons.strokeRoundedCheckmarkCircle03, size: 24, color: Colors.white),
+          ),
+        ),
+        background: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 20),
             decoration: BoxDecoration(color: Colors.orange.shade400),
             child: const HugeIcon(icon: HugeIcons.strokeRoundedClock01, size: 24, color: Colors.white),
           ),
