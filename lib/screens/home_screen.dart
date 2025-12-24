@@ -393,12 +393,7 @@ class TaskListTile extends ConsumerWidget {
             child: const HugeIcon(icon: HugeIcons.strokeRoundedClock01, size: 24, color: Colors.white),
           ),
         ),
-        child: isReorderEnabled
-            ? ReorderableDelayedDragStartListener(
-                index: index,
-                child: cardContent,
-              )
-            : cardContent,
+        child: cardContent,
       ),
     );
   }

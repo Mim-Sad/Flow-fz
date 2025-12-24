@@ -260,7 +260,7 @@ class TaskOptionsSheet extends ConsumerWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -522,7 +522,7 @@ class TaskOptionsSheet extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 8),
                   
                   // Actions List
                   Column(
@@ -592,9 +592,10 @@ class TaskOptionsSheet extends ConsumerWidget {
                       ),
                     ],
                   ),
+                                  const SizedBox(height: 20),
                 ],
               ),
-            ),
+            )        
           ),
         ],
       ),
@@ -797,9 +798,9 @@ class TaskOptionsSheet extends ConsumerWidget {
 
     return ListTile(
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
       leading: Container(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(0),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),

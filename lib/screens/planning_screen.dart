@@ -574,20 +574,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                           break;
                         }
                       }
-                      _toggleTaskStatus(task, targetDate);
-                    },
-                    onLongPress: () {
-                      HapticFeedback.mediumImpact();
-                      final today = DateTime.now();
-                      DateTime targetDate = allDays.first;
-                      for (var d in allDays) {
-                        if (isSameDay(d, today)) {
-                          targetDate = d;
-                          break;
-                        }
-                      }
                       _showTaskOptions(context, task, date: targetDate);
                     },
+                    onLongPress: null,
                     child: Row(
                       textDirection: TextDirection.rtl,
                       children: [
@@ -1424,12 +1413,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
               child: InkWell(
                 onTap: () {
                   HapticFeedback.lightImpact();
-                  _toggleTaskStatus(task, date);
-                },
-                onLongPress: () {
-                  HapticFeedback.mediumImpact();
                   _showTaskOptions(context, task, date: date);
                 },
+                onLongPress: null,
                 child: Row(
                   textDirection: TextDirection.rtl,
                   children: [
