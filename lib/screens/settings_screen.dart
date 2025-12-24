@@ -203,9 +203,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final theme = Theme.of(context);
     final onCardColor = theme.colorScheme.onSurface;
 
+    final navigationBarColor = theme.brightness == Brightness.light
+        ? ElevationOverlay.applySurfaceTint(
+            theme.colorScheme.surface,
+            theme.colorScheme.surfaceTint,
+            3,
+          )
+        : ElevationOverlay.applySurfaceTint(
+            theme.colorScheme.surface,
+            theme.colorScheme.surfaceTint,
+            3,
+          );
+
     return Scaffold(
           appBar: AppBar(
-            title: const Text('تنظیمات'),
+            toolbarHeight: 60,
+            backgroundColor: navigationBarColor,
+            surfaceTintColor: Colors.transparent,
+            title: Text(
+              'تنظیمات',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+              ),
+            ),
             centerTitle: true,
           ),
           body: ListView(

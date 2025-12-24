@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class NavigationWrapper extends StatelessWidget {
   final Widget child;
@@ -47,24 +48,23 @@ class NavigationWrapper extends StatelessWidget {
         toolbarHeight: 60, // Further increased height
         backgroundColor: navigationBarColor,
         surfaceTintColor: Colors.transparent,
+        centerTitle: true,
         leadingWidth: showLogo ? 52 : 0,
         leading: showLogo 
             ? Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: ColorFiltered(
-                  colorFilter: theme.brightness == Brightness.light
-                      ? const ColorFilter.matrix([
-                          -1, 0, 0, 0, 255,
-                          0, -1, 0, 0, 255,
-                          0, 0, -1, 0, 255,
-                          0, 0, 0, 1, 0,
-                        ])
-                      : const ColorFilter.mode(Colors.transparent, BlendMode.dst),
-                  child: Image.asset(
-                    'assets/images/flow-logo.png',
-                    height: 24, // Slightly larger logo
-                    errorBuilder: (context, error, stackTrace) => HugeIcon(icon: HugeIcons.strokeRoundedAnalytics01, color: theme.colorScheme.primary),
+                padding: const EdgeInsets.fromLTRB(4, 12, 20, 12),
+                child: SvgPicture.asset(
+                  'assets/images/flow-prm.svg',
+                  height: 10,
+                  colorFilter: ColorFilter.mode(
+                    theme.colorScheme.primary,
+                    BlendMode.srcIn,
                   ),
+                  placeholderBuilder: (context) => HugeIcon(
+                    icon: HugeIcons.strokeRoundedLoading03,
+                    color: theme.colorScheme.primary,
+                  ),
+                  
                 ),
               )
             : const SizedBox.shrink(),

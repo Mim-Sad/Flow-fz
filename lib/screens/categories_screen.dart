@@ -150,10 +150,32 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoryProvider);
+    final theme = Theme.of(context);
+    final navigationBarColor = theme.brightness == Brightness.light
+        ? ElevationOverlay.applySurfaceTint(
+            theme.colorScheme.surface,
+            theme.colorScheme.surfaceTint,
+            3,
+          )
+        : ElevationOverlay.applySurfaceTint(
+            theme.colorScheme.surface,
+            theme.colorScheme.surfaceTint,
+            3,
+          );
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('مدیریت دسته‌بندی‌ها'),
+        toolbarHeight: 60,
+        backgroundColor: navigationBarColor,
+        surfaceTintColor: Colors.transparent,
+        centerTitle: true,
+        title: Text(
+          'مدیریت دسته‌بندی‌ها',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+          ),
+        ),
         actions: [
           IconButton(
             icon: HugeIcon(icon: HugeIcons.strokeRoundedAdd01, color: Theme.of(context).colorScheme.primary),
