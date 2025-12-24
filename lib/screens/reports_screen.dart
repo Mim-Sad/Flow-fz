@@ -545,11 +545,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   Text(
                     'بهره‌وری شما',
                     style: TextStyle(
-                      color: isDark
-                          ? theme.colorScheme.onSurfaceVariant
-                          : theme.colorScheme.onPrimaryContainer.withValues(
-                              alpha: 0.8,
-                            ),
+                      color: theme.colorScheme.onSurfaceVariant,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
