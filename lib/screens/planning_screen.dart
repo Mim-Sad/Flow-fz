@@ -28,6 +28,132 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   DateTime _selectedDate = DateTime.now();
   final Set<String> _animatedKeys = {};
 
+  // Selection Mode State
+  bool _isSelectionMode = false;
+  final Set<int> _selectedTaskIds = {};
+
+  void _toggleSelectionMode(bool enable) {
+    setState(() {
+      _isSelectionMode = enable;
+      if (!enable) {
+        _selectedTaskIds.clear();
+      }
+    });
+  }
+
+  void _toggleTaskSelection(int taskId) {
+    setState(() {
+      if (_selectedTaskIds.contains(taskId)) {
+        _selectedTaskIds.remove(taskId);
+        if (_selectedTaskIds.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedTaskIds.add(taskId);
+      }
+    });
+  }
+
+  void _selectAll(List<Task> tasks) {
+    setState(() {
+      // Filter out tasks without ID just in case
+      final validTaskIds = tasks.map((t) => t.id).where((id) => id != null).cast<int>().toSet();
+      
+      if (_selectedTaskIds.length >= validTaskIds.length) {
+        _selectedTaskIds.clear();
+      } else {
+        _selectedTaskIds.addAll(validTaskIds);
+      }
+    });
+  }
+
+  Future<void> _deleteSelected(List<Task> allTasks) async {
+    if (_selectedTaskIds.isEmpty) return;
+
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف تسک‌ها', textAlign: TextAlign.right),
+        content: Text(
+          'آیا مطمئن هستید که می‌خواهید ${_selectedTaskIds.length} تسک انتخاب شده را حذف کنید؟',
+          textAlign: TextAlign.right,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('لغو'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      for (var id in _selectedTaskIds) {
+        ref.read(tasksProvider.notifier).deleteTask(id);
+      }
+      _toggleSelectionMode(false);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تسک‌های انتخاب شده حذف شدند', textAlign: TextAlign.right),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  void _changeStatusSelected() async {
+    if (_selectedTaskIds.isEmpty) return;
+    
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => BulkTaskStatusPickerSheet(
+        selectedTaskIds: _selectedTaskIds,
+        todayDate: _selectedDate,
+      ),
+    );
+    _toggleSelectionMode(false);
+  }
+
+  Widget _buildSelectionHeader(List<Task> visibleTasks) {
+    return SizedBox(
+      height: 48, // Fixed height matching HomeScreen
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => _toggleSelectionMode(false),
+            icon: HugeIcon(icon: HugeIcons.strokeRoundedCancel01, size: 24, color: Theme.of(context).colorScheme.primary),
+            tooltip: 'لغو',
+          ),
+          const Spacer(),
+          IconButton(
+            onPressed: () => _deleteSelected(visibleTasks),
+            icon: const HugeIcon(icon: HugeIcons.strokeRoundedDelete02, size: 24, color: Colors.grey),
+            tooltip: 'حذف گروهی',
+          ),
+          IconButton(
+            onPressed: _changeStatusSelected,
+            icon: const HugeIcon(icon: HugeIcons.strokeRoundedEdit02, size: 24, color: Colors.grey),
+            tooltip: 'تغییر وضعیت گروهی',
+          ),
+          IconButton(
+            onPressed: () => _selectAll(visibleTasks),
+            icon: const HugeIcon(icon: HugeIcons.strokeRoundedFullScreen, size: 24, color: Colors.grey),
+            tooltip: 'انتخاب همه',
+          ),
+        ],
+      ),
+    );
+  }
+
   String _toPersianDigit(String input) {
     const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
     const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
@@ -164,7 +290,23 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     
     final categories = ref.watch(categoryProvider).value ?? [];
 
-    return Scaffold(
+    // Calculate visible tasks for selection mode
+    List<Task> visibleTasks = [];
+    if (_viewMode == 0) {
+      visibleTasks = dailyTasks.where(_isTaskStructurallyValid).toList();
+    } else {
+      visibleTasks = allTasks.where(_isTaskStructurallyValid).toList();
+    }
+
+    return PopScope(
+      canPop: !_isSelectionMode,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_isSelectionMode) {
+          _toggleSelectionMode(false);
+        }
+      },
+      child: Scaffold(
       body: Stack(
         children: [
           Column(
@@ -226,7 +368,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                     horizontal: 12,
                     vertical: 10,
                   ),
-                  child: SegmentedButton<int>(
+                  child: _isSelectionMode
+                      ? _buildSelectionHeader(visibleTasks)
+                      : SegmentedButton<int>(
                     segments: const [
                       ButtonSegment(
                         value: 0,
@@ -267,6 +411,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -499,8 +644,10 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       (index) => startOfWeek.add(Duration(days: index)),
     );
 
+    final isSelected = _selectedTaskIds.contains(task.id);
+
     return Container(
-      color: Colors.transparent,
+      color: isSelected ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.4) : Colors.transparent,
       padding: const EdgeInsets.symmetric(horizontal: 10.5, vertical: 3),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -552,6 +699,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                       date: date,
                       size: 22,
                       isCurrentMonth: isCurrentMonth,
+                      preventSelectionMode: true,
                     ),
                   );
                 }).toList(),
@@ -566,6 +714,10 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   child: InkWell(
                     onTap: () {
                       HapticFeedback.lightImpact();
+                      if (_isSelectionMode) {
+                        if (task.id != null) _toggleTaskSelection(task.id!);
+                        return;
+                      }
                       final today = DateTime.now();
                       DateTime targetDate = allDays.first;
                       for (var d in allDays) {
@@ -576,7 +728,13 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                       }
                       _showTaskOptions(context, task, date: targetDate);
                     },
-                    onLongPress: null,
+                    onLongPress: () {
+                      if (!_isSelectionMode) {
+                        HapticFeedback.mediumImpact();
+                        _toggleSelectionMode(true);
+                        if (task.id != null) _toggleTaskSelection(task.id!);
+                      }
+                    },
                     child: Row(
                       textDirection: TextDirection.rtl,
                       children: [
@@ -623,9 +781,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     String emoji;
 
     if (key == 'combined') {
-      title = 'کارهای ترکیبی';
+      title = 'تسک های ترکیبی';
       emoji = DuckEmojis.hypn;
-      color = Colors.purple;
+      color = Theme.of(context).colorScheme.primary;
     } else if (key == 'uncategorized') {
       title = 'بدون دسته‌بندی';
       emoji = DuckEmojis.other;
@@ -729,7 +887,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                 showDayHints: index == 0,
               );
             }),
-            if (regularTasks.isNotEmpty) const SizedBox(height: 2),
+            
           ],
           if (regularTasks.isNotEmpty)
             ListView.builder(
@@ -776,11 +934,11 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     String emoji;
 
     if (key == 'combined') {
-      title = 'کارهای ترکیبی';
+      title = 'تسک های ترکیبی';
       emoji = DuckEmojis.hypn;
-      color = Colors.purple;
+      color = const Color.fromARGB(255, 209, 104, 228);
     } else if (key == 'uncategorized') {
-      title = 'بدون دستهu000cبندی';
+      title = 'بدون دسته‌بندی';
       emoji = DuckEmojis.other;
       color = Colors.grey;
     } else {
@@ -796,24 +954,6 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     final regularTasks = tasks
         .where((t) => t.recurrence == null || t.recurrence!.type == RecurrenceType.none)
         .toList();
-
-    final Map<int, List<Task>> recurringByWeek = {};
-    for (int i = 0; i < weeks.length; i++) {
-      final weekDays = weeks[i];
-      final weekTasks = <Task>[];
-      for (var t in recurringTasks) {
-        bool matchesWeek = false;
-        for (var d in weekDays) {
-          if (Jalali.fromDateTime(d).month != currentMonth) continue;
-          if (t.isActiveOnDate(d) || t.statusHistory.containsKey(getDateKey(d))) {
-            matchesWeek = true;
-            break;
-          }
-        }
-        if (matchesWeek) weekTasks.add(t);
-      }
-      if (weekTasks.isNotEmpty) recurringByWeek[i] = weekTasks;
-    }
 
     final tasksNotifier = ref.read(tasksProvider.notifier);
     int total = 0;
@@ -890,69 +1030,68 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          if (recurringByWeek.isNotEmpty) ...[
-            () {
-              final sortedEntries = recurringByWeek.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
-              final Set<String> titlesShown = {};
-              bool hintsShown = false;
+          
+          // Recurring Tasks Grouped by Task
+          ...recurringTasks.map((t) {
+            final taskWeeks = <int, List<DateTime>>{};
+            for (int i = 0; i < weeks.length; i++) {
+               final weekDays = weeks[i];
+               bool isActive = false;
+               for (var d in weekDays) {
+                 if (Jalali.fromDateTime(d).month != currentMonth) continue;
+                 if (t.isActiveOnDate(d) || t.statusHistory.containsKey(getDateKey(d))) {
+                   isActive = true;
+                   break;
+                 }
+               }
+               if (isActive) taskWeeks[i] = weekDays;
+            }
+            
+            if (taskWeeks.isEmpty) return const SizedBox.shrink();
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: sortedEntries.map((entry) {
-                  final weekIndex = entry.key;
-                  final weekTasks = entry.value;
-                  final weekDays = weeks[weekIndex];
-                  final weekStart = weekDays.first;
-                  final isLast = weekIndex == (recurringByWeek.keys.isEmpty ? weekIndex : recurringByWeek.keys.reduce((a, b) => a > b ? a : b));
-                  debugPrint('isLast: $isLast, weekIndex: $weekIndex, recurringByWeek.keys: ${recurringByWeek.keys}');
-                  final weekSection = Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ...weekTasks.asMap().entries.map((taskEntry) {
-                        final t = taskEntry.value;
-                        final taskId = (t.id ?? 'temp_${t.hashCode}').toString();
-                        
-                        final showTitle = !titlesShown.contains(taskId);
-                        if (showTitle) titlesShown.add(taskId);
-
-                        final showHints = !hintsShown;
-                        if (showHints) hintsShown = true;
-
-                        return _buildWeeklyRecurringTaskRow(
-                          t,
-                          weekStart,
-                          currentMonth: currentMonth,
-                          showDayHints: showHints,
-                          hideTitle: !showTitle,
-                          weekLabel: Container(
-                            width: 50,
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Center(
-                              child: Text(
-                                'هفته ${_toPersianDigit((weekIndex + 1).toString())}',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.secondary,
-                                ),
-                              ),
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ...taskWeeks.entries.map((entry) {
+                    final index = entry.key;
+                    final weekDays = entry.value;
+                    final isFirst = index == taskWeeks.keys.first;
+                    
+                    return _buildWeeklyRecurringTaskRow(
+                      t,
+                      weekDays.first,
+                      currentMonth: currentMonth,
+                      weekLabel: Container(
+                        width: 50,
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'هفته ${_toPersianDigit((index + 1).toString())}',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.secondary,
                             ),
                           ),
-                        );
-                      }),
-                    ],
-                  );
-                  return weekSection;
-                }).toList(),
-              );
-            }(),
-            if (regularTasks.isNotEmpty) const SizedBox(height: 2),
-          ],
-          if (regularTasks.isNotEmpty)
+                        ),
+                      ),
+                      showDayHints: isFirst,
+                      hideTitle: !isFirst,
+                    );
+                  })
+                ]
+              )
+            );
+          }),
+
+          if (regularTasks.isNotEmpty) ...[
+            if (recurringTasks.isNotEmpty) const SizedBox(height: 8),
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -967,6 +1106,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                 );
               },
             ),
+          ],
           const SizedBox(height: 12),
           if (total > 0)
             Container(
@@ -1259,9 +1399,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     String emoji;
 
     if (key == 'combined') {
-      title = 'کارهای ترکیبی';
+      title = 'تسک های ترکیبی';
       emoji = DuckEmojis.hypn;
-      color = Colors.purple;
+      color = Theme.of(context).colorScheme.primary;
     } else if (key == 'uncategorized') {
       title = 'بدون دسته‌بندی';
       emoji = DuckEmojis.other;
@@ -1390,12 +1530,14 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
     final isCancelled = status == TaskStatus.cancelled;
     final isSuccess = status == TaskStatus.success;
+    
+    final isSelected = _selectedTaskIds.contains(task.id);
 
     final row = Opacity(
       opacity: isCancelled ? 0.6 : 1.0,
       child: Container(
         // Add transparent background to catch drag gestures effectively
-        color: Colors.transparent,
+        color: isSelected ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.4) : Colors.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 10.5, vertical: 3),
         child: Row(
           textDirection: TextDirection.ltr,
@@ -1413,9 +1555,19 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
               child: InkWell(
                 onTap: () {
                   HapticFeedback.lightImpact();
-                  _showTaskOptions(context, task, date: date);
+                  if (_isSelectionMode) {
+                    if (task.id != null) _toggleTaskSelection(task.id!);
+                  } else {
+                    _showTaskOptions(context, task, date: date);
+                  }
                 },
-                onLongPress: null,
+                onLongPress: () {
+                  if (!_isSelectionMode) {
+                    HapticFeedback.mediumImpact();
+                    _toggleSelectionMode(true);
+                    if (task.id != null) _toggleTaskSelection(task.id!);
+                  }
+                },
                 child: Row(
                   textDirection: TextDirection.rtl,
                   children: [
@@ -1454,6 +1606,11 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         ),
       ),
     );
+
+    // Disable Dismissible in Selection Mode to prevent conflicts
+    if (_isSelectionMode) {
+      return row;
+    }
 
     return Dismissible(
       key: Key('planning_dismiss_${task.id}_${date.toIso8601String()}'),
@@ -1522,6 +1679,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     required DateTime date,
     double size = 24,
     bool isCurrentMonth = true,
+    bool preventSelectionMode = false,
   }) {
     final tasksNotifier = ref.read(tasksProvider.notifier);
     
@@ -1588,10 +1746,16 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
     return InkWell(
       onTap: () {
+        if (_isSelectionMode && !preventSelectionMode) {
+          HapticFeedback.lightImpact();
+          if (task.id != null) _toggleTaskSelection(task.id!);
+          return;
+        }
         HapticFeedback.lightImpact();
         _toggleTaskStatus(task, date);
       },
       onLongPress: () {
+        if (_isSelectionMode) return;
         HapticFeedback.heavyImpact();
         showModalBottomSheet(
           context: context,

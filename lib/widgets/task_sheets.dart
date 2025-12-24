@@ -355,16 +355,37 @@ class BulkTaskStatusPickerSheet extends ConsumerWidget {
         HapticFeedback.mediumImpact();
 
         if (status == TaskStatus.deferred) {
-          // For deferred, we might need a more complex dialog for each task or a bulk deferral logic
-          // For now, we'll just pop and not apply deferred status in bulk directly
-          Navigator.pop(context);
-          // Optionally, show a message that deferred status cannot be applied in bulk
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('وضعیت تعویق شده را نمی‌توان به صورت گروهی اعمال کرد.')),
-          );
-        } else {
+          // Defer logic for bulk is tricky as it usually requires picking a date per task or a global date
+          // For now, let's assume we defer all to the same date if picked, or just skip defer in bulk for now?
+          // The UI shows the button, so we should support it.
+          // However, the prompt focused on "status change". Deferring usually opens a dialog.
+          // The user instruction: "Fix bulk status change... recurring (current day) and regular (due date)".
+          // Deferring might need a date picker, but here we just update status if it's a direct status like Done/Pending.
+          // If it IS deferred, we probably shouldn't show the postpone dialog for EACH task.
+          // For simplicity and safety, and since the user didn't explicitly ask for bulk-defer date picking:
+          // We will treat "Deferred" as just setting the status to deferred without changing the date (or using today/due date).
+          
+          final tasks = ref.read(tasksProvider);
           for (var taskId in selectedTaskIds) {
-            ref.read(tasksProvider.notifier).updateStatus(taskId, status, date: todayDate);
+            final task = tasks.firstWhere((t) => t.id == taskId, orElse: () => Task(title: '', dueDate: DateTime.now()));
+            final isRecurring = task.recurrence != null && task.recurrence!.type != RecurrenceType.none;
+            
+            // For recurring tasks, we change status for the *current view date* (todayDate passed in).
+            // For regular tasks, we change status for their *due date*.
+            final targetDate = isRecurring ? todayDate : task.dueDate;
+            
+            ref.read(tasksProvider.notifier).updateStatus(taskId, status, date: targetDate);
+          }
+          if (context.mounted) Navigator.pop(context);
+        } else {
+          final tasks = ref.read(tasksProvider);
+          for (var taskId in selectedTaskIds) {
+            final task = tasks.firstWhere((t) => t.id == taskId, orElse: () => Task(title: '', dueDate: DateTime.now()));
+            final isRecurring = task.recurrence != null && task.recurrence!.type != RecurrenceType.none;
+            
+            final targetDate = isRecurring ? todayDate : task.dueDate;
+            
+            ref.read(tasksProvider.notifier).updateStatus(taskId, status, date: targetDate);
           }
           if (context.mounted) Navigator.pop(context);
         }

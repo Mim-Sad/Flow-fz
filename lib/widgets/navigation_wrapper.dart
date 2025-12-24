@@ -22,7 +22,7 @@ class NavigationWrapper extends StatelessWidget {
       showLogo = true;
     } else if (location == '/planning') {
       currentIndex = 1;
-      title = 'برنامه‌ریزی';
+      title = 'برنامه‌های‌من';
       showLogo = true;
     } else if (location == '/reports') {
       currentIndex = 2;
@@ -120,7 +120,7 @@ class NavigationWrapper extends StatelessWidget {
           NavigationDestination(
             icon: const HugeIcon(icon: HugeIcons.strokeRoundedCalendarCheckIn01, color: Colors.grey),
             selectedIcon: HugeIcon(icon: HugeIcons.strokeRoundedCalendarCheckIn01, color: theme.colorScheme.primary),
-            label: 'برنامه‌ریزی',
+            label: 'برنامه‌های‌من',
           ),
           NavigationDestination(
             icon: const HugeIcon(icon: HugeIcons.strokeRoundedChartLineData01, color: Colors.grey),

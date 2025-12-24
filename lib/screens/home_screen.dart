@@ -95,10 +95,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
   
-  void _changeStatusSelected(DateTime today) {
+  void _changeStatusSelected(DateTime today) async {
     if (_selectedTaskIds.isEmpty) return;
     
-    showModalBottomSheet(
+    await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => BulkTaskStatusPickerSheet(
@@ -106,6 +106,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         todayDate: today,
       ),
     );
+    _toggleSelectionMode(false);
   }
 
   @override
@@ -154,163 +155,190 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       canPop: !_isSelectionMode,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        _toggleSelectionMode(false);
+        if (_isSelectionMode) {
+          _toggleSelectionMode(false);
+        }
       },
       child: Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-              child: _isSelectionMode 
-                  ? SizedBox(height: 40, child: _buildSelectionHeader(todayTasks, today))
-                  : SizedBox(height: 40, child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'تسک‌های امروز',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                        ),
-                        _buildSortToggle(),
-                      ],
-                    )),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.only(left: 12, right: 12, bottom: 80),
-            sliver: isLoading 
-              ? SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                           width: 72,
-                           height: 72,
-                           child: CircularProgressIndicator(
-                             strokeWidth: 8,
-                             strokeCap: StrokeCap.round,
-                             backgroundColor: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.2),
-                           ),
-                         )
-                         .animate(onPlay: (controller) => controller.repeat())
-                         .scale(
-                           begin: const Offset(0.7, 0.7),
-                           end: const Offset(1.0, 1.0),
-                           duration: 800.ms,
-                           curve: Curves.elasticOut,
-                         )
-                         .rotate(
-                           begin: 0,
-                           end: 0.1,
-                           duration: 800.ms,
-                           curve: Curves.easeInOut,
-                         )
-                         .then()
-                         .scale(
-                           begin: const Offset(1.0, 1.0),
-                           end: const Offset(0.7, 0.7),
-                           duration: 800.ms,
-                           curve: Curves.easeInOut,
-                         )
-                         .rotate(
-                           begin: 0.1,
-                           end: 0,
-                           duration: 800.ms,
-                           curve: Curves.easeInOut,
-                         )
-                        
-                        .animate(onPlay: (controller) => controller.repeat())
-                        .shimmer(duration: 2000.ms, color: Theme.of(context).colorScheme.primaryContainer)
-                        .then()
-                        .shake(hz: 1),
-                      ],
-                    ),
-                  ),
-                )
-              : todayTasks.isEmpty 
-                ? SliverToBoxAdapter(
-                    child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 40),
-                      Lottie.asset(
-                        'assets/images/TheSoul/20 glasses.json',
-                        width: 120,
-                        height: 120,
-                        fit: BoxFit.contain,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'برای امروز برنامه‌ای نداری!',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+      body: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
+              const SliverPadding(padding: EdgeInsets.only(top: 80)),
+              SliverPadding(
+                padding: const EdgeInsets.only(left: 12, right: 12, bottom: 80),
+                sliver: isLoading 
+                  ? SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                               width: 72,
+                               height: 72,
+                               child: CircularProgressIndicator(
+                                 strokeWidth: 8,
+                                 strokeCap: StrokeCap.round,
+                                 backgroundColor: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.2),
+                               ),
+                             )
+                             .animate(onPlay: (controller) => controller.repeat())
+                             .scale(
+                               begin: const Offset(0.7, 0.7),
+                               end: const Offset(1.0, 1.0),
+                               duration: 800.ms,
+                               curve: Curves.elasticOut,
+                             )
+                             .rotate(
+                               begin: 0,
+                               end: 0.1,
+                               duration: 800.ms,
+                               curve: Curves.easeInOut,
+                             )
+                             .then()
+                             .scale(
+                               begin: const Offset(1.0, 1.0),
+                               end: const Offset(0.7, 0.7),
+                               duration: 800.ms,
+                               curve: Curves.easeInOut,
+                             )
+                             .rotate(
+                               begin: 0.1,
+                               end: 0,
+                               duration: 800.ms,
+                               curve: Curves.easeInOut,
+                             )
+                            
+                            .animate(onPlay: (controller) => controller.repeat())
+                            .shimmer(duration: 2000.ms, color: Theme.of(context).colorScheme.primaryContainer)
+                            .then()
+                            .shake(hz: 1),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                )
-              : SliverReorderableList(
-              itemBuilder: (context, index) {
-                final task = todayTasks[index];
-                bool shouldAnimate = !_animatedTaskIds.contains(task.id);
-                if (shouldAnimate) {
-                  _animatedTaskIds.add(task.id!);
-                }
+                    )
+                  : todayTasks.isEmpty 
+                    ? SliverToBoxAdapter(
+                        child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: 40),
+                          Lottie.asset(
+                            'assets/images/TheSoul/20 glasses.json',
+                            width: 120,
+                            height: 120,
+                            fit: BoxFit.contain,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'برای امروز برنامه‌ای نداری!',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : SliverReorderableList(
+                  itemBuilder: (context, index) {
+                    final task = todayTasks[index];
+                    bool shouldAnimate = !_animatedTaskIds.contains(task.id);
+                    if (shouldAnimate) {
+                      _animatedTaskIds.add(task.id!);
+                    }
 
-                return Padding(
-                  key: ValueKey(task.id),
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: shouldAnimate 
-                    ? FadeInOnce(
-                        delay: (index * 50).ms,
-                        child: TaskListTile(
-                          task: task, 
-                          index: index,
-                          onStatusToggle: () => _handleStatusToggle(task),
-                          isReorderEnabled: _sortMode == SortMode.manual,
-                          isSelectionMode: _isSelectionMode,
-                          isSelected: _selectedTaskIds.contains(task.id),
-                          onSelect: () => _toggleTaskSelection(task.id!),
-                          onEnterSelectionMode: () {
-                            if (!_isSelectionMode) {
-                              _toggleSelectionMode(true);
-                            }
-                            _toggleTaskSelection(task.id!); // Always select the task
-                          },
-                        ),
-                      )
-                    : TaskListTile(
-                          task: task, 
-                          index: index,
-                          onStatusToggle: () => _handleStatusToggle(task),
-                          isReorderEnabled: _sortMode == SortMode.manual,
-                          isSelectionMode: _isSelectionMode,
-                          isSelected: _selectedTaskIds.contains(task.id),
-                          onSelect: () => _toggleTaskSelection(task.id!),
-                          onEnterSelectionMode: () {
-                            if (!_isSelectionMode) {
-                              _toggleSelectionMode(true);
-                            }
-                            _toggleTaskSelection(task.id!); // Always select the task
-                          },
-                        ),
-                );
-              },
-              itemCount: todayTasks.length,
-              onReorder: (oldIndex, newIndex) {
-                // Allow reorder if manual sort OR selection mode is active
-                if (_sortMode != SortMode.manual && !_isSelectionMode) return;
-                
-                if (newIndex > oldIndex) newIndex -= 1;
-                final items = [...todayTasks];
-                final item = items.removeAt(oldIndex);
-                items.insert(newIndex, item);
-                
-                ref.read(tasksProvider.notifier).reorderTasks(items);
-                HapticFeedback.mediumImpact();
-              },
+                    return Padding(
+                      key: ValueKey(task.id),
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: shouldAnimate 
+                        ? FadeInOnce(
+                            delay: (index * 50).ms,
+                            child: TaskListTile(
+                              task: task, 
+                              index: index,
+                              onStatusToggle: () => _handleStatusToggle(task),
+                              isReorderEnabled: _sortMode == SortMode.manual,
+                              isSelectionMode: _isSelectionMode,
+                              isSelected: _selectedTaskIds.contains(task.id),
+                              onSelect: () => _toggleTaskSelection(task.id!),
+                              onEnterSelectionMode: () {
+                                if (!_isSelectionMode) {
+                                  _toggleSelectionMode(true);
+                                }
+                                _toggleTaskSelection(task.id!); // Always select the task
+                              },
+                            ),
+                          )
+                        : TaskListTile(
+                              task: task, 
+                              index: index,
+                              onStatusToggle: () => _handleStatusToggle(task),
+                              isReorderEnabled: _sortMode == SortMode.manual,
+                              isSelectionMode: _isSelectionMode,
+                              isSelected: _selectedTaskIds.contains(task.id),
+                              onSelect: () => _toggleTaskSelection(task.id!),
+                              onEnterSelectionMode: () {
+                                if (!_isSelectionMode) {
+                                  _toggleSelectionMode(true);
+                                }
+                                _toggleTaskSelection(task.id!); // Always select the task
+                              },
+                            ),
+                    );
+                  },
+                  itemCount: todayTasks.length,
+                  onReorder: (oldIndex, newIndex) {
+                    // Allow reorder if manual sort OR selection mode is active
+                    if (_sortMode != SortMode.manual && !_isSelectionMode) return;
+                    
+                    if (newIndex > oldIndex) newIndex -= 1;
+                    final items = [...todayTasks];
+                    final item = items.removeAt(oldIndex);
+                    items.insert(newIndex, item);
+                    
+                    ref.read(tasksProvider.notifier).reorderTasks(items);
+                    HapticFeedback.mediumImpact();
+                  },
+                ),
+              ),
+            ],
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Theme.of(context).colorScheme.surface,
+                    Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+                    Theme.of(context).colorScheme.surface.withValues(alpha: 0),
+                  ],
+                  stops: const [0, 0.6, 1.0],
+                ),
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                  child: _isSelectionMode 
+                      ? SizedBox(height: 48, child: _buildSelectionHeader(todayTasks, today))
+                      : SizedBox(height: 48, child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'تسک‌های امروز',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                            ),
+                            _buildSortToggle(),
+                          ],
+                        )),
+                ),
+              ),
             ),
           ),
         ],
@@ -343,19 +371,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         const Spacer(),
         IconButton(
-          onPressed: () => _deleteSelected(allTasks),
-          icon: const HugeIcon(icon: HugeIcons.strokeRoundedDelete02, size: 24, color: Colors.grey),
-          tooltip: 'حذف گروهی',
+          onPressed: () => _selectAll(allTasks),
+          icon: const HugeIcon(icon: HugeIcons.strokeRoundedFullScreen, size: 24, color: Colors.grey),
+          tooltip: 'انتخاب همه',
         ),
         IconButton(
           onPressed: () => _changeStatusSelected(today),
-          icon: const HugeIcon(icon: HugeIcons.strokeRoundedTask01, size: 24, color: Colors.grey),
+          icon: const HugeIcon(icon: HugeIcons.strokeRoundedEdit02, size: 24, color: Colors.grey),
           tooltip: 'تغییر وضعیت گروهی',
         ),
         IconButton(
-          onPressed: () => _selectAll(allTasks),
-          icon: const HugeIcon(icon: HugeIcons.strokeRoundedCheckList, size: 24, color: Colors.grey),
-          tooltip: 'انتخاب همه',
+          onPressed: () => _deleteSelected(allTasks),
+          icon: const HugeIcon(icon: HugeIcons.strokeRoundedDelete02, size: 24, color: Colors.grey),
+          tooltip: 'حذف گروهی',
         ),
       ],
     );
