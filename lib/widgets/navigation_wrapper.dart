@@ -95,6 +95,8 @@ class NavigationWrapper extends StatelessWidget {
           }),
         ),
         child: NavigationBar(
+          backgroundColor: navigationBarColor,
+          surfaceTintColor: Colors.transparent,
           selectedIndex: currentIndex,
         onDestinationSelected: (index) {
           switch (index) {
