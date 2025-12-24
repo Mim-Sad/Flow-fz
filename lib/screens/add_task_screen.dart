@@ -263,7 +263,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: HugeIcon(
-                              icon: HugeIcons.strokeRoundedTask01, 
+                              icon: HugeIcons.strokeRoundedCheckmarkSquare01, 
                               size: 20,
                               color: Theme.of(context).colorScheme.primary,
                             ),

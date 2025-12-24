@@ -573,7 +573,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         : '${_toPersianDigit(percentage.toStringAsFixed(1))}%',
                     style: TextStyle(
                       color: _getSpectrumColor(percentage),
-                      fontSize: percentage < 0 ? 20 : 28,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                       height: 1,
                     ),
