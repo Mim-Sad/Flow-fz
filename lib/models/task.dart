@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:shamsi_date/shamsi_date.dart';
 
 enum TaskStatus {
   pending,
@@ -161,6 +162,9 @@ class Task {
       if (dateOnly.isAfter(endDateOnly)) return false;
     }
 
+    final jalaliDate = Jalali.fromDateTime(dateOnly);
+    final jalaliDueDate = Jalali.fromDateTime(dueDateOnly);
+
     // Specific recurrence logic
     switch (recurrence!.type) {
       case RecurrenceType.daily:
@@ -174,33 +178,59 @@ class Task {
         
         // If specific days are selected, check if current date is one of them
         if (daysOfWeek.isNotEmpty) {
-          // Dart's weekday is 1-7 (Mon-Sun)
           if (!daysOfWeek.contains(dateOnly.weekday)) return false;
+        } else {
+          // If no specific days, it defaults to the same weekday as start date
+          if (dateOnly.weekday != dueDateOnly.weekday) return false;
         }
         
-        final diffInDays = dateOnly.difference(dueDateOnly).inDays;
-        final weeksDiff = (diffInDays / 7).floor();
+        // Calculate weeks difference. 
+        // We find the start of the week (Saturday for Iran) for both dates 
+        // to calculate the absolute week difference.
+        // DateTime.weekday: 1=Mon, ..., 6=Sat, 7=Sun
+        // Days since Saturday: Sat=0, Sun=1, Mon=2, Tue=3, Wed=4, Thu=5, Fri=6
+        final daysSinceSatStart = (dueDateOnly.weekday + 1) % 7;
+        final daysSinceSatCurrent = (dateOnly.weekday + 1) % 7;
+        
+        final startOfStartWeek = dueDateOnly.subtract(Duration(days: daysSinceSatStart));
+        final startOfCurrentWeek = dateOnly.subtract(Duration(days: daysSinceSatCurrent));
+        final weeksDiff = (startOfCurrentWeek.difference(startOfStartWeek).inDays / 7).round();
+        
         return weeksDiff % interval == 0;
 
       case RecurrenceType.monthly:
         final interval = recurrence!.interval ?? 1;
-        final dayOfMonth = recurrence!.dayOfMonth ?? dueDateOnly.day;
         
-        if (dateOnly.day != dayOfMonth) return false;
+        // Use Jalali for monthly recurrence to stay consistent with Persian calendar
+        if (jalaliDate.day != jalaliDueDate.day) {
+          // Handle end of month cases (e.g., task on 31st, but month has 30 days)
+          // If the target day is > current month length, we could either skip or use the last day.
+          // For now, let's match the exact day.
+          return false;
+        }
         
-        final monthsDiff = (dateOnly.year - dueDateOnly.year) * 12 + (dateOnly.month - dueDateOnly.month);
-        return monthsDiff % interval == 0;
+        final monthsDiff = (jalaliDate.year - jalaliDueDate.year) * 12 + (jalaliDate.month - jalaliDueDate.month);
+        return monthsDiff >= 0 && monthsDiff % interval == 0;
 
       case RecurrenceType.yearly:
         final interval = recurrence!.interval ?? 1;
-        if (dateOnly.month != dueDateOnly.month || dateOnly.day != dueDateOnly.day) return false;
         
-        final yearsDiff = dateOnly.year - dueDateOnly.year;
-        return yearsDiff % interval == 0;
+        // Use Jalali for yearly recurrence
+        if (jalaliDate.month != jalaliDueDate.month || jalaliDate.day != jalaliDueDate.day) return false;
+        
+        final yearsDiff = jalaliDate.year - jalaliDueDate.year;
+        return yearsDiff >= 0 && yearsDiff % interval == 0;
 
       case RecurrenceType.specificDays:
-        final specificDates = recurrence!.specificDates ?? [];
-        return specificDates.any((d) => _isSameDay(d, dateOnly));
+        // This is used for "Specific Weekdays" in the UI
+        final daysOfWeek = recurrence!.daysOfWeek ?? [];
+        if (daysOfWeek.isEmpty) return _isSameDay(dueDateOnly, dateOnly);
+        return daysOfWeek.contains(dateOnly.weekday);
+
+      case RecurrenceType.custom:
+        final interval = recurrence!.interval ?? 1;
+        final diff = dateOnly.difference(dueDateOnly).inDays;
+        return diff >= 0 && diff % interval == 0;
 
       default:
         return _isSameDay(dueDateOnly, dateOnly);

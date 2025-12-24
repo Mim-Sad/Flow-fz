@@ -1088,72 +1088,178 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setSheetState) {
-          return Padding(
-            padding: const EdgeInsets.all(20),
+          return Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('تنظیمات تکرار', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const SizedBox(height: 12),
-                _buildRecurrenceOption(RecurrenceType.none, 'بدون تکرار', setSheetState),
-                _buildRecurrenceOption(RecurrenceType.daily, 'روزانه', setSheetState),
-                _buildRecurrenceOption(RecurrenceType.weekly, 'هفتگی', setSheetState),
-                _buildRecurrenceOption(RecurrenceType.monthly, 'ماهانه', setSheetState),
-                _buildRecurrenceOption(RecurrenceType.yearly, 'سالانه', setSheetState),
-                _buildRecurrenceOption(RecurrenceType.specificDays, 'روزهای خاص هفته', setSheetState),
-                
-                if (_recurrence?.type == RecurrenceType.specificDays)
-                   _buildSpecifiDaysSelector(setSheetState),
-                   
-                const Divider(),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  title: const Padding(
-                    padding: EdgeInsets.only(bottom: 4),
-                    child: Text('تاریخ پایان تکرار', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                  ),
-                  subtitle: Text(_recurrence?.endDate != null 
-                    ? _formatJalali(Jalali.fromDateTime(_recurrence!.endDate!))
-                    : 'نامحدود',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                  trailing: TextButton(
-                    onPressed: () async {
-                      final picked = await showPersianDatePicker(
-                        context: context,
-                        initialDate: Jalali.fromDateTime(_recurrence?.endDate ?? _selectedDate.add(const Duration(days: 30))),
-                        firstDate: Jalali.fromDateTime(_selectedDate),
-                        lastDate: Jalali(1500, 1, 1),
-                      );
-                      if (picked != null) {
-                        setState(() {
-                          // Update recurrence with new end date
-                          _recurrence = RecurrenceConfig(
-                            type: _recurrence?.type ?? RecurrenceType.daily,
-                            interval: _recurrence?.interval,
-                            daysOfWeek: _recurrence?.daysOfWeek,
-                            specificDates: _recurrence?.specificDates,
-                            dayOfMonth: _recurrence?.dayOfMonth,
-                            endDate: picked.toDateTime(),
-                          );
-                        });
-                        setSheetState(() {});
-                      }
-                    },
-                    child: const Text('تغییر'),
+                // Handle Line
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
                 
-                const SizedBox(height: 16),
-                SizedBox(
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: HugeIcon(
+                                icon: HugeIcons.strokeRoundedRefresh, 
+                                size: 20,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Text(
+                              'تنظیمات تکرار',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        // Options Grid/List
+                        _buildRecurrenceOption(RecurrenceType.none, 'بدون تکرار', HugeIcons.strokeRoundedCalendarRemove01, setSheetState),
+                        _buildRecurrenceOption(RecurrenceType.daily, 'روزانه', HugeIcons.strokeRoundedCalendar03, setSheetState),
+                        _buildRecurrenceOption(RecurrenceType.weekly, 'هفتگی', HugeIcons.strokeRoundedCalendar01, setSheetState),
+                        _buildRecurrenceOption(RecurrenceType.monthly, 'ماهانه', HugeIcons.strokeRoundedCalendar04, setSheetState),
+                        _buildRecurrenceOption(RecurrenceType.yearly, 'سالانه', HugeIcons.strokeRoundedCalendar02, setSheetState),
+                        _buildRecurrenceOption(RecurrenceType.specificDays, 'روزهای خاص هفته', HugeIcons.strokeRoundedCalendarCheckIn01, setSheetState),
+                        
+                        if (_recurrence?.type == RecurrenceType.specificDays) ...[
+                          const SizedBox(height: 8),
+                          _buildSpecifiDaysSelector(setSheetState),
+                        ],
+                           
+                        const SizedBox(height: 10),
+                        const Divider(height: 1),
+                        const SizedBox(height: 10),
+                        
+                        // End Date Selection
+                        InkWell(
+                          onTap: () async {
+                            final picked = await showPersianDatePicker(
+                              context: context,
+                              initialDate: Jalali.fromDateTime(_recurrence?.endDate ?? _selectedDate.add(const Duration(days: 30))),
+                              firstDate: Jalali.fromDateTime(_selectedDate),
+                              lastDate: Jalali(1500, 1, 1),
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                _recurrence = RecurrenceConfig(
+                                  type: _recurrence?.type ?? RecurrenceType.daily,
+                                  interval: _recurrence?.interval ?? 1,
+                                  daysOfWeek: _recurrence?.daysOfWeek,
+                                  specificDates: _recurrence?.specificDates,
+                                  dayOfMonth: _recurrence?.dayOfMonth,
+                                  endDate: picked.toDateTime(),
+                                );
+                              });
+                              setSheetState(() {});
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: HugeIcon(
+                                    icon: HugeIcons.strokeRoundedCalendar03, 
+                                    size: 20,
+                                    color: Theme.of(context).colorScheme.secondary,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'تاریخ پایان تکرار',
+                                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                      ),
+                                      Text(
+                                        _recurrence?.endDate != null 
+                                          ? _formatJalali(Jalali.fromDateTime(_recurrence!.endDate!))
+                                          : 'نامحدود (همیشگی)',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                HugeIcon(
+                                  icon: HugeIcons.strokeRoundedArrowLeft01, 
+                                  size: 20,
+                                  color: Theme.of(context).colorScheme.outline,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                // Sticky Confirm Button
+                Container(
+                  padding: const EdgeInsets.only(top: 16),
                   width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('تایید'),
+                  child: SizedBox(
+                    height: 56,
+                    child: FilledButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: HugeIcon(
+                        icon: HugeIcons.strokeRoundedCheckmarkSquare04,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                      style: FilledButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                      ),
+                      label: const Text(
+                        'تایید و ثبت تکرار',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -1176,7 +1282,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     ];
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: days.map((day) {
@@ -1191,46 +1297,60 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                 } else {
                   currentDays.add(dayId);
                 }
-                _recurrence = RecurrenceConfig(
-                  type: RecurrenceType.specificDays,
-                  daysOfWeek: currentDays,
-                  endDate: _recurrence?.endDate,
-                );
+                
+                if (currentDays.isEmpty) {
+                  // If no days selected, switch to none
+                  _recurrence = null;
+                } else if (currentDays.length == 7) {
+                  _recurrence = RecurrenceConfig(
+                    type: RecurrenceType.daily,
+                    interval: 1,
+                    endDate: _recurrence?.endDate,
+                  );
+                } else {
+                  _recurrence = RecurrenceConfig(
+                    type: RecurrenceType.specificDays,
+                    daysOfWeek: currentDays,
+                    endDate: _recurrence?.endDate,
+                  );
+                }
               });
               setSheetState(() {});
             },
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: isSelected 
-                        ? Theme.of(context).colorScheme.primary 
-                        : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isSelected 
-                          ? Theme.of(context).colorScheme.primary 
-                          : Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
-                      width: 1.5,
-                    ),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    day['label'] as String,
-                    style: TextStyle(
-                      color: isSelected 
-                          ? Theme.of(context).colorScheme.onPrimary 
-                          : Theme.of(context).colorScheme.onSurface,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      fontSize: 12,
-                    ),
-                  ),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: isSelected 
+                    ? Theme.of(context).colorScheme.primary 
+                    : Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isSelected 
+                      ? Theme.of(context).colorScheme.primary 
+                      : Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                  width: 1.2,
                 ),
-              ],
+                boxShadow: isSelected ? [
+                  BoxShadow(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  )
+                ] : null,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                day['label'] as String,
+                style: TextStyle(
+                  color: isSelected 
+                      ? Theme.of(context).colorScheme.onPrimary 
+                      : Theme.of(context).colorScheme.onSurface,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 11,
+                ),
+              ),
             ),
           );
         }).toList(),
@@ -1238,38 +1358,65 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     );
   }
 
-  Widget _buildRecurrenceOption(RecurrenceType type, String label, StateSetter setSheetState) {
+  Widget _buildRecurrenceOption(RecurrenceType type, String label, dynamic icon, StateSetter setSheetState) {
     final isSelected = (_recurrence?.type ?? RecurrenceType.none) == type;
-    return InkWell(
-      onTap: () {
-        setState(() {
-          if (type == RecurrenceType.none) {
-            _recurrence = null;
-          } else {
-            // Preserve end date if switching types
-            _recurrence = RecurrenceConfig(
-              type: type,
-              interval: 1,
-              endDate: _recurrence?.endDate,
-              // Default specific days to current day if switching to specificDays
-              daysOfWeek: type == RecurrenceType.specificDays ? [_selectedDate.weekday] : null,
-            );
-          }
-        });
-        setSheetState(() {});
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          children: [
-            HugeIcon(
-              icon: isSelected ? HugeIcons.strokeRoundedCheckmarkCircle03 : HugeIcons.strokeRoundedCircle,
-              color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey,
-              size: 20,
+    final color = isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface;
+    
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 1),
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            if (type == RecurrenceType.none) {
+              _recurrence = null;
+            } else {
+              _recurrence = RecurrenceConfig(
+                type: type,
+                interval: 1,
+                endDate: _recurrence?.endDate,
+                daysOfWeek: type == RecurrenceType.specificDays ? [_selectedDate.weekday] : null,
+              );
+            }
+          });
+          setSheetState(() {});
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withValues(alpha: 0.08) : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected ? color.withValues(alpha: 0.5) : Colors.transparent,
+              width: 1,
             ),
-            const SizedBox(width: 8),
-            Text(label, style: const TextStyle(fontSize: 14)),
-          ],
+          ),
+          child: Row(
+            children: [
+              if (isSelected)
+                HugeIcon(
+                  icon: HugeIcons.strokeRoundedCheckmarkCircle02,
+                  color: color,
+                  size: 20,
+                )
+              else
+                HugeIcon(
+                  icon: icon,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  size: 22,
+                ),
+              const SizedBox(width: 16),
+              Text(
+                label, 
+                style: TextStyle(
+                  fontSize: 14, 
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? color : Theme.of(context).colorScheme.onSurface,
+                )
+              ),
+            ],
+          ),
         ),
       ),
     );

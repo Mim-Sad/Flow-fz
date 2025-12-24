@@ -87,6 +87,7 @@ class AppTheme {
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: SegmentedButton.styleFrom(
+          foregroundColor: brightness == Brightness.light ? Colors.black : Colors.white,
           backgroundColor: colorScheme.surface,
           selectedBackgroundColor: colorScheme.primaryContainer,
           selectedForegroundColor: colorScheme.primary,

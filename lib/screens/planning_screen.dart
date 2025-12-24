@@ -1047,8 +1047,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             }(),
           ],
           
-          if (recurringTasksByWeek.isNotEmpty && regularTasksForMonth.isNotEmpty)
-             const SizedBox(height: 16),
+
 
           // Regular Tasks
           if (regularTasksForMonth.isNotEmpty)
