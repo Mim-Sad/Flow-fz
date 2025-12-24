@@ -36,21 +36,33 @@ final _router = GoRouter(
       routes: [
         GoRoute(
           path: '/',
-          builder: (context, state) => const HomeScreen(),
+          pageBuilder: (context, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: const HomeScreen(),
+          ),
         ),
         GoRoute(
           path: '/planning',
-          builder: (context, state) => const PlanningScreen(),
+          pageBuilder: (context, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: const PlanningScreen(),
+          ),
         ),
         GoRoute(
           path: '/reports',
-          builder: (context, state) => const ReportsScreen(),
+          pageBuilder: (context, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: const ReportsScreen(),
+          ),
         ),
       ],
     ),
     GoRoute(
       path: '/settings',
-      builder: (context, state) => const SettingsScreen(),
+      pageBuilder: (context, state) => NoTransitionPage(
+        key: state.pageKey,
+        child: const SettingsScreen(),
+      ),
     ),
   ],
 );
