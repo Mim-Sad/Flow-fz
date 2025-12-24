@@ -471,8 +471,11 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     Task task,
     DateTime startOfWeek, {
     int? currentMonth,
+    Widget? weekLabel,
+    bool showDayHints = false,
+    bool hideTitle = false,
   }) {
-    final days = List.generate(
+    final allDays = List.generate(
       7,
       (index) => startOfWeek.add(Duration(days: index)),
     );
@@ -480,79 +483,121 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     return Container(
       color: Colors.transparent,
       padding: const EdgeInsets.symmetric(horizontal: 10.5, vertical: 3),
-      child: Row(
-        textDirection: TextDirection.ltr,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            textDirection: TextDirection.rtl,
-            mainAxisSize: MainAxisSize.min,
-            children: days.map((date) {
-              final isCurrentMonth =
-                  currentMonth == null ||
-                  Jalali.fromDateTime(date).month == currentMonth;
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 1.5),
-                child: _buildStatusIcon(
-                  task: task,
-                  date: date,
-                  size: 22,
-                  isCurrentMonth: isCurrentMonth,
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: InkWell(
-              onTap: () {
-                HapticFeedback.lightImpact();
-                final today = DateTime.now();
-                DateTime targetDate = days.first;
-                for (var d in days) {
-                  if (isSameDay(d, today)) {
-                    targetDate = d;
-                    break;
-                  }
-                }
-                _toggleTaskStatus(task, targetDate);
-              },
-              onLongPress: () {
-                HapticFeedback.mediumImpact();
-                final today = DateTime.now();
-                DateTime targetDate = days.first;
-                for (var d in days) {
-                  if (isSameDay(d, today)) {
-                    targetDate = d;
-                    break;
-                  }
-                }
-                _showTaskOptions(context, task, date: targetDate);
-              },
-              child: Row(
-                textDirection: TextDirection.rtl,
-                children: [
-                  if (task.taskEmoji != null) ...[
-                    Text(task.taskEmoji!, style: const TextStyle(fontSize: 14)),
-                    const SizedBox(width: 6),
-                  ],
-                  Expanded(
-                    child: TextScroll(
-                      task.title,
-                      mode: TextScrollMode.endless,
-                      velocity: const Velocity(pixelsPerSecond: Offset(30, 0)),
-                      delayBefore: const Duration(seconds: 2),
-                      pauseBetween: const Duration(seconds: 2),
-                      textDirection: TextDirection.rtl,
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Theme.of(context).colorScheme.onSurface,
+          if (showDayHints) ...[
+            Row(
+              textDirection: TextDirection.ltr,
+              children: [
+                Row(
+                  textDirection: TextDirection.rtl,
+                  mainAxisSize: MainAxisSize.min,
+                  children: allDays.map((date) {
+                    return Container(
+                      width: 22,
+                      margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                      alignment: Alignment.center,
+                      child: Text(
+                        _getDayName(date.weekday)[0],
+                        style: TextStyle(
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant
+                              .withValues(alpha: 0.6),
+                        ),
                       ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+          ],
+          Row(
+            textDirection: TextDirection.ltr,
+            children: [
+              Row(
+                textDirection: TextDirection.rtl,
+                mainAxisSize: MainAxisSize.min,
+                children: allDays.map((date) {
+                  final isCurrentMonth =
+                      currentMonth == null ||
+                      Jalali.fromDateTime(date).month == currentMonth;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 1.5),
+                    child: _buildStatusIcon(
+                      task: task,
+                      date: date,
+                      size: 22,
+                      isCurrentMonth: isCurrentMonth,
+                    ),
+                  );
+                }).toList(),
+              ),
+              if (weekLabel != null) ...[
+                const SizedBox(width: 6),
+                weekLabel,
+              ],
+              const SizedBox(width: 10),
+              if (!hideTitle)
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      final today = DateTime.now();
+                      DateTime targetDate = allDays.first;
+                      for (var d in allDays) {
+                        if (isSameDay(d, today)) {
+                          targetDate = d;
+                          break;
+                        }
+                      }
+                      _toggleTaskStatus(task, targetDate);
+                    },
+                    onLongPress: () {
+                      HapticFeedback.mediumImpact();
+                      final today = DateTime.now();
+                      DateTime targetDate = allDays.first;
+                      for (var d in allDays) {
+                        if (isSameDay(d, today)) {
+                          targetDate = d;
+                          break;
+                        }
+                      }
+                      _showTaskOptions(context, task, date: targetDate);
+                    },
+                    child: Row(
+                      textDirection: TextDirection.rtl,
+                      children: [
+                        if (task.taskEmoji != null) ...[
+                          Text(task.taskEmoji!, style: const TextStyle(fontSize: 14)),
+                          const SizedBox(width: 6),
+                        ],
+                        Expanded(
+                          child: TextScroll(
+                            task.title,
+                            mode: TextScrollMode.endless,
+                            velocity: const Velocity(pixelsPerSecond: Offset(30, 0)),
+                            delayBefore: const Duration(seconds: 2),
+                            pauseBetween: const Duration(seconds: 2),
+                            textDirection: TextDirection.rtl,
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
+                )
+              else
+                const Expanded(child: SizedBox()),
+            ],
           ),
         ],
       ),
@@ -667,41 +712,16 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           ),
           const SizedBox(height: 8),
           if (recurringTasks.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10.5),
-              child: Row(
-                textDirection: TextDirection.ltr,
-                children: [
-                  Row(
-                    textDirection: TextDirection.rtl,
-                    mainAxisSize: MainAxisSize.min,
-                    children: List.generate(7, (index) {
-                      final date = startOfWeek.add(Duration(days: index));
-                      return Container(
-                        width: 22,
-                        margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                        alignment: Alignment.center,
-                        child: Text(
-                          _getDayName(date.weekday)[0],
-                          style: TextStyle(
-                            fontSize: 8,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant
-                                .withValues(alpha: 0.6),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                  const Expanded(child: SizedBox()),
-                ],
-              ),
-            ),
-            const SizedBox(height: 2),
-            ...recurringTasks.map((t) => _buildWeeklyRecurringTaskRow(t, startOfWeek)),
-            if (regularTasks.isNotEmpty) const SizedBox(height: 8),
+            ...recurringTasks.asMap().entries.map((entry) {
+              final index = entry.key;
+              final t = entry.value;
+              return _buildWeeklyRecurringTaskRow(
+                t, 
+                startOfWeek,
+                showDayHints: index == 0,
+              );
+            }),
+            if (regularTasks.isNotEmpty) const SizedBox(height: 2),
           ],
           if (regularTasks.isNotEmpty)
             ListView.builder(
@@ -714,7 +734,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                 return Padding(
                   key: ValueKey(task.id ?? 'temp_${task.hashCode}_$index'),
                   padding: EdgeInsets.zero,
-                  child: _buildCompactTaskRow(task),
+                  child: _buildCompactTaskRow(task, alignWithWeekly: true),
                 );
               },
             ),
@@ -863,80 +883,66 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           ),
           const SizedBox(height: 8),
           if (recurringByWeek.isNotEmpty) ...[
-            ...(recurringByWeek.entries.toList()..sort((a, b) => a.key.compareTo(b.key)))
-            .map((entry) {
-              final weekIndex = entry.key;
-              final weekTasks = entry.value;
-              final weekDays = weeks[weekIndex];
-              final weekStart = weekDays.first;
-              final isLast = weekIndex == (recurringByWeek.keys.isEmpty ? weekIndex : recurringByWeek.keys.reduce((a, b) => a > b ? a : b));
+            () {
+              final sortedEntries = recurringByWeek.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
+              final Set<String> titlesShown = {};
+              bool hintsShown = false;
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'هفته ${_toPersianDigit((weekIndex + 1).toString())}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.secondary,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10.5),
-                    child: Row(
-                      textDirection: TextDirection.ltr,
-                      children: [
-                        Row(
-                          textDirection: TextDirection.rtl,
-                          mainAxisSize: MainAxisSize.min,
-                          children: List.generate(7, (index) {
-                            final date = weekDays[index];
-                            return Container(
-                              width: 22,
-                              margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                              alignment: Alignment.center,
+                children: sortedEntries.map((entry) {
+                  final weekIndex = entry.key;
+                  final weekTasks = entry.value;
+                  final weekDays = weeks[weekIndex];
+                  final weekStart = weekDays.first;
+                  final isLast = weekIndex == (recurringByWeek.keys.isEmpty ? weekIndex : recurringByWeek.keys.reduce((a, b) => a > b ? a : b));
+                  debugPrint('isLast: $isLast, weekIndex: $weekIndex, recurringByWeek.keys: ${recurringByWeek.keys}');
+                  final weekSection = Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ...weekTasks.asMap().entries.map((taskEntry) {
+                        final t = taskEntry.value;
+                        final taskId = (t.id ?? 'temp_${t.hashCode}').toString();
+                        
+                        final showTitle = !titlesShown.contains(taskId);
+                        if (showTitle) titlesShown.add(taskId);
+
+                        final showHints = !hintsShown;
+                        if (showHints) hintsShown = true;
+
+                        return _buildWeeklyRecurringTaskRow(
+                          t,
+                          weekStart,
+                          currentMonth: currentMonth,
+                          showDayHints: showHints,
+                          hideTitle: !showTitle,
+                          weekLabel: Container(
+                            width: 50,
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Center(
                               child: Text(
-                                _getDayName(date.weekday)[0],
+                                'هفته ${_toPersianDigit((weekIndex + 1).toString())}',
                                 style: TextStyle(
-                                  fontSize: 8,
+                                  fontSize: 9,
                                   fontWeight: FontWeight.bold,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant
-                                      .withValues(alpha: 0.6),
+                                  color: Theme.of(context).colorScheme.secondary,
                                 ),
                               ),
-                            );
-                          }),
-                        ),
-                        const Expanded(child: SizedBox()),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  ...weekTasks.map(
-                    (t) => _buildWeeklyRecurringTaskRow(
-                      t,
-                      weekStart,
-                      currentMonth: currentMonth,
-                    ),
-                  ),
-                  if (!isLast) const SizedBox(height: 12) else const SizedBox(height: 12),
-                ],
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  );
+                  return weekSection;
+                }).toList(),
               );
-            }),
-            if (regularTasks.isNotEmpty) const SizedBox(height: 8),
+            }(),
+            if (regularTasks.isNotEmpty) const SizedBox(height: 2),
           ],
           if (regularTasks.isNotEmpty)
             ListView.builder(
@@ -949,7 +955,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                 return Padding(
                   key: ValueKey(task.id ?? 'temp_${task.hashCode}_$index'),
                   padding: EdgeInsets.zero,
-                  child: _buildCompactTaskRow(task),
+                  child: _buildCompactTaskRow(task, alignWithWeekly: true, additionalOffset: 56),
                 );
               },
             ),
@@ -1331,7 +1337,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
               color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           
           // Tasks List
           if (tasks.isNotEmpty)
@@ -1370,7 +1376,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     );
   }
 
-  Widget _buildCompactTaskRow(Task task, {DateTime? dateOverride}) {
+  Widget _buildCompactTaskRow(Task task, {DateTime? dateOverride, bool alignWithWeekly = false, double additionalOffset = 0}) {
     final date = dateOverride ?? ((task.recurrence != null && task.recurrence!.type != RecurrenceType.none) ? _selectedDate : task.dueDate);
     final status = ref.read(tasksProvider.notifier).getStatusForDate(task.id!, date);
 
@@ -1387,7 +1393,10 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           textDirection: TextDirection.ltr,
           children: [
             // Status Icon (Left side)
-            _buildStatusIcon(task: task, date: date, size: 22),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 1.5),
+              child: _buildStatusIcon(task: task, date: date, size: 22),
+            ),
 
             const SizedBox(width: 10),
 
