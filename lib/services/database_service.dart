@@ -358,10 +358,19 @@ class DatabaseService {
     };
   }
 
-  Future<void> importData(Map<String, dynamic> data) async {
+  Future<void> importData(dynamic inputData) async {
     debugPrint('Starting data import...');
     Database db = await database;
     final now = DateTime.now().toIso8601String();
+
+    Map<String, dynamic> data;
+    if (inputData is List) {
+      data = {'tasks': inputData};
+    } else if (inputData is Map<String, dynamic>) {
+      data = inputData;
+    } else {
+      throw Exception('Invalid data format for import');
+    }
     
     try {
       await db.transaction((txn) async {
@@ -422,10 +431,10 @@ class DatabaseService {
           final existingTasks = await txn.query('tasks', where: 'isDeleted = 0');
           
           for (var taskMap in tasksList) {
-            final oldId = taskMap['id'] as int;
-            final title = taskMap['title'] as String;
+            final oldId = taskMap['id'] as int?; // Safe cast to nullable int
+            final title = taskMap['title'] as String? ?? '';
             final description = taskMap['description'] as String?;
-            final dueDate = taskMap['dueDate'] as String;
+            final dueDate = taskMap['dueDate'] as String? ?? now;
             
             // Basic deduplication: same title, description, and dueDate
             final duplicate = existingTasks.firstWhere(
@@ -436,18 +445,20 @@ class DatabaseService {
             );
             
             if (duplicate.isNotEmpty) {
-              taskIdMap[oldId] = duplicate['id'] as int;
+              if (oldId != null) taskIdMap[oldId] = duplicate['id'] as int;
               debugPrint('Skipping duplicate task: $title');
             } else {
               // New task
               final newTaskMap = Map<String, dynamic>.from(taskMap);
               newTaskMap.remove('id'); // Let SQLite handle ID
               
-              // Ensure numeric fields are actually numbers
-              if (newTaskMap['status'] is String) newTaskMap['status'] = int.tryParse(newTaskMap['status']) ?? 0;
-              if (newTaskMap['priority'] is String) newTaskMap['priority'] = int.tryParse(newTaskMap['priority']) ?? 0;
-              if (newTaskMap['isDeleted'] is String) newTaskMap['isDeleted'] = (newTaskMap['isDeleted'] == '1' || newTaskMap['isDeleted'] == 'true') ? 1 : 0;
-              if (newTaskMap['position'] is String) newTaskMap['position'] = int.tryParse(newTaskMap['position']) ?? 0;
+              // Ensure numeric fields are actually numbers and not null
+              newTaskMap['title'] = title;
+              newTaskMap['dueDate'] = dueDate;
+              newTaskMap['priority'] = _toInt(newTaskMap['priority'], 1); // Default to Medium (1)
+              newTaskMap['isDeleted'] = _toInt(newTaskMap['isDeleted'], 0) == 1 ? 1 : 0;
+              newTaskMap['position'] = _toInt(newTaskMap['position'], 0);
+              newTaskMap['createdAt'] = newTaskMap['createdAt'] ?? now;
 
               // Map categories to new IDs if they changed
               if (newTaskMap['categories'] != null) {
@@ -517,7 +528,7 @@ class DatabaseService {
 
               // Move legacy status to statusHistory if it exists and statusHistory is empty
               if (newTaskMap['status'] != null && (newTaskMap['statusHistory'] == null || newTaskMap['statusHistory'] == '{}' || newTaskMap['statusHistory'] == '[]')) {
-                 final int statusValue = newTaskMap['status'] is int ? newTaskMap['status'] : int.tryParse(newTaskMap['status'].toString()) ?? 0;
+                 final int statusValue = _toInt(newTaskMap['status'], 0);
                  final dateKey = dueDate.split('T')[0];
                  newTaskMap['statusHistory'] = json.encode({dateKey: statusValue});
               }
@@ -553,7 +564,7 @@ class DatabaseService {
               newTaskMap.remove('status'); 
 
               final newId = await txn.insert('tasks', newTaskMap);
-              taskIdMap[oldId] = newId;
+              if (oldId != null) taskIdMap[oldId] = newId;
             }
           }
         }
@@ -563,8 +574,8 @@ class DatabaseService {
           final eventsList = (data['events'] as List).cast<Map<String, dynamic>>();
           debugPrint('Importing ${eventsList.length} events...');
           for (var eventMap in eventsList) {
-            final oldTaskId = eventMap['taskId'] as int;
-            if (taskIdMap.containsKey(oldTaskId)) {
+            final oldTaskId = eventMap['taskId'] as int?;
+            if (oldTaskId != null && taskIdMap.containsKey(oldTaskId)) {
                final newTaskId = taskIdMap[oldTaskId]!;
                final newEventMap = Map<String, dynamic>.from(eventMap);
                newEventMap.remove('id');
@@ -713,5 +724,14 @@ class DatabaseService {
       'occurredAt': (occurredAt ?? DateTime.now()).toIso8601String(),
       'payload': jsonEncode(eventPayload),
     });
+  }
+
+  int _toInt(dynamic value, int defaultValue) {
+    if (value == null) return defaultValue;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? defaultValue;
+    if (value is bool) return value ? 1 : 0;
+    return defaultValue;
   }
 }

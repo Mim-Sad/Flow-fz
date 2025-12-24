@@ -441,7 +441,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       if (task.id == null) return false;
 
       if (recurrence.type == RecurrenceType.hourly) {
-        return false;
+        // Hourly tasks are allowed but UI might need optimization
       }
 
       if (recurrence.type == RecurrenceType.custom) {
@@ -878,31 +878,44 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     final startOfWeek = _selectedDate.subtract(Duration(days: offset));
     final endOfWeek = startOfWeek.add(const Duration(days: 6));
 
-    // 1. Identify recurring tasks active in this week
+    // 1. Identify recurring tasks active in this week or having status in this week
     final recurringTasksForWeek = <Task>[];
     for (var task in tasks) {
       if (task.recurrence != null &&
           task.recurrence!.type != RecurrenceType.none) {
-        bool isActive = false;
+        bool isActiveOrHasStatus = false;
         for (int i = 0; i < 7; i++) {
-          if (task.isActiveOnDate(startOfWeek.add(Duration(days: i)))) {
-            isActive = true;
+          final date = startOfWeek.add(Duration(days: i));
+          if (task.isActiveOnDate(date) || task.statusHistory.containsKey(getDateKey(date))) {
+            isActiveOrHasStatus = true;
             break;
           }
         }
-        if (isActive) recurringTasksForWeek.add(task);
+        if (isActiveOrHasStatus) recurringTasksForWeek.add(task);
       }
     }
 
-    // 2. Identify all regular tasks for the week
+    // 2. Identify all regular tasks for the week (by dueDate or statusHistory)
     final regularTasksForWeek = <Task>[];
     
-    // Efficient way: Check if task.dueDate is within startOfWeek and endOfWeek
     for (var task in tasks) {
       if (task.recurrence == null || task.recurrence!.type == RecurrenceType.none) {
-         if ((task.dueDate.isAfter(startOfWeek.subtract(const Duration(seconds: 1))) && 
-              task.dueDate.isBefore(endOfWeek.add(const Duration(days: 1))))) {
+         bool isInRange = (task.dueDate.isAfter(startOfWeek.subtract(const Duration(seconds: 1))) && 
+                           task.dueDate.isBefore(endOfWeek.add(const Duration(days: 1))));
+         
+         if (isInRange) {
            regularTasksForWeek.add(task);
+         } else {
+           // Check if it has any status record in this week
+           bool hasStatusInWeek = false;
+           for (int i = 0; i < 7; i++) {
+             final date = startOfWeek.add(Duration(days: i));
+             if (task.statusHistory.containsKey(getDateKey(date))) {
+               hasStatusInWeek = true;
+               break;
+             }
+           }
+           if (hasStatusInWeek) regularTasksForWeek.add(task);
          }
       }
     }
@@ -996,7 +1009,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           final weekTasks = <Task>[];
           for (var task in tasks) {
             if (task.recurrence != null && task.recurrence!.type != RecurrenceType.none) {
-               if (weekDays.any((d) => task.isActiveOnDate(d))) {
+               if (weekDays.any((d) => task.isActiveOnDate(d) || task.statusHistory.containsKey(getDateKey(d)))) {
                   weekTasks.add(task);
                }
             }
@@ -1011,8 +1024,24 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       for (var task in tasks) {
         if (task.recurrence == null || task.recurrence!.type == RecurrenceType.none) {
            final tJalali = Jalali.fromDateTime(task.dueDate);
-           if (tJalali.year == jalaliDate.year && tJalali.month == jalaliDate.month) {
+           bool isInMonth = (tJalali.year == jalaliDate.year && tJalali.month == jalaliDate.month);
+           
+           if (isInMonth) {
              regularTasksForMonth.add(task);
+           } else {
+             // Check if it has any status record in this month
+             bool hasStatusInMonth = false;
+             for (var week in weeks) {
+               for (var d in week) {
+                 if (Jalali.fromDateTime(d).month == jalaliDate.month && 
+                     task.statusHistory.containsKey(getDateKey(d))) {
+                   hasStatusInMonth = true;
+                   break;
+                 }
+               }
+               if (hasStatusInMonth) break;
+             }
+             if (hasStatusInMonth) regularTasksForMonth.add(task);
            }
         }
       }

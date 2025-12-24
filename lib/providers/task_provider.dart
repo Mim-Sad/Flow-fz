@@ -146,7 +146,7 @@ final activeTasksProvider = Provider.family<List<Task>, DateTime>((ref, date) {
   final List<Task> activeTasks = [];
 
   for (final task in allTasks) {
-    if (task.isActiveOnDate(dateOnly)) {
+    if (task.isActiveOnDate(dateOnly) || task.statusHistory.containsKey(getDateKey(dateOnly))) {
       activeTasks.add(task.copyWith(dueDate: dateOnly));
     }
   }

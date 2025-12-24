@@ -94,7 +94,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         if (confirm == true) {
           File file = File(result.files.single.path!);
           String jsonString = await file.readAsString();
-          Map<String, dynamic> data = jsonDecode(jsonString);
+          dynamic data = jsonDecode(jsonString);
           
           await DatabaseService().importData(data);
           
