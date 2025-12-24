@@ -255,19 +255,38 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                     children: [
                       // Header
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: HugeIcon(
+                              icon: HugeIcons.strokeRoundedTask01, 
+                              size: 20,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
                           Text(
                             (widget.task == null || widget.task?.id == null) ? 'تسک جدید' : 'ویرایش تسک',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
                           ),
+                          const Spacer(),
                           IconButton(
                             onPressed: () => Navigator.pop(context),
-                            icon: const HugeIcon(icon: HugeIcons.strokeRoundedCancelCircle, size: 24, color: Colors.grey),
-                            style: IconButton.styleFrom(
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            icon: const HugeIcon(
+                              icon: HugeIcons.strokeRoundedCancel01,
+                              size: 22,
+                              color: Colors.grey,
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            style: const ButtonStyle(
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                           ),
                         ],
@@ -1140,6 +1159,20 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
                                   ),
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              onPressed: () => Navigator.pop(context),
+                              icon: const HugeIcon(
+                                icon: HugeIcons.strokeRoundedCancel01,
+                                size: 22,
+                                color: Colors.grey,
+                              ),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              style: const ButtonStyle(
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
                             ),
                           ],
                         ),
