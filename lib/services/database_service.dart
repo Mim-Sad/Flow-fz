@@ -1,9 +1,9 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/task.dart';
 import '../models/category_data.dart';
-import '../providers/task_provider.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -23,7 +23,7 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'flow_database.db');
     return await openDatabase(
       path,
-      version: 11,
+      version: 13,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -43,8 +43,9 @@ class DatabaseService {
       await _createCategoriesTable(db);
     }
     if (oldVersion < 5) {
+      // Legacy: task_completions created
       await db.execute('''
-        CREATE TABLE task_completions(
+        CREATE TABLE IF NOT EXISTS task_completions(
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           taskId INTEGER NOT NULL,
           date TEXT NOT NULL,
@@ -57,36 +58,22 @@ class DatabaseService {
       await db.execute('ALTER TABLE categories ADD COLUMN position INTEGER NOT NULL DEFAULT 0');
     }
     if (oldVersion < 7) {
-      await db.execute('ALTER TABLE tasks ADD COLUMN rootId INTEGER');
       await db.execute('ALTER TABLE tasks ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0');
       await db.execute('ALTER TABLE tasks ADD COLUMN deletedAt TEXT');
       await db.execute('ALTER TABLE tasks ADD COLUMN updatedAt TEXT');
 
       await db.execute('''
-        CREATE TABLE task_events(
+        CREATE TABLE IF NOT EXISTS task_events(
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           taskId INTEGER NOT NULL,
-          rootId INTEGER,
           type TEXT NOT NULL,
           occurredAt TEXT NOT NULL,
           payload TEXT
         )
       ''');
-
-      await db.execute('UPDATE tasks SET rootId = id WHERE rootId IS NULL');
     }
     if (oldVersion < 8) {
-      // Add rootId to task_completions for better historical tracking
-      await db.execute('ALTER TABLE task_completions ADD COLUMN rootId INTEGER');
-      
-      // Populate rootId in task_completions based on tasks table
-      await db.execute('''
-        UPDATE task_completions 
-        SET rootId = (SELECT rootId FROM tasks WHERE tasks.id = task_completions.taskId)
-      ''');
-      
-      // If some tasks are missing, fallback to taskId
-      await db.execute('UPDATE task_completions SET rootId = taskId WHERE rootId IS NULL');
+      // Nothing to do here anymore (rootId removed)
     }
     if (oldVersion < 9) {
       await db.execute('ALTER TABLE tasks ADD COLUMN metadata TEXT');
@@ -102,24 +89,49 @@ class DatabaseService {
     if (oldVersion < 11) {
       await db.execute('ALTER TABLE tasks ADD COLUMN tags TEXT');
     }
+    if (oldVersion < 12) {
+      await db.execute('ALTER TABLE tasks ADD COLUMN statusHistory TEXT');
+      // Drop task_completions table as it's no longer needed
+      await db.execute('DROP TABLE IF EXISTS task_completions');
+    }
+    if (oldVersion < 13) {
+      // Version 13: Migration to remove 'status' column from tasks table
+      // SQLite doesn't support DROP COLUMN directly in older versions, 
+      // but we can just leave it or do the table swap dance.
+      // For safety and simplicity in mobile DBs, we'll keep the column but stop using it.
+      // However, we should migrate any existing 'status' data to 'statusHistory' if not already done.
+      
+      final List<Map<String, dynamic>> tasks = await db.query('tasks');
+      for (var taskMap in tasks) {
+        if (taskMap['status'] != null && (taskMap['statusHistory'] == null || taskMap['statusHistory'] == '{}')) {
+          final dueDate = taskMap['dueDate'].toString().split('T')[0];
+          final status = taskMap['status'];
+          final history = json.encode({dueDate: status});
+          await db.update(
+            'tasks',
+            {'statusHistory': history},
+            where: 'id = ?',
+            whereArgs: [taskMap['id']],
+          );
+        }
+      }
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS tasks(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        rootId INTEGER,
         title TEXT NOT NULL,
         description TEXT,
         dueDate TEXT NOT NULL,
-        status INTEGER NOT NULL,
         priority INTEGER NOT NULL,
-        category TEXT,
         categories TEXT,
         tags TEXT,
         taskEmoji TEXT,
         attachments TEXT,
         recurrence TEXT,
+        statusHistory TEXT,
         createdAt TEXT NOT NULL,
         updatedAt TEXT,
         deletedAt TEXT,
@@ -130,20 +142,9 @@ class DatabaseService {
     ''');
     await _createCategoriesTable(db);
     await db.execute('''
-      CREATE TABLE IF NOT EXISTS task_completions(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        taskId INTEGER NOT NULL,
-        rootId INTEGER,
-        date TEXT NOT NULL,
-        status INTEGER NOT NULL,
-        UNIQUE(rootId, date)
-      )
-    ''');
-    await db.execute('''
       CREATE TABLE IF NOT EXISTS task_events(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         taskId INTEGER NOT NULL,
-        rootId INTEGER,
         type TEXT NOT NULL,
         occurredAt TEXT NOT NULL,
         payload TEXT
@@ -215,14 +216,9 @@ class DatabaseService {
     map['updatedAt'] = now;
 
     final id = await db.insert('tasks', map);
-    final rootId = task.rootId ?? id;
-    if (task.rootId == null) {
-      await db.update('tasks', {'rootId': rootId}, where: 'id = ?', whereArgs: [id]);
-    }
 
     await insertTaskEvent(
       taskId: id,
-      rootId: rootId,
       type: 'create',
       payload: {'task': map},
       occurredAt: DateTime.now(),
@@ -238,48 +234,21 @@ class DatabaseService {
       where: includeDeleted ? null : 'isDeleted = 0',
       orderBy: 'position ASC, dueDate ASC',
     );
-    return List.generate(maps.length, (i) => Task.fromMap(maps[i]));
-  }
-
-  Future<Map<int, Map<String, int>>> getAllTaskCompletions() async {
-    Database db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('task_completions');
     
-    final Map<int, Map<String, int>> completions = {};
-    for (final map in maps) {
-      final rootId = map['rootId'] as int;
-      final date = map['date'] as String;
-      final status = map['status'] as int;
-      
-      completions.putIfAbsent(rootId, () => {});
-      completions[rootId]![date] = status;
+    debugPrint("📥 DB: Fetched ${maps.length} tasks (includeDeleted: $includeDeleted)");
+    
+    List<Task> tasks = [];
+    for (var i = 0; i < maps.length; i++) {
+      try {
+        tasks.add(Task.fromMap(maps[i]));
+      } catch (e) {
+        debugPrint("❌ Error parsing task at index $i (ID: ${maps[i]['id']}): $e");
+        // debugPrint("   Raw Data: ${maps[i]}");
+      }
     }
-    return completions;
-  }
-
-  Future<void> setTaskCompletion(int taskId, DateTime date, TaskStatus status) async {
-    Database db = await database;
-    final dateStr = getDateKey(date);
-    final rootId = await getTaskRootId(taskId) ?? taskId;
     
-    await db.insert(
-      'task_completions',
-      {
-        'taskId': taskId,
-        'rootId': rootId,
-        'date': dateStr,
-        'status': status.index,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-
-    await insertTaskEvent(
-      taskId: taskId,
-      rootId: rootId,
-      type: 'completion',
-      payload: {'date': dateStr, 'status': status.index},
-      occurredAt: DateTime.now(),
-    );
+    debugPrint("✅ DB: Successfully parsed ${tasks.length} tasks");
+    return tasks;
   }
 
   Future<int> updateTask(Task task) async {
@@ -302,7 +271,6 @@ class DatabaseService {
 
     await insertTaskEvent(
       taskId: task.id!,
-      rootId: task.rootId ?? task.id,
       type: 'update',
       payload: {'task': map},
       occurredAt: now,
@@ -331,7 +299,6 @@ class DatabaseService {
     Database db = await database;
     final now = DateTime.now().toIso8601String();
 
-    final rootId = await getTaskRootId(id);
     final result = await db.update(
       'tasks',
       {'isDeleted': 1, 'deletedAt': now, 'updatedAt': now},
@@ -341,7 +308,6 @@ class DatabaseService {
 
     await insertTaskEvent(
       taskId: id,
-      rootId: rootId,
       type: 'delete',
       payload: {'deletedAt': now},
       occurredAt: DateTime.now(),
@@ -357,7 +323,6 @@ class DatabaseService {
   Future<int> restoreTask(int id) async {
     Database db = await database;
     final now = DateTime.now().toIso8601String();
-    final rootId = await getTaskRootId(id);
     final result = await db.update(
       'tasks',
       {'isDeleted': 0, 'deletedAt': null, 'updatedAt': now},
@@ -367,7 +332,6 @@ class DatabaseService {
 
     await insertTaskEvent(
       taskId: id,
-      rootId: rootId,
       type: 'restore',
       payload: {'restoredAt': now},
       occurredAt: DateTime.now(),
@@ -380,242 +344,238 @@ class DatabaseService {
   Future<Map<String, dynamic>> exportData() async {
     final tasks = await getAllTasks(includeDeleted: true);
     final categories = await getAllCategories();
-    final completions = await getAllTaskCompletions();
     final db = await database;
     final events = await db.query('task_events');
     final settings = await db.query('settings');
 
-    // Convert completions to list for JSON serialization
-    // Structure: [{taskId: 1, date: "2023-01-01", status: 1}, ...]
-    List<Map<String, dynamic>> completionsList = [];
-    completions.forEach((taskId, dates) {
-      dates.forEach((date, status) {
-        completionsList.add({
-          'taskId': taskId,
-          'date': date,
-          'status': status,
-        });
-      });
-    });
-
     return {
-      'version': 1, // Data export format version
+      'version': 2, // Updated version for new array-based status structure
       'timestamp': DateTime.now().toIso8601String(),
       'tasks': tasks.map((t) => t.toMap()).toList(),
       'categories': categories.map((c) => c.toMap()).toList(),
-      'completions': completionsList,
       'events': events,
       'settings': settings,
     };
   }
 
   Future<void> importData(Map<String, dynamic> data) async {
+    debugPrint('Starting data import...');
     Database db = await database;
     final now = DateTime.now().toIso8601String();
     
-    await db.transaction((txn) async {
-      // 1. Import Categories (Deduplicate by label)
-      Map<String, String> categoryIdMap = {}; // oldId -> newId
-      if (data['categories'] != null) {
-        final existingCategories = await txn.query('categories');
-        final categoriesList = (data['categories'] as List).cast<Map<String, dynamic>>();
-        
-        for (var catMap in categoriesList) {
-          final oldId = catMap['id'] as String;
-          final label = catMap['label'] as String;
+    try {
+      await db.transaction((txn) async {
+        // 1. Import Categories (Deduplicate by label)
+        Map<String, String> categoryIdMap = {}; // oldId -> newId
+        if (data['categories'] != null) {
+          final categoriesList = (data['categories'] as List).cast<Map<String, dynamic>>();
+          debugPrint('Importing ${categoriesList.length} categories...');
           
-          // Check if category with same label exists
-          final existing = existingCategories.firstWhere(
-            (c) => c['label'] == label,
-            orElse: () => {},
-          );
+          final existingCategories = await txn.query('categories');
           
-          if (existing.isNotEmpty) {
-            categoryIdMap[oldId] = existing['id'] as String;
-          } else {
-            // Check if oldId already exists in DB with different label
-            final idExists = existingCategories.any((c) => c['id'] == oldId);
-            String newId = oldId;
-            if (idExists) {
-               // Generate a unique ID if collision occurs
-               newId = 'cat_${DateTime.now().millisecondsSinceEpoch}_${oldId.substring(0, oldId.length > 5 ? 5 : oldId.length)}';
-            }
+          for (var catMap in categoriesList) {
+            final oldId = catMap['id'] as String;
+            final label = catMap['label'] as String;
             
-            final newCatMap = Map<String, dynamic>.from(catMap);
-            newCatMap['id'] = newId;
-            await txn.insert('categories', newCatMap);
-            categoryIdMap[oldId] = newId;
+            // Check if category with same label exists
+            final existing = existingCategories.firstWhere(
+              (c) => c['label'] == label,
+              orElse: () => {},
+            );
+            
+            if (existing.isNotEmpty) {
+              categoryIdMap[oldId] = existing['id'] as String;
+            } else {
+              // Check if oldId already exists in DB with different label
+              final idExists = existingCategories.any((c) => c['id'] == oldId);
+              String newId = oldId;
+              if (idExists) {
+                 newId = 'cat_${DateTime.now().millisecondsSinceEpoch}_${oldId.substring(0, oldId.length > 5 ? 5 : oldId.length)}';
+              }
+              
+              final newCatMap = Map<String, dynamic>.from(catMap);
+              newCatMap['id'] = newId;
+              await txn.insert('categories', newCatMap);
+              categoryIdMap[oldId] = newId;
+            }
           }
         }
-      }
 
-      // 2. Import Tasks (Deduplicate by title, description, and dueDate)
-      Map<int, int> taskIdMap = {}; // oldId -> newId
-      if (data['tasks'] != null) {
-        final existingTasks = await txn.query('tasks', where: 'isDeleted = 0');
-        final tasksList = (data['tasks'] as List).cast<Map<String, dynamic>>();
-        
-        for (var taskMap in tasksList) {
-          final oldId = taskMap['id'] as int;
-          final title = taskMap['title'] as String;
-          final description = taskMap['description'] as String?;
-          final dueDate = taskMap['dueDate'] as String;
+        // 2. Import Tasks (Deduplicate by title, description, and dueDate)
+        Map<int, int> taskIdMap = {}; // oldId -> newId
+        if (data['tasks'] != null) {
+          final tasksList = (data['tasks'] as List).cast<Map<String, dynamic>>();
+          debugPrint('Importing ${tasksList.length} tasks...');
           
-          // Basic deduplication: same title, description, and dueDate
-          final duplicate = existingTasks.firstWhere(
-            (t) => t['title'] == title && 
-                   t['description'] == description && 
-                   t['dueDate'] == dueDate,
-            orElse: () => {},
-          );
+          final existingTasks = await txn.query('tasks', where: 'isDeleted = 0');
           
-          if (duplicate.isNotEmpty) {
-            taskIdMap[oldId] = duplicate['id'] as int;
-          } else {
-            // New task
-            final newTaskMap = Map<String, dynamic>.from(taskMap);
-            newTaskMap.remove('id'); // Let SQLite handle ID
+          for (var taskMap in tasksList) {
+            final oldId = taskMap['id'] as int;
+            final title = taskMap['title'] as String;
+            final description = taskMap['description'] as String?;
+            final dueDate = taskMap['dueDate'] as String;
             
-            // Map categories to new IDs if they changed
-            if (newTaskMap['categories'] != null) {
-              try {
-                final List<dynamic> cats = json.decode(newTaskMap['categories']);
-                final List<String> updatedCats = [];
-                for (var c in cats) {
-                  final catId = c.toString();
-                  if (categoryIdMap.containsKey(catId)) {
-                    updatedCats.add(categoryIdMap[catId]!);
+            // Basic deduplication: same title, description, and dueDate
+            final duplicate = existingTasks.firstWhere(
+              (t) => t['title'] == title && 
+                     t['description'] == description && 
+                     t['dueDate'] == dueDate,
+              orElse: () => {},
+            );
+            
+            if (duplicate.isNotEmpty) {
+              taskIdMap[oldId] = duplicate['id'] as int;
+              debugPrint('Skipping duplicate task: $title');
+            } else {
+              // New task
+              final newTaskMap = Map<String, dynamic>.from(taskMap);
+              newTaskMap.remove('id'); // Let SQLite handle ID
+              
+              // Ensure numeric fields are actually numbers
+              if (newTaskMap['status'] is String) newTaskMap['status'] = int.tryParse(newTaskMap['status']) ?? 0;
+              if (newTaskMap['priority'] is String) newTaskMap['priority'] = int.tryParse(newTaskMap['priority']) ?? 0;
+              if (newTaskMap['isDeleted'] is String) newTaskMap['isDeleted'] = (newTaskMap['isDeleted'] == '1' || newTaskMap['isDeleted'] == 'true') ? 1 : 0;
+              if (newTaskMap['position'] is String) newTaskMap['position'] = int.tryParse(newTaskMap['position']) ?? 0;
+
+              // Map categories to new IDs if they changed
+              if (newTaskMap['categories'] != null) {
+                try {
+                  final dynamic catsRaw = newTaskMap['categories'];
+                  List<dynamic> cats;
+                  if (catsRaw is String) {
+                    cats = json.decode(catsRaw);
+                  } else if (catsRaw is List) {
+                    cats = catsRaw;
                   } else {
-                    // Check if category exists in DB
-                    final exists = await txn.query('categories', where: 'id = ?', whereArgs: [catId]);
-                    if (exists.isNotEmpty) {
-                      updatedCats.add(catId);
+                    cats = [];
+                  }
+
+                  final List<String> updatedCats = [];
+                  for (var c in cats) {
+                    final catId = c.toString();
+                    if (categoryIdMap.containsKey(catId)) {
+                      updatedCats.add(categoryIdMap[catId]!);
                     } else {
-                      // Category missing! Create a placeholder category
-                      final newCatId = 'imported_$catId';
-                      await txn.insert('categories', {
-                        'id': newCatId,
-                        'label': catId, // Use the ID as label for now
-                        'emoji': '🏷️',
-                        'color': 0xFF9E9E9E, // Grey
-                        'position': 999,
-                      }, conflictAlgorithm: ConflictAlgorithm.ignore);
-                      categoryIdMap[catId] = newCatId;
-                      updatedCats.add(newCatId);
+                      // Check if category exists in DB
+                      final exists = await txn.query('categories', where: 'id = ?', whereArgs: [catId]);
+                      if (exists.isNotEmpty) {
+                        updatedCats.add(catId);
+                      } else {
+                        // Category missing! Create a placeholder category
+                        final newCatId = 'imported_$catId';
+                        await txn.insert('categories', {
+                          'id': newCatId,
+                          'label': catId, // Use the ID as label for now
+                          'emoji': '🏷️',
+                          'color': 0xFF9E9E9E, // Grey
+                          'position': 999,
+                        }, conflictAlgorithm: ConflictAlgorithm.ignore);
+                        categoryIdMap[catId] = newCatId;
+                        updatedCats.add(newCatId);
+                      }
                     }
                   }
+                  newTaskMap['categories'] = json.encode(updatedCats);
+                } catch (_) {
+                  newTaskMap['categories'] = '[]';
                 }
-                newTaskMap['categories'] = json.encode(updatedCats);
-              } catch (_) {}
-            }
-            if (newTaskMap['category'] != null) {
-               final catId = newTaskMap['category'].toString();
-               if (categoryIdMap.containsKey(catId)) {
-                 newTaskMap['category'] = categoryIdMap[catId];
-               } else {
-                 final exists = await txn.query('categories', where: 'id = ?', whereArgs: [catId]);
-                 if (exists.isEmpty) {
-                    final newCatId = 'imported_$catId';
-                    await txn.insert('categories', {
-                      'id': newCatId,
-                      'label': catId,
-                      'emoji': '🏷️',
-                      'color': 0xFF9E9E9E,
-                      'position': 999,
-                    }, conflictAlgorithm: ConflictAlgorithm.ignore);
-                    categoryIdMap[catId] = newCatId;
-                    newTaskMap['category'] = newCatId;
-                 }
-               }
-            }
+              } else {
+                newTaskMap['categories'] = '[]';
+              }
 
-            // Update metadata with import info
-            Map<String, dynamic> metadata = {};
-            if (newTaskMap['metadata'] != null) {
-              try {
-                metadata = Map<String, dynamic>.from(json.decode(newTaskMap['metadata']));
-              } catch (_) {}
-            }
-            metadata['importedAt'] = now;
-            metadata['isImported'] = true;
-            newTaskMap['metadata'] = json.encode(metadata);
-            newTaskMap['updatedAt'] = now;
-            
-            final newId = await txn.insert('tasks', newTaskMap);
-            taskIdMap[oldId] = newId;
-            
-            // Handle rootId mapping for recurring tasks
-            if (newTaskMap['rootId'] == null || newTaskMap['rootId'] == oldId) {
-               await txn.update('tasks', {'rootId': newId}, where: 'id = ?', whereArgs: [newId]);
-            } else if (taskIdMap.containsKey(newTaskMap['rootId'])) {
-               await txn.update('tasks', {'rootId': taskIdMap[newTaskMap['rootId']]}, where: 'id = ?', whereArgs: [newId]);
+              // Ensure tags is a JSON string
+              if (newTaskMap['tags'] != null) {
+                if (newTaskMap['tags'] is List) {
+                  newTaskMap['tags'] = json.encode(newTaskMap['tags']);
+                } else if (newTaskMap['tags'] is! String) {
+                  newTaskMap['tags'] = '[]';
+                }
+              } else {
+                newTaskMap['tags'] = '[]';
+              }
+
+              // Ensure recurrence is a JSON string
+              if (newTaskMap['recurrence'] != null) {
+                if (newTaskMap['recurrence'] is Map || newTaskMap['recurrence'] is List) {
+                  newTaskMap['recurrence'] = json.encode(newTaskMap['recurrence']);
+                } else if (newTaskMap['recurrence'] is! String) {
+                  newTaskMap['recurrence'] = null;
+                }
+              }
+
+              // Move legacy status to statusHistory if it exists and statusHistory is empty
+              if (newTaskMap['status'] != null && (newTaskMap['statusHistory'] == null || newTaskMap['statusHistory'] == '{}' || newTaskMap['statusHistory'] == '[]')) {
+                 final int statusValue = newTaskMap['status'] is int ? newTaskMap['status'] : int.tryParse(newTaskMap['status'].toString()) ?? 0;
+                 final dateKey = dueDate.split('T')[0];
+                 newTaskMap['statusHistory'] = json.encode({dateKey: statusValue});
+              }
+
+              if (newTaskMap['statusHistory'] != null) {
+                if (newTaskMap['statusHistory'] is Map) {
+                  newTaskMap['statusHistory'] = json.encode(newTaskMap['statusHistory']);
+                } else if (newTaskMap['statusHistory'] is! String) {
+                  newTaskMap['statusHistory'] = '{}';
+                }
+              } else {
+                newTaskMap['statusHistory'] = '{}';
+              }
+
+              // Update metadata with import info
+              Map<String, dynamic> metadata = {};
+              if (newTaskMap['metadata'] != null) {
+                try {
+                  final dynamic metaRaw = newTaskMap['metadata'];
+                  if (metaRaw is String) {
+                    metadata = Map<String, dynamic>.from(json.decode(metaRaw));
+                  } else if (metaRaw is Map) {
+                    metadata = Map<String, dynamic>.from(metaRaw);
+                  }
+                } catch (_) {}
+              }
+              metadata['importedAt'] = now;
+              metadata['isImported'] = true;
+              newTaskMap['metadata'] = json.encode(metadata);
+              newTaskMap['updatedAt'] = now;
+              
+              // Remove fields that are not in the table
+              newTaskMap.remove('status'); 
+
+              final newId = await txn.insert('tasks', newTaskMap);
+              taskIdMap[oldId] = newId;
             }
           }
         }
-      }
 
-      // 3. Import Completions
-      if (data['completions'] != null) {
-        final completionsList = (data['completions'] as List).cast<Map<String, dynamic>>();
-        for (var compMap in completionsList) {
-          final oldTaskId = compMap['taskId'] as int;
-          if (taskIdMap.containsKey(oldTaskId)) {
-            final newTaskId = taskIdMap[oldTaskId]!;
-            final rootId = await _getTxnTaskRootId(txn, newTaskId);
-            
-            final newCompMap = Map<String, dynamic>.from(compMap);
-            newCompMap.remove('id'); // Let autoincrement handle if exists
-            newCompMap['taskId'] = newTaskId;
-            newCompMap['rootId'] = rootId;
-            
-            await txn.insert('task_completions', newCompMap, conflictAlgorithm: ConflictAlgorithm.ignore);
+        // 3. Import Events
+        if (data['events'] != null) {
+          final eventsList = (data['events'] as List).cast<Map<String, dynamic>>();
+          debugPrint('Importing ${eventsList.length} events...');
+          for (var eventMap in eventsList) {
+            final oldTaskId = eventMap['taskId'] as int;
+            if (taskIdMap.containsKey(oldTaskId)) {
+               final newTaskId = taskIdMap[oldTaskId]!;
+               final newEventMap = Map<String, dynamic>.from(eventMap);
+               newEventMap.remove('id');
+               newEventMap['taskId'] = newTaskId;
+               await txn.insert('task_events', newEventMap);
+            }
           }
         }
-      }
 
-      // 4. Import Events
-      if (data['events'] != null) {
-        final eventsList = (data['events'] as List).cast<Map<String, dynamic>>();
-        for (var eventMap in eventsList) {
-          final oldTaskId = eventMap['taskId'] as int;
-          if (taskIdMap.containsKey(oldTaskId)) {
-             final newTaskId = taskIdMap[oldTaskId]!;
-             final newEventMap = Map<String, dynamic>.from(eventMap);
-             newEventMap.remove('id');
-             newEventMap['taskId'] = newTaskId;
-             if (newEventMap['rootId'] != null && taskIdMap.containsKey(newEventMap['rootId'])) {
-                newEventMap['rootId'] = taskIdMap[newEventMap['rootId']];
-             } else {
-                newEventMap['rootId'] = await _getTxnTaskRootId(txn, newTaskId);
-             }
-             await txn.insert('task_events', newEventMap);
+        // 4. Import Settings
+        if (data['settings'] != null) {
+          final settingsList = (data['settings'] as List).cast<Map<String, dynamic>>();
+          debugPrint('Importing ${settingsList.length} settings...');
+          for (var settingMap in settingsList) {
+            await txn.insert('settings', settingMap, conflictAlgorithm: ConflictAlgorithm.ignore);
           }
         }
-      }
-
-      // 5. Import Settings
-      if (data['settings'] != null) {
-        final settingsList = (data['settings'] as List).cast<Map<String, dynamic>>();
-        for (var settingMap in settingsList) {
-          // Keep current settings if they exist, only add new ones
-          await txn.insert('settings', settingMap, conflictAlgorithm: ConflictAlgorithm.ignore);
-        }
-      }
-    });
-  }
-
-  Future<int?> _getTxnTaskRootId(Transaction txn, int taskId) async {
-    final rows = await txn.query(
-      'tasks',
-      columns: ['rootId', 'id'],
-      where: 'id = ?',
-      whereArgs: [taskId],
-      limit: 1,
-    );
-    if (rows.isEmpty) return null;
-    final row = rows.first;
-    final rootId = row['rootId'] as int?;
-    return rootId ?? (row['id'] as int?);
+      });
+      debugPrint('Data import completed successfully!');
+    } catch (e) {
+      debugPrint('Error during data import: $e');
+      rethrow;
+    }
   }
 
   // Settings methods
@@ -639,57 +599,107 @@ class DatabaseService {
     if (maps.isEmpty) return null;
     return maps.first['value'] as String?;
   }
-  Future<int> updateTaskStatus(int id, TaskStatus status) async {
+  Future<void> updateTaskStatus(int taskId, TaskStatus status, {String? dateKey}) async {
     Database db = await database;
-    final now = DateTime.now().toIso8601String();
-    final rootId = await getTaskRootId(id);
-    final result = await db.update(
+    final taskMap = (await db.query('tasks', where: 'id = ?', whereArgs: [taskId])).first;
+    
+    Map<String, int> history = {};
+    if (taskMap['statusHistory'] != null) {
+      try {
+        history = Map<String, int>.from(json.decode(taskMap['statusHistory'] as String));
+      } catch (_) {}
+    }
+    
+    final effectiveDateKey = dateKey ?? taskMap['dueDate'].toString().split('T')[0];
+    history[effectiveDateKey] = status.index;
+    
+    await db.update(
       'tasks',
-      {'status': status.index, 'updatedAt': now},
+      {'statusHistory': json.encode(history)},
       where: 'id = ?',
-      whereArgs: [id],
+      whereArgs: [taskId],
     );
 
     await insertTaskEvent(
-      taskId: id,
-      rootId: rootId,
-      type: 'status',
-      payload: {'status': status.index},
+      taskId: taskId,
+      type: 'status_update',
+      payload: {'status': status.index, 'date': effectiveDateKey},
       occurredAt: DateTime.now(),
     );
-
-    return result;
-  }
-
-  Future<int?> getTaskRootId(int taskId) async {
-    Database db = await database;
-    final rows = await db.query(
-      'tasks',
-      columns: ['rootId', 'id'],
-      where: 'id = ?',
-      whereArgs: [taskId],
-      limit: 1,
-    );
-    if (rows.isEmpty) return null;
-    final row = rows.first;
-    final rootId = row['rootId'] as int?;
-    return rootId ?? (row['id'] as int?);
   }
 
   Future<void> insertTaskEvent({
     required int taskId,
-    int? rootId,
     required String type,
     Map<String, dynamic>? payload,
     DateTime? occurredAt,
   }) async {
     Database db = await database;
+    
+    // Create a human-readable log message based on type and payload
+    String logMessage = '';
+    switch (type) {
+      case 'create':
+        logMessage = 'تسک ایجاد شد';
+        break;
+      case 'update':
+        logMessage = 'تسک ویرایش شد';
+        break;
+      case 'status':
+        final statusIndex = payload?['status'] as int?;
+        String statusName = 'نامشخص';
+        if (statusIndex != null) {
+          switch (TaskStatus.values[statusIndex]) {
+            case TaskStatus.pending: statusName = 'در انتظار'; break;
+            case TaskStatus.success: statusName = 'انجام شده'; break;
+            case TaskStatus.failed: statusName = 'ناموفق'; break;
+            case TaskStatus.cancelled: statusName = 'لغو شده'; break;
+            case TaskStatus.deferred: statusName = 'به تعویق افتاده'; break;
+          }
+        }
+        logMessage = 'وضعیت تسک به "$statusName" تغییر کرد';
+        break;
+      case 'completion':
+        final statusIndex = payload?['status'] as int?;
+        final date = payload?['date'] as String?;
+        String statusName = 'نامشخص';
+        if (statusIndex != null) {
+          switch (TaskStatus.values[statusIndex]) {
+            case TaskStatus.pending: statusName = 'در انتظار'; break;
+            case TaskStatus.success: statusName = 'انجام شده'; break;
+            case TaskStatus.failed: statusName = 'ناموفق'; break;
+            case TaskStatus.cancelled: statusName = 'لغو شده'; break;
+            case TaskStatus.deferred: statusName = 'به تعویق افتاده'; break;
+          }
+        }
+        logMessage = 'تسک در تاریخ $date به وضعیت "$statusName" تغییر یافت';
+        break;
+      case 'delete':
+        logMessage = 'تسک حذف شد';
+        break;
+      case 'restore':
+        logMessage = 'تسک بازیابی شد';
+        break;
+      case 'duplicate':
+        logMessage = 'تسک کپی شد';
+        break;
+      case 'postpone':
+        final fromDate = payload?['fromDate'] as String?;
+        final toDate = payload?['toDate'] as String?;
+        logMessage = 'تسک از تاریخ $fromDate به $toDate موکول شد';
+        break;
+      default:
+        logMessage = 'رویداد نامشخص: $type';
+    }
+
+    final eventPayload = Map<String, dynamic>.from(payload ?? {});
+    eventPayload['log'] = logMessage;
+
     await db.insert('task_events', {
       'taskId': taskId,
-      'rootId': rootId,
       'type': type,
       'occurredAt': (occurredAt ?? DateTime.now()).toIso8601String(),
-      'payload': payload == null ? null : jsonEncode(payload),
+      'payload': jsonEncode(eventPayload),
     });
   }
 }

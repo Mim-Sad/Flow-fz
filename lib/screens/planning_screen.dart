@@ -227,16 +227,14 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   }
 
   Widget _buildRecurringTaskGroup(List<Task> tasks) {
-    final completions = ref.watch(taskCompletionsProvider);
-    final dateKey = getDateKey(_selectedDate);
+    final tasksNotifier = ref.read(tasksProvider.notifier);
 
     // Calculate progress for recurring tasks for the selected date
     int total = 0;
     int completed = 0;
     for (var task in tasks) {
-      final rootId = task.rootId ?? task.id!;
-      final statusIndex = completions[rootId]?[dateKey];
-      final status = statusIndex != null ? TaskStatus.values[statusIndex] : TaskStatus.pending;
+      final taskId = task.id!;
+      final status = tasksNotifier.getStatusForDate(taskId, _selectedDate);
       
       // Exclude cancelled and deferred from progress calculation
       if (status != TaskStatus.cancelled && status != TaskStatus.deferred) {
@@ -320,11 +318,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   }
 
   Widget _buildRecurringTaskRow(Task task) {
-    final completions = ref.watch(taskCompletionsProvider);
-    final dateKey = getDateKey(_selectedDate);
-    final rootId = task.rootId ?? task.id!;
-    final statusIndex = completions[rootId]?[dateKey];
-    final status = statusIndex != null ? TaskStatus.values[statusIndex] : TaskStatus.pending;
+    final status = ref.read(tasksProvider.notifier).getStatusForDate(task.id!, _selectedDate);
     
     final isCancelled = status == TaskStatus.cancelled;
     final isSuccess = status == TaskStatus.success;
@@ -663,7 +657,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   }
 
   Widget _buildWeeklyRecurringTaskGroup(List<Task> tasks, DateTime startOfWeek) {
-    final completions = ref.watch(taskCompletionsProvider);
+    final tasksNotifier = ref.read(tasksProvider.notifier);
     
     // Calculate progress across active days for all tasks
     int totalSlots = 0;
@@ -672,11 +666,8 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     for (var task in tasks) {
       for (int i = 0; i < 7; i++) {
         final date = startOfWeek.add(Duration(days: i));
-        if (isTaskActiveOnDate(task, date, completions)) {
-          final rootId = task.rootId ?? task.id!;
-          final statusIndex = completions[rootId]?[getDateKey(date)];
-          // Default to pending for recurring tasks if no completion record exists
-          final status = statusIndex != null ? TaskStatus.values[statusIndex] : TaskStatus.pending;
+        if (task.isActiveOnDate(date)) {
+          final status = tasksNotifier.getStatusForDate(task.id!, date);
           
           // Exclude cancelled and deferred from progress calculation
           if (status != TaskStatus.cancelled && status != TaskStatus.deferred) {
@@ -804,7 +795,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Lottie.asset(
-              'assets/images/TheSoul/20 glasses.json',
+              'assets/images/TheSoul/4 pls wait 3.json',
               width: 120,
               height: 120,
               fit: BoxFit.contain,
@@ -888,13 +879,12 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
     // 1. Identify recurring tasks active in this week
     final recurringTasksForWeek = <Task>[];
-    final completions = ref.watch(taskCompletionsProvider);
     for (var task in tasks) {
       if (task.recurrence != null &&
           task.recurrence!.type != RecurrenceType.none) {
         bool isActive = false;
         for (int i = 0; i < 7; i++) {
-          if (isTaskActiveOnDate(task, startOfWeek.add(Duration(days: i)), completions)) {
+          if (task.isActiveOnDate(startOfWeek.add(Duration(days: i)))) {
             isActive = true;
             break;
           }
@@ -1000,13 +990,12 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
       // 2. Collect Recurring Tasks
       final Map<int, List<Task>> recurringTasksByWeek = {};
-      final completions = ref.watch(taskCompletionsProvider);
       for (int i = 0; i < weeks.length; i++) {
           final weekDays = weeks[i];
           final weekTasks = <Task>[];
           for (var task in tasks) {
             if (task.recurrence != null && task.recurrence!.type != RecurrenceType.none) {
-               if (weekDays.any((d) => isTaskActiveOnDate(task, d, completions))) {
+               if (weekDays.any((d) => task.isActiveOnDate(d))) {
                   weekTasks.add(task);
                }
             }
@@ -1099,7 +1088,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     List<List<DateTime>> weeks,
     int currentMonth,
   ) {
-    final completions = ref.watch(taskCompletionsProvider);
+    final tasksNotifier = ref.read(tasksProvider.notifier);
     double progress = 0.0;
     try {
       int totalTasks = 0;
@@ -1110,11 +1099,8 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           final weekDays = weeks[weekIndex];
           for (var task in tasks) {
             for (var date in weekDays) {
-              if (isTaskActiveOnDate(task, date, completions)) {
-                final rootId = task.rootId ?? task.id!;
-                final statusIndex = completions[rootId]?[getDateKey(date)];
-                // For recurring tasks in this box, we should default to pending if no completion record exists
-                final status = statusIndex != null ? TaskStatus.values[statusIndex] : TaskStatus.pending;
+              if (task.isActiveOnDate(date)) {
+                final status = tasksNotifier.getStatusForDate(task.id!, date);
                 
                 // Exclude cancelled and deferred from progress calculation
                 if (status != TaskStatus.cancelled && status != TaskStatus.deferred) {
@@ -1370,17 +1356,14 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       color = catData.color;
     }
 
-    final completions = ref.watch(taskCompletionsProvider);
+    final tasksNotifier = ref.read(tasksProvider.notifier);
 
     // Calculate progress (excluding cancelled and deferred tasks)
     int total = 0;
     int completed = 0;
 
     for (var t in tasks) {
-      final rootId = t.rootId ?? t.id!;
-      final dateKey = getDateKey(t.dueDate);
-      final statusIndex = completions[rootId]?[dateKey];
-      final status = statusIndex != null ? TaskStatus.values[statusIndex] : t.status;
+      final status = tasksNotifier.getStatusForDate(t.id!, t.dueDate);
 
       if (status != TaskStatus.cancelled && status != TaskStatus.deferred) {
         total++;
@@ -1484,11 +1467,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   }
 
   Widget _buildCompactTaskRow(Task task) {
-    final completions = ref.watch(taskCompletionsProvider);
-    final rootId = task.rootId ?? task.id!;
-    final dateKey = getDateKey(task.dueDate);
-    final statusIndex = completions[rootId]?[dateKey];
-    final status = statusIndex != null ? TaskStatus.values[statusIndex] : task.status;
+    final status = ref.read(tasksProvider.notifier).getStatusForDate(task.id!, task.dueDate);
 
     final isCancelled = status == TaskStatus.cancelled;
     final isSuccess = status == TaskStatus.success;
@@ -1625,16 +1604,13 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     double size = 24,
     bool isCurrentMonth = true,
   }) {
-    final completions = ref.watch(taskCompletionsProvider);
-    final dateStr = getDateKey(date);
+    final tasksNotifier = ref.read(tasksProvider.notifier);
     
     final hasRecurrence = task.recurrence != null && task.recurrence!.type != RecurrenceType.none;
     TaskStatus status = hasRecurrence ? TaskStatus.pending : task.status;
     
-    final rootId = task.rootId ?? task.id!;
-    final statusIndex = completions[rootId]?[dateStr];
-    if (statusIndex != null) {
-      status = TaskStatus.values[statusIndex];
+    if (task.id != null) {
+      status = tasksNotifier.getStatusForDate(task.id!, date);
     }
 
     dynamic icon;
@@ -1671,7 +1647,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       color = color.withValues(alpha: 0.15);
     }
 
-    final isActive = isTaskActiveOnDate(task, date, completions);
+    final isActive = task.isActiveOnDate(date);
     if (!isActive) {
       return Container(
         width: size,

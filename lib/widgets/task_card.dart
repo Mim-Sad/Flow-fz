@@ -42,8 +42,7 @@ class TaskCard extends ConsumerWidget {
     }
 
     final hasCapsules = task.priority != TaskPriority.medium || 
-                        task.categories.isNotEmpty || 
-                        (task.category != null && task.category!.isNotEmpty);
+                        task.categories.isNotEmpty;
 
     return Card(
       elevation: 0,
@@ -61,6 +60,7 @@ class TaskCard extends ConsumerWidget {
           ref.read(tasksProvider.notifier).updateStatus(
                 task.id!,
                 task.status == TaskStatus.success ? TaskStatus.pending : TaskStatus.success,
+                date: task.dueDate,
               );
         },
         onLongPress: null, // Removed long press on body
@@ -171,9 +171,9 @@ class TaskCard extends ConsumerWidget {
                   child: _AutoScrollCapsules(
                     children: [
                       _buildPriorityCapsule(context, onCardColor),
-                      if (task.priority != TaskPriority.medium && (task.categories.isNotEmpty || (task.category != null && task.category!.isNotEmpty)))
+                      if (task.priority != TaskPriority.medium && task.categories.isNotEmpty)
                         const SizedBox(width: 6),
-                      if (task.categories.isNotEmpty || (task.category != null && task.category!.isNotEmpty))
+                      if (task.categories.isNotEmpty)
                         _buildCategoryCapsules(onCardColor, ref),
                     ],
                   ),
@@ -221,9 +221,7 @@ class TaskCard extends ConsumerWidget {
   }
 
   Widget _buildCategoryCapsules(Color onCardColor, WidgetRef ref) {
-    final categories = task.categories.isNotEmpty 
-        ? task.categories 
-        : (task.category != null ? [task.category!] : []);
+    final categories = task.categories;
     
     final allCategories = ref.watch(categoryProvider).valueOrNull ?? defaultCategories;
 

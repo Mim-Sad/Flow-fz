@@ -114,8 +114,12 @@ class PostponeDialog extends ConsumerWidget {
                       metadata: updatedMetadata,
                     );
                   } else {
+                    final updatedHistory = Map<String, int>.from(task.statusHistory);
+                    final dateStr = getDateKey(task.dueDate);
+                    updatedHistory[dateStr] = TaskStatus.deferred.index;
+
                     final updatedTask = task.copyWith(
-                      status: TaskStatus.deferred,
+                      statusHistory: updatedHistory,
                       metadata: updatedMetadata,
                     );
                     await ref.read(tasksProvider.notifier).updateTask(updatedTask);
@@ -226,8 +230,12 @@ class PostponeDialog extends ConsumerWidget {
                           metadata: currentMetadata,
                         );
                       } else {
+                        final updatedHistory = Map<String, int>.from(task.statusHistory);
+                        final dateStr = getDateKey(task.dueDate);
+                        updatedHistory[dateStr] = TaskStatus.deferred.index;
+
                         final updatedCurrentTask = task.copyWith(
-                          status: TaskStatus.deferred,
+                          statusHistory: updatedHistory,
                           metadata: currentMetadata,
                         );
                         await ref.read(tasksProvider.notifier).updateTask(updatedCurrentTask);
@@ -238,21 +246,21 @@ class PostponeDialog extends ConsumerWidget {
                       newTaskMetadata['hasTime'] = hasTime;
 
                       final newTask = Task(
-                        rootId: task.rootId ?? task.id,
                         title: task.title,
                         description: task.description,
                         dueDate: newDate,
-                        status: TaskStatus.pending,
                         priority: task.priority,
-                        category: task.category,
                         categories: List.from(task.categories),
                         createdAt: DateTime.now(),
                         updatedAt: DateTime.now(),
                         position: task.position,
                         taskEmoji: task.taskEmoji,
                         attachments: List.from(task.attachments),
-                        recurrence: null, // Defer creates a one-off instance
+                        recurrence: task.recurrence,
                         metadata: newTaskMetadata,
+                        statusHistory: {
+                          getDateKey(newDate): TaskStatus.pending.index,
+                        },
                       );
                       
                       await ref.read(tasksProvider.notifier).addTask(newTask);

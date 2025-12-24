@@ -279,9 +279,7 @@ class TaskOptionsSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final allCategories = ref.watch(categoryProvider).valueOrNull ?? [];
     
-    final taskCategories = task.categories.isNotEmpty 
-        ? task.categories 
-        : (task.category != null ? [task.category!] : <String>[]);
+    final taskCategories = task.categories;
 
     // Find the original task to get the true start date if it's a recurring task
      final allTasks = ref.watch(tasksProvider);
@@ -375,102 +373,85 @@ class TaskOptionsSheet extends ConsumerWidget {
                         const Divider(height: 1, thickness: 0.5),
                         const SizedBox(height: 16),
                         
+                        // Date Row
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           textDirection: TextDirection.rtl,
                           children: [
+                            HugeIcon(
+                              icon: HugeIcons.strokeRoundedCalendar03,
+                              size: 18,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    textDirection: TextDirection.rtl,
-                                    children: [
-                                      HugeIcon(
-                                        icon: HugeIcons.strokeRoundedCalendar03,
-                                        size: 18,
-                                        color: Theme.of(context).colorScheme.primary,
+                                  SizedBox(
+                                    height: 22,
+                                    child: TextScroll(
+                                      "${isRecurring ? 'تاریخ شروع:' : 'تاریخ انجام:'} ${_formatDate(displayDate)}",
+                                      mode: TextScrollMode.endless,
+                                      velocity: const Velocity(pixelsPerSecond: Offset(30, 0)),
+                                      delayBefore: const Duration(seconds: 2),
+                                      pauseBetween: const Duration(seconds: 2),
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Theme.of(context).colorScheme.onSurface,
+                                        fontWeight: FontWeight.w600,
+                                        fontFamily: 'IRANSansX',
                                       ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        isRecurring ? 'تاریخ شروع:' : 'تاریخ انجام:',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                        ),
-                                        textDirection: TextDirection.rtl,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        _formatDate(displayDate),
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Theme.of(context).colorScheme.onSurface,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                        textDirection: TextDirection.rtl,
-                                      ),
-                                    ],
+                                      textDirection: TextDirection.rtl,
+                                      textAlign: TextAlign.right,
+                                    ),
                                   ),
+                                  // Occurrence Date Row (if different)
                                   if (isOccurrenceDifferent) ...[
                                     const SizedBox(height: 4),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
+                                    Text(
+                                      'تاریخ این تکرار: ${_formatDate(occurrenceDate)}',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                       textDirection: TextDirection.rtl,
-                                      children: [
-                                        const SizedBox(width: 26), // Align with icon above
-                                        Text(
-                                          'تاریخ این تکرار:',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                          ),
-                                          textDirection: TextDirection.rtl,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          _formatDate(occurrenceDate),
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                          textDirection: TextDirection.rtl,
-                                        ),
-                                      ],
                                     ),
                                   ],
                                 ],
                               ),
                             ),
-                            if (task.metadata['hasTime'] ?? true) ...[
-                              const SizedBox(width: 16),
+                          ],
+                        ),
+                        
+                        // Time Row (New Line)
+                        if (task.metadata['hasTime'] ?? true) ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            textDirection: TextDirection.rtl,
+                            children: [
+                              HugeIcon(
+                                icon: HugeIcons.strokeRoundedClock01,
+                                size: 18,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              const SizedBox(width: 8),
                               Expanded(
-                                child: Row(
+                                child: Text(
+                                  _toPersianDigit(_formatTime(displayDate)),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                   textDirection: TextDirection.rtl,
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    HugeIcon(
-                                      icon: HugeIcons.strokeRoundedClock01,
-                                      size: 18,
-                                      color: Theme.of(context).colorScheme.primary,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      _toPersianDigit(_formatTime(displayDate)),
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Theme.of(context).colorScheme.onSurface,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      textDirection: TextDirection.rtl,
-                                    ),
-                                  ],
                                 ),
                               ),
                             ],
-                          ],
-                        ),
+                          ),
+                        ],
 
                         // Recurrence Info
                         if (task.recurrence != null && task.recurrence!.type != RecurrenceType.none) ...[
@@ -649,7 +630,7 @@ class TaskOptionsSheet extends ConsumerWidget {
                             backgroundColor: Colors.transparent,
                             builder: (context) => TaskStatusPickerSheet(
                               task: task,
-                              recurringDate: date,
+                              recurringDate: occurrenceDate,
                             ),
                           );
                         },

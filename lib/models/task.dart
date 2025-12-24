@@ -54,8 +54,17 @@ class RecurrenceConfig {
   }
 
   factory RecurrenceConfig.fromMap(Map<String, dynamic> map) {
+    // Safe Enum Parsing
+    RecurrenceType loadedType = RecurrenceType.none;
+    if (map['type'] != null && map['type'] is int) {
+      final tIndex = map['type'] as int;
+      if (tIndex >= 0 && tIndex < RecurrenceType.values.length) {
+        loadedType = RecurrenceType.values[tIndex];
+      }
+    }
+
     return RecurrenceConfig(
-      type: RecurrenceType.values[map['type']],
+      type: loadedType,
       interval: map['interval'],
       daysOfWeek: map['daysOfWeek'] != null ? List<int>.from(map['daysOfWeek']) : null,
       specificDates: map['specificDates'] != null 
@@ -73,13 +82,10 @@ class RecurrenceConfig {
 
 class Task {
   final int? id;
-  final int? rootId;
   final String title;
   final String? description;
   final DateTime dueDate;
-  final TaskStatus status;
   final TaskPriority priority;
-  final String? category; // Kept for backward compatibility, but we use categories list
   final List<String> categories;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -90,17 +96,15 @@ class Task {
   final List<String> attachments;
   final List<String> tags;
   final RecurrenceConfig? recurrence;
+  final Map<String, int> statusHistory;
   final Map<String, dynamic> metadata;
 
   Task({
     this.id,
-    this.rootId,
     required this.title,
     this.description,
     required this.dueDate,
-    this.status = TaskStatus.pending,
     this.priority = TaskPriority.medium,
-    this.category,
     List<String>? categories,
     List<String>? tags,
     DateTime? createdAt,
@@ -111,12 +115,104 @@ class Task {
     this.taskEmoji,
     this.attachments = const [],
     this.recurrence,
+    Map<String, int>? statusHistory,
     this.metadata = const {},
   }) : 
     createdAt = createdAt ?? DateTime.now(),
     updatedAt = updatedAt ?? (createdAt ?? DateTime.now()),
-    categories = categories ?? (category != null ? [category] : []),
-    tags = tags ?? const [];
+    categories = categories ?? [],
+    tags = tags ?? const [],
+    statusHistory = statusHistory ?? {};
+
+  // Helper to get status for a specific date
+  TaskStatus getStatusForDate(DateTime date) {
+    if (!isActiveOnDate(date)) {
+      return TaskStatus.pending;
+    }
+    
+    final key = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    final statusIndex = statusHistory[key];
+    if (statusIndex != null) {
+      return TaskStatus.values[statusIndex];
+    }
+    return TaskStatus.pending;
+  }
+
+  bool isActiveOnDate(DateTime date) {
+    final dateOnly = DateTime(date.year, date.month, date.day);
+    final dueDateOnly = DateTime(dueDate.year, dueDate.month, dueDate.day);
+
+    // 1. For one-off tasks (no recurrence)
+    if (recurrence == null || recurrence!.type == RecurrenceType.none) {
+      return _isSameDay(dueDateOnly, dateOnly);
+    }
+
+    // 2. For recurring tasks
+    // Check if date is before start date
+    if (dateOnly.isBefore(dueDateOnly)) return false;
+
+    // Check if date is after end date
+    if (recurrence!.endDate != null) {
+      final endDateOnly = DateTime(
+        recurrence!.endDate!.year,
+        recurrence!.endDate!.month,
+        recurrence!.endDate!.day,
+      );
+      if (dateOnly.isAfter(endDateOnly)) return false;
+    }
+
+    // Specific recurrence logic
+    switch (recurrence!.type) {
+      case RecurrenceType.daily:
+        final interval = recurrence!.interval ?? 1;
+        final diff = dateOnly.difference(dueDateOnly).inDays;
+        return diff % interval == 0;
+
+      case RecurrenceType.weekly:
+        final interval = recurrence!.interval ?? 1;
+        final daysOfWeek = recurrence!.daysOfWeek ?? [];
+        
+        // If specific days are selected, check if current date is one of them
+        if (daysOfWeek.isNotEmpty) {
+          // Dart's weekday is 1-7 (Mon-Sun)
+          if (!daysOfWeek.contains(dateOnly.weekday)) return false;
+        }
+        
+        final diffInDays = dateOnly.difference(dueDateOnly).inDays;
+        final weeksDiff = (diffInDays / 7).floor();
+        return weeksDiff % interval == 0;
+
+      case RecurrenceType.monthly:
+        final interval = recurrence!.interval ?? 1;
+        final dayOfMonth = recurrence!.dayOfMonth ?? dueDateOnly.day;
+        
+        if (dateOnly.day != dayOfMonth) return false;
+        
+        final monthsDiff = (dateOnly.year - dueDateOnly.year) * 12 + (dateOnly.month - dueDateOnly.month);
+        return monthsDiff % interval == 0;
+
+      case RecurrenceType.yearly:
+        final interval = recurrence!.interval ?? 1;
+        if (dateOnly.month != dueDateOnly.month || dateOnly.day != dueDateOnly.day) return false;
+        
+        final yearsDiff = dateOnly.year - dueDateOnly.year;
+        return yearsDiff % interval == 0;
+
+      case RecurrenceType.specificDays:
+        final specificDates = recurrence!.specificDates ?? [];
+        return specificDates.any((d) => _isSameDay(d, dateOnly));
+
+      default:
+        return _isSameDay(dueDateOnly, dateOnly);
+    }
+  }
+
+  bool _isSameDay(DateTime d1, DateTime d2) {
+    return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
+  }
+
+  // Current status (for backward compatibility and single-instance tasks)
+  TaskStatus get status => getStatusForDate(dueDate);
 
   Task duplicate() {
     final newMetadata = Map<String, dynamic>.from(metadata);
@@ -127,13 +223,13 @@ class Task {
       title: title,
       description: description,
       dueDate: dueDate,
-      status: TaskStatus.pending,
       priority: priority,
       categories: List.from(categories),
       tags: List.from(tags),
       taskEmoji: taskEmoji,
       attachments: List.from(attachments),
       recurrence: recurrence,
+      statusHistory: Map.from(statusHistory),
       metadata: newMetadata,
     );
   }
@@ -143,13 +239,10 @@ class Task {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'rootId': rootId,
       'title': title,
       'description': description,
       'dueDate': dueDate.toIso8601String(),
-      'status': status.index,
       'priority': priority.index,
-      'category': category, // maintain for compatibility if needed, or update based on categories.first
       'categories': json.encode(categories),
       'tags': json.encode(tags),
       'createdAt': createdAt.toIso8601String(),
@@ -160,6 +253,7 @@ class Task {
       'taskEmoji': taskEmoji,
       'attachments': json.encode(attachments),
       'recurrence': recurrence?.toJson(),
+      'statusHistory': json.encode(statusHistory),
       'metadata': json.encode(metadata),
     };
   }
@@ -173,6 +267,7 @@ class Task {
         // Fallback or ignore
       }
     } else if (map['category'] != null) {
+      // Legacy support for single category
       loadedCategories = [map['category']];
     }
 
@@ -194,15 +289,36 @@ class Task {
       }
     }
 
+    Map<String, int> loadedStatusHistory = {};
+    if (map['statusHistory'] != null) {
+      try {
+        loadedStatusHistory = Map<String, int>.from(json.decode(map['statusHistory']));
+      } catch (e) {
+        // Fallback
+      }
+    } else if (map['status'] != null) {
+      // Legacy migration: move single status to statusHistory
+      final dueDateStr = map['dueDate'] != null 
+          ? map['dueDate'].toString().split('T')[0] 
+          : "${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}";
+      loadedStatusHistory[dueDateStr] = map['status'];
+    }
+
+    // Safe Priority Parsing
+    TaskPriority loadedPriority = TaskPriority.medium;
+    if (map['priority'] != null && map['priority'] is int) {
+      final pIndex = map['priority'] as int;
+      if (pIndex >= 0 && pIndex < TaskPriority.values.length) {
+        loadedPriority = TaskPriority.values[pIndex];
+      }
+    }
+
     return Task(
       id: map['id'],
-      rootId: map['rootId'],
       title: map['title'],
       description: map['description'],
       dueDate: DateTime.parse(map['dueDate']),
-      status: TaskStatus.values[map['status']],
-      priority: TaskPriority.values[map['priority']],
-      category: map['category'],
+      priority: loadedPriority,
       categories: loadedCategories,
       tags: loadedTags,
       createdAt: DateTime.parse(map['createdAt']),
@@ -217,19 +333,17 @@ class Task {
       recurrence: map['recurrence'] != null 
           ? RecurrenceConfig.fromJson(map['recurrence']) 
           : null,
+      statusHistory: loadedStatusHistory,
       metadata: loadedMetadata,
     );
   }
 
   Task copyWith({
     int? id,
-    int? rootId,
     String? title,
     String? description,
     DateTime? dueDate,
-    TaskStatus? status,
     TaskPriority? priority,
-    String? category,
     List<String>? categories,
     List<String>? tags,
     DateTime? createdAt,
@@ -240,17 +354,15 @@ class Task {
     String? taskEmoji,
     List<String>? attachments,
     RecurrenceConfig? recurrence,
+    Map<String, int>? statusHistory,
     Map<String, dynamic>? metadata,
   }) {
     return Task(
       id: id ?? this.id,
-      rootId: rootId ?? this.rootId,
       title: title ?? this.title,
       description: description ?? this.description,
       dueDate: dueDate ?? this.dueDate,
-      status: status ?? this.status,
       priority: priority ?? this.priority,
-      category: category ?? this.category,
       categories: categories ?? this.categories,
       tags: tags ?? this.tags,
       createdAt: createdAt ?? this.createdAt,
@@ -261,6 +373,7 @@ class Task {
       taskEmoji: taskEmoji ?? this.taskEmoji,
       attachments: attachments ?? this.attachments,
       recurrence: recurrence ?? this.recurrence,
+      statusHistory: statusHistory ?? this.statusHistory,
       metadata: metadata ?? this.metadata,
     );
   }

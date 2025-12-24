@@ -1,0 +1,128 @@
+{
+  "version": 1,
+  "timestamp": "2025-12-24T12:00:00.000Z",
+  "tasks": [
+    {
+      "id": 201,
+      "title": "مدیتیشن و شکرگزاری",
+      "description": "۱۰ دقیقه سکوت و نوشتن ۳ مورد شکرگزاری.",
+      "dueDate": "2025-11-22T06:30:00.000Z",
+      "status": 0,
+      "priority": 2,
+      "categories": ["personal"],
+      "tags": ["روحیه"],
+      "createdAt": "2025-11-20T20:00:00.000Z",
+      "updatedAt": "2025-11-20T20:00:00.000Z",
+      "isDeleted": 0,
+      "position": 0,
+      "taskEmoji": "🧘‍♂️",
+      "recurrence": {"type": 2, "interval": 1},
+      "metadata": {"hasTime": true}
+    },
+    {
+      "id": 202,
+      "title": "عکاسی پاییزی",
+      "description": "ثبت ۵ عکس با تم تضاد سایه و روشن.",
+      "dueDate": "2025-12-05T15:00:00.000Z",
+      "status": 1,
+      "priority": 1,
+      "categories": ["personal", "travel"],
+      "tags": ["هنر"],
+      "createdAt": "2025-12-01T10:00:00.000Z",
+      "updatedAt": "2025-12-05T17:30:00.000Z",
+      "isDeleted": 0,
+      "position": 1,
+      "taskEmoji": "📸",
+      "metadata": {"hasTime": true}
+    },
+    {
+      "id": 203,
+      "title": "یادگیری Flutter Impeller",
+      "description": "مطالعه مستندات و پیاده‌سازی انیمیشن.",
+      "dueDate": "2025-12-28T09:00:00.000Z",
+      "status": 0,
+      "priority": 2,
+      "categories": ["work", "study"],
+      "tags": ["کدنویسی"],
+      "createdAt": "2025-12-25T08:00:00.000Z",
+      "updatedAt": "2025-12-25T08:00:00.000Z",
+      "isDeleted": 0,
+      "position": 2,
+      "taskEmoji": "🚀",
+      "metadata": {"hasTime": true}
+    },
+    {
+      "id": 204,
+      "title": "شام با دوستان",
+      "description": "جشن اتمام فاز اول پروژه.",
+      "dueDate": "2025-12-30T20:00:00.000Z",
+      "status": 0,
+      "priority": 1,
+      "categories": ["personal"],
+      "tags": ["اجتماعی"],
+      "createdAt": "2025-12-20T11:00:00.000Z",
+      "updatedAt": "2025-12-20T11:00:00.000Z",
+      "isDeleted": 0,
+      "position": 3,
+      "taskEmoji": "🥗",
+      "metadata": {"hasTime": true}
+    },
+    {
+      "id": 205,
+      "title": "پخت نان خانگی",
+      "description": "تلاش برای پخت نان چاودار.",
+      "dueDate": "2025-12-12T10:00:00.000Z",
+      "status": 2,
+      "priority": 0,
+      "categories": ["personal"],
+      "tags": ["آشپزی"],
+      "createdAt": "2025-12-10T14:00:00.000Z",
+      "updatedAt": "2025-12-12T13:00:00.000Z",
+      "isDeleted": 0,
+      "position": 4,
+      "taskEmoji": "🍞",
+      "metadata": {"hasTime": false}
+    },
+    {
+      "id": 206,
+      "title": "مطالعه عادات اتمی",
+      "description": "هر شب ۱۰ صفحه قبل از خواب.",
+      "dueDate": "2025-11-21T22:30:00.000Z",
+      "status": 0,
+      "priority": 1,
+      "categories": ["study"],
+      "tags": ["کتاب"],
+      "createdAt": "2025-11-20T09:00:00.000Z",
+      "updatedAt": "2025-11-20T09:00:00.000Z",
+      "isDeleted": 0,
+      "position": 5,
+      "taskEmoji": "📖",
+      "recurrence": {"type": 2, "interval": 1},
+      "metadata": {"hasTime": true}
+    }
+  ],
+  "categories": [
+    { "id": "work", "label": "کار", "emoji": "assets/lottie/work.json", "color": 4283215696, "position": 0 },
+    { "id": "personal", "label": "شخصی", "emoji": "assets/lottie/personal.json", "color": 4278324723, "position": 1 },
+    { "id": "sport", "label": "ورزشی", "emoji": "assets/lottie/sport.json", "color": 4294936576, "position": 2 },
+    { "id": "study", "label": "مطالعه", "emoji": "assets/lottie/study.json", "color": 4288423856, "position": 3 },
+    { "id": "travel", "label": "سفر", "emoji": "assets/lottie/travel.json", "color": 4282300341, "position": 4 }
+  ],
+  "completions": [
+    { "taskId": 201, "date": "2025-11-22", "status": 1 },
+    { "taskId": 201, "date": "2025-11-23", "status": 1 },
+    { "taskId": 206, "date": "2025-11-21", "status": 1 },
+    { "taskId": 206, "date": "2025-11-22", "status": 1 }
+  ],
+  "events": [
+    {
+      "taskId": 202,
+      "type": "create",
+      "occurredAt": "2025-12-01T10:00:00.000Z",
+      "payload": {"log": "تسک ایجاد شد"}
+    }
+  ],
+  "settings": [
+    { "key": "app_theme_mode", "value": "system" }
+  ]
+}

@@ -59,8 +59,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           return b.priority.index.compareTo(a.priority.index);
         }
         // 3. Then by Category
-        final catA = a.categories.isNotEmpty ? a.categories.first : (a.category ?? '');
-        final catB = b.categories.isNotEmpty ? b.categories.first : (b.category ?? '');
+        final catA = a.categories.isNotEmpty ? a.categories.first : '';
+        final catB = b.categories.isNotEmpty ? b.categories.first : '';
         if (catA != catB) {
             return catA.compareTo(catB);
         }
@@ -310,7 +310,6 @@ class TaskListTile extends ConsumerWidget {
                     ),
                     if (task.priority != TaskPriority.medium || 
                         task.categories.isNotEmpty || 
-                        (task.category != null && task.category!.isNotEmpty) ||
                         (task.recurrence != null && task.recurrence!.type != RecurrenceType.none)) ...[
                       const SizedBox(height: 4),
                       SizedBox(
@@ -318,11 +317,11 @@ class TaskListTile extends ConsumerWidget {
                         child: _AutoScrollCapsules(
                           children: [
                             _buildPriorityCapsule(context),
-                            if (task.priority != TaskPriority.medium && (task.categories.isNotEmpty || (task.category != null && task.category!.isNotEmpty)))
+                            if (task.priority != TaskPriority.medium && task.categories.isNotEmpty)
                               const SizedBox(width: 6),
                             _buildCategoryCapsules(context, ref),
                             if (task.recurrence != null && task.recurrence!.type != RecurrenceType.none) ...[
-                              if (task.priority != TaskPriority.medium || task.categories.isNotEmpty || (task.category != null && task.category!.isNotEmpty))
+                              if (task.priority != TaskPriority.medium || task.categories.isNotEmpty)
                                 const SizedBox(width: 6),
                               Container(
                                 padding: const EdgeInsets.all(4),
@@ -461,11 +460,9 @@ class TaskListTile extends ConsumerWidget {
   }
 
   Widget _buildCategoryCapsules(BuildContext context, WidgetRef ref) {
-    if (task.categories.isEmpty && (task.category == null || task.category!.isEmpty)) return const SizedBox.shrink();
+    if (task.categories.isEmpty) return const SizedBox.shrink();
     
-    final categories = task.categories.isNotEmpty 
-        ? task.categories 
-        : (task.category != null ? [task.category!] : []);
+    final categories = task.categories;
     
     final allCategories = ref.watch(categoryProvider).valueOrNull ?? defaultCategories;
 

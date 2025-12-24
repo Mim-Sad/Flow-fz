@@ -1,0 +1,241 @@
+{
+  "version": 2,
+  "timestamp": "2025-12-19T10:00:00.000Z",
+  "tasks": [
+    {
+      "id": 1001,
+      "title": "مطالعه کتاب توسعه فردی",
+      "description": "حداقل ۲۰ صفحه مطالعه روزانه برای رشد مهارت‌های نرم",
+      "dueDate": "2025-12-19T06:00:00.000Z",
+      "priority": 2,
+      "categories": ["study"],
+      "tags": ["توسعه فردی", "عادت خوب", "مطالعه"],
+      "taskEmoji": "📚",
+      "recurrence": {
+        "type": 1,
+        "interval": 1,
+        "endDate": "2026-01-20T23:59:59.000Z"
+      },
+      "statusHistory": {
+        "2025-12-19": 1,
+        "2025-12-20": 4,
+        "2025-12-21": 1
+      },
+      "createdAt": "2025-12-18T18:00:00.000Z",
+      "updatedAt": "2025-12-18T18:00:00.000Z",
+      "isDeleted": 0,
+      "position": 1,
+      "metadata": {
+        "hasTime": true,
+        "reminderTime": "08:00"
+      }
+    },
+    {
+      "id": 1002,
+      "title": "مدیتیشن و ذهن‌آگاهی",
+      "description": "۱۰ دقیقه تمرکز روی تنفس برای کاهش استرس و افزایش تمرکز",
+      "dueDate": "2025-12-19T05:30:00.000Z",
+      "priority": 1,
+      "categories": ["personal"],
+      "tags": ["آرامش", "سلامت روان", "عادت روزانه"],
+      "taskEmoji": "🧘‍♂️",
+      "recurrence": {
+        "type": 1,
+        "interval": 1,
+        "endDate": "2026-01-20T23:59:59.000Z"
+      },
+      "statusHistory": {
+        "2025-12-19": 1,
+        "2025-12-20": 2
+      },
+      "createdAt": "2025-12-18T18:00:00.000Z",
+      "updatedAt": "2025-12-18T18:00:00.000Z",
+      "isDeleted": 0,
+      "position": 2,
+      "metadata": {
+        "hasTime": true,
+        "reminderTime": "07:30"
+      }
+    },
+    {
+      "id": 1003,
+      "title": "ورزش و فعالیت بدنی",
+      "description": "۴۵ دقیقه تمرین قدرتی یا هوازی برای حفظ تندرستی",
+      "dueDate": "2025-12-19T17:00:00.000Z",
+      "priority": 2,
+      "categories": ["sport"],
+      "tags": ["سلامتی", "انرژی", "ورزش"],
+      "taskEmoji": "🏋️‍♂️",
+      "recurrence": {
+        "type": 1,
+        "interval": 1,
+        "endDate": "2026-01-20T23:59:59.000Z"
+      },
+      "statusHistory": {
+        "2025-12-19": 1,
+        "2025-12-20": 3
+      },
+      "createdAt": "2025-12-18T18:00:00.000Z",
+      "updatedAt": "2025-12-18T18:00:00.000Z",
+      "isDeleted": 0,
+      "position": 3,
+      "metadata": {
+        "hasTime": true,
+        "reminderTime": "18:00"
+      }
+    },
+    {
+      "id": 1004,
+      "title": "مرور دستاوردهای هفته و برنامه‌ریزی",
+      "description": "تحلیل عملکرد هفته گذشته و تنظیم اهداف برای هفته آینده",
+      "dueDate": "2025-12-19T09:00:00.000Z",
+      "priority": 2,
+      "categories": ["personal"],
+      "tags": ["برنامه‌ریزی", "ارزیابی", "هفتگی"],
+      "taskEmoji": "📈",
+      "recurrence": {
+        "type": 2,
+        "interval": 1,
+        "endDate": "2026-01-20T23:59:59.000Z"
+      },
+      "statusHistory": {
+        "2025-12-19": 1
+      },
+      "createdAt": "2025-12-18T18:00:00.000Z",
+      "updatedAt": "2025-12-18T18:00:00.000Z",
+      "isDeleted": 0,
+      "position": 4,
+      "metadata": {
+        "hasTime": true
+      }
+    },
+    {
+      "id": 1005,
+      "title": "خرید کتاب‌های جدید توسعه فردی",
+      "description": "تهیه لیست کتاب‌های پیشنهادی برای فصل زمستان",
+      "dueDate": "2026-01-05T10:00:00.000Z",
+      "priority": 1,
+      "categories": ["shopping"],
+      "tags": ["خرید", "کتاب"],
+      "taskEmoji": "🛒",
+      "recurrence": null,
+      "statusHistory": {},
+      "createdAt": "2025-12-24T12:00:00.000Z",
+      "updatedAt": "2025-12-24T12:00:00.000Z",
+      "isDeleted": 0,
+      "position": 5,
+      "metadata": {}
+    },
+    {
+      "id": 1006,
+      "title": "جلسه مشاوره کسب و کار",
+      "description": "بررسی استراتژی‌های رشد برای سال جدید",
+      "dueDate": "2025-12-25T14:00:00.000Z",
+      "priority": 3,
+      "categories": ["work"],
+      "tags": ["مشاوره", "کسب و کار", "برنامه‌ریزی"],
+      "taskEmoji": "💼",
+      "recurrence": null,
+      "statusHistory": {
+        "2025-12-25": 0
+      },
+      "createdAt": "2025-12-24T15:00:00.000Z",
+      "updatedAt": "2025-12-24T15:00:00.000Z",
+      "isDeleted": 0,
+      "position": 6,
+      "metadata": {
+        "hasTime": true
+      }
+    },
+    {
+      "id": 1007,
+      "title": "پرداخت قبض موبایل",
+      "description": "پرداخت صورت‌حساب میان‌دوره آذر ماه",
+      "dueDate": "2025-12-25T10:00:00.000Z",
+      "priority": 1,
+      "categories": ["finance"],
+      "tags": ["قبض", "مالی"],
+      "taskEmoji": "📱",
+      "recurrence": null,
+      "statusHistory": {
+        "2025-12-25": 1
+      },
+      "createdAt": "2025-12-24T15:05:00.000Z",
+      "updatedAt": "2025-12-24T15:05:00.000Z",
+      "isDeleted": 0,
+      "position": 7,
+      "metadata": {
+        "hasTime": true
+      }
+    },
+    {
+      "id": 1008,
+      "title": "ثبت‌نام در دوره آموزشی",
+      "description": "دوره پیشرفته فلاتر و Clean Architecture",
+      "dueDate": "2025-12-25T09:00:00.000Z",
+      "priority": 2,
+      "categories": ["study"],
+      "tags": ["آموزش", "برنامه‌نویسی"],
+      "taskEmoji": "🎓",
+      "recurrence": null,
+      "statusHistory": {
+        "2025-12-25": 3
+      },
+      "createdAt": "2025-12-24T15:10:00.000Z",
+      "updatedAt": "2025-12-24T15:10:00.000Z",
+      "isDeleted": 0,
+      "position": 8,
+      "metadata": {
+        "hasTime": true
+      }
+    }
+  ],
+  "events": [
+    {
+      "taskId": 1001,
+      "type": "create",
+      "occurredAt": "2025-12-18T18:00:00.000Z",
+      "payload": { "log": "تسک ایجاد شد" }
+    },
+    {
+      "taskId": 1001,
+      "type": "status",
+      "occurredAt": "2025-12-19T21:00:00.000Z",
+      "payload": { "date": "2025-12-19", "status": 1, "log": "تسک در تاریخ 2025-12-19 به وضعیت انجام شده تغییر یافت" }
+    },
+    {
+      "taskId": 1006,
+      "type": "create",
+      "occurredAt": "2025-12-24T15:00:00.000Z",
+      "payload": { "log": "تسک ایجاد شد" }
+    },
+    {
+      "taskId": 1007,
+      "type": "create",
+      "occurredAt": "2025-12-24T15:05:00.000Z",
+      "payload": { "log": "تسک ایجاد شد" }
+    },
+    {
+      "taskId": 1007,
+      "type": "status",
+      "occurredAt": "2025-12-24T15:06:00.000Z",
+      "payload": { "date": "2025-12-25", "status": 1, "log": "تسک به وضعیت انجام شده تغییر یافت" }
+    },
+    {
+      "taskId": 1008,
+      "type": "create",
+      "occurredAt": "2025-12-24T15:10:00.000Z",
+      "payload": { "log": "تسک ایجاد شد" }
+    },
+    {
+      "taskId": 1008,
+      "type": "status",
+      "occurredAt": "2025-12-24T15:11:00.000Z",
+      "payload": { "date": "2025-12-25", "status": 3, "log": "تسک به وضعیت معوق تغییر یافت" }
+    }
+  ],
+  "categories": [],
+  "settings": [
+    { "key": "last_import_theme", "value": "personal_development" }
+  ]
+}

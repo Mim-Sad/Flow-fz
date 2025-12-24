@@ -75,8 +75,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     
     _recurrence = widget.task?.recurrence;
     _priority = widget.task?.priority ?? TaskPriority.medium;
-    _selectedCategories = widget.task?.categories ?? 
-        (widget.task?.category != null ? [widget.task!.category!] : []);
+    _selectedCategories = widget.task?.categories ?? [];
     _tags = List.from(widget.task?.tags ?? []);
     _selectedEmoji = widget.task?.taskEmoji;
     _attachments = widget.task?.attachments ?? [];
@@ -1252,14 +1251,12 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
 
     final task = Task(
       id: widget.task?.id,
-      rootId: widget.task?.rootId,
       title: _titleController.text,
       description: _descController.text,
       dueDate: _selectedDate,
       priority: _priority,
       categories: _selectedCategories,
-      category: _selectedCategories.isNotEmpty ? _selectedCategories.first : null,
-      status: widget.task?.status ?? TaskStatus.pending,
+      statusHistory: widget.task?.statusHistory,
       createdAt: widget.task?.createdAt,
       updatedAt: widget.task?.updatedAt,
       taskEmoji: _selectedEmoji,
@@ -1270,7 +1267,8 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     );
     
     if (task.id == null) {
-      await ref.read(tasksProvider.notifier).addTask(task);
+      final isDuplicated = widget.task != null && widget.task!.id == null;
+      await ref.read(tasksProvider.notifier).addTask(task, isDuplicate: isDuplicated);
     } else {
       await ref.read(tasksProvider.notifier).updateTask(task);
     }
