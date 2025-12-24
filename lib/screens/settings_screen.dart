@@ -123,6 +123,59 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _deleteAllData() async {
+    try {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('حذف کامل اطلاعات'),
+          content: const Text('آیا از حذف کامل تمامی اطلاعات اپلیکیشن (تسک‌ها، دسته‌بندی‌ها و تنظیمات) مطمئن هستید؟ این عمل غیرقابل بازگشت است.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('لغو'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('حذف همه داده‌ها'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm == true) {
+        await DatabaseService().deleteAllData();
+        
+        // Clear SharedPreferences
+        final prefs = ref.read(sharedPreferencesProvider);
+        await prefs.clear();
+
+        // Invalidate and reload providers
+        await ref.read(tasksProvider.notifier).reloadTasks();
+        ref.invalidate(categoryProvider);
+        
+        // Re-initialize theme to defaults
+        ref.invalidate(themeProvider);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('تمامی اطلاعات با موفقیت حذف شد')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطا در حذف اطلاعات: $e'),
+            backgroundColor: Colors.red.shade800,
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildIconWithBackground(BuildContext context, dynamic icon, {Color? color}) {
     return Container(
       width: 42,
@@ -232,6 +285,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 onTap: () {
                                   Navigator.pop(context);
                                   _importData();
+                                },
+                              ),
+                              
+                              ListTile(
+                                leading: _buildIconWithBackground(context, HugeIcons.strokeRoundedDelete02, color: Colors.red),
+                                title: const Text('حذف کامل داده‌های اپ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                subtitle: const Text('پاکسازی تمامی تسک‌ها، دسته‌بندی‌ها و تنظیمات', style: TextStyle(fontSize: 10)),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  _deleteAllData();
                                 },
                               ),
                               const SizedBox(height: 16),

@@ -726,6 +726,21 @@ class DatabaseService {
     });
   }
 
+  Future<void> deleteAllData() async {
+    Database db = await database;
+    await db.transaction((txn) async {
+      await txn.delete('tasks');
+      await txn.delete('task_events');
+      await txn.delete('settings');
+      await txn.delete('categories');
+      
+      // Re-insert default categories
+      for (var cat in defaultCategories) {
+        await txn.insert('categories', cat.toMap());
+      }
+    });
+  }
+
   int _toInt(dynamic value, int defaultValue) {
     if (value == null) return defaultValue;
     if (value is int) return value;
