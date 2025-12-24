@@ -755,15 +755,15 @@ class TaskOptionsSheet extends ConsumerWidget {
     switch (priority) {
       case TaskPriority.high:
         color = Colors.red;
-        label = 'بالا';
+        label = 'فوری';
         break;
       case TaskPriority.medium:
         color = colorScheme.primary;
-        label = 'متوسط';
+        label = 'عادی';
         break;
       case TaskPriority.low:
         color = Colors.green;
-        label = 'کم';
+        label = 'فرعی';
         break;
     }
     

@@ -192,13 +192,13 @@ class TaskCard extends ConsumerWidget {
     String label;
     switch (task.priority) {
       case TaskPriority.high:
-        label = 'بالا';
+        label = 'فوری';
         break;
       case TaskPriority.medium:
         label = 'عادی';
         break;
       case TaskPriority.low:
-        label = 'کم';
+        label = 'فرعی';
         break;
     }
 

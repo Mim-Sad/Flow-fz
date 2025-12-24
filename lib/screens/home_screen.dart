@@ -414,7 +414,7 @@ class TaskListTile extends ConsumerWidget {
       case TaskPriority.low:
         icon = HugeIcons.strokeRoundedArrowDown01;
         color = Colors.green;
-        label = 'کم';
+        label = 'فرعی';
         break;
       case TaskPriority.medium:
         icon = HugeIcons.strokeRoundedMinusSign;
@@ -424,7 +424,7 @@ class TaskListTile extends ConsumerWidget {
       case TaskPriority.high:
         icon = HugeIcons.strokeRoundedAlertCircle;
         color = Colors.red;
-        label = 'بالا';
+        label = 'فوری';
         break;
     }
 

@@ -604,7 +604,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                   segments: const [
                                     ButtonSegment(
                                       value: TaskPriority.low, 
-                                      label: Text('کم'), 
+                                      label: Text('فرعی'), 
                                       icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowDown01, color: Colors.green, size: 18)
                                     ),
                                     ButtonSegment(
@@ -614,7 +614,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                     ),
                                     ButtonSegment(
                                       value: TaskPriority.high, 
-                                      label: Text('بالا'),
+                                      label: Text('فوری'),
                                       icon: HugeIcon(icon: HugeIcons.strokeRoundedAlertCircle, color: Colors.red, size: 18)
                                     ),
                                   ],
