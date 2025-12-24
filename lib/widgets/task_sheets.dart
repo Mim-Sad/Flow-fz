@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shamsi_date/shamsi_date.dart';
-import 'package:text_scroll/text_scroll.dart';
 import '../models/task.dart';
 import '../models/category_data.dart';
 import '../providers/task_provider.dart';
@@ -351,37 +350,27 @@ class TaskOptionsSheet extends ConsumerWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  SizedBox(
-                                    height: 22,
-                                    child: TextScroll(
-                                      "${isRecurring ? 'تاریخ شروع:' : 'تاریخ انجام:'} ${_formatDate(displayDate)}",
-                                      mode: TextScrollMode.endless,
-                                      velocity: const Velocity(pixelsPerSecond: Offset(30, 0)),
-                                      delayBefore: const Duration(seconds: 2),
-                                      pauseBetween: const Duration(seconds: 2),
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Theme.of(context).colorScheme.onSurface,
-                                        fontWeight: FontWeight.w600,
-                                        fontFamily: 'IRANSansX',
-                                      ),
-                                      textDirection: TextDirection.rtl,
-                                      textAlign: TextAlign.right,
-                                    ),
-                                  ),
-                                  // Occurrence Date Row (if different)
-                                  if (isOccurrenceDifferent) ...[
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'تاریخ این تکرار: ${_formatDate(occurrenceDate)}',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      textDirection: TextDirection.rtl,
-                                    ),
-                                  ],
+                                  _buildParenthesesStyledText(
+                                     "${isRecurring ? 'آغاز:' : 'تاریخ:'} ${_formatDate(displayDate)}",
+                                     TextStyle(
+                                       fontSize: 13,
+                                       color: Theme.of(context).colorScheme.onSurface,
+                                       fontWeight: FontWeight.w600,
+                                       fontFamily: 'IRANSansX',
+                                     ),
+                                   ),
+                                   // Occurrence Date Row (if different)
+                                   if (isOccurrenceDifferent) ...[
+                                     const SizedBox(height: 4),
+                                     _buildParenthesesStyledText(
+                                       'تکرار فعلی: ${_formatDate(occurrenceDate)}',
+                                       TextStyle(
+                                         fontSize: 11,
+                                         color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                         fontWeight: FontWeight.w500,
+                                       ),
+                                     ),
+                                   ],
                                 ],
                               ),
                             ),
@@ -402,14 +391,13 @@ class TaskOptionsSheet extends ConsumerWidget {
                               ),
                               const SizedBox(width: 8),
                               Expanded(
-                                child: Text(
-                                  _toPersianDigit(_formatTime(displayDate)),
-                                  style: TextStyle(
+                                child: _buildParenthesesStyledText(
+                                  "زمان: ${_toPersianDigit(_formatTime(displayDate))}",
+                                  TextStyle(
                                     fontSize: 13,
                                     color: Theme.of(context).colorScheme.onSurface,
                                     fontWeight: FontWeight.w600,
                                   ),
-                                  textDirection: TextDirection.rtl,
                                 ),
                               ),
                             ],
@@ -429,19 +417,13 @@ class TaskOptionsSheet extends ConsumerWidget {
                                ),
                               const SizedBox(width: 8),
                               Expanded(
-                                child: TextScroll(
+                                child: _buildParenthesesStyledText(
                                   _getRecurrenceText(task.recurrence!),
-                                  mode: TextScrollMode.endless,
-                                  velocity: const Velocity(pixelsPerSecond: Offset(30, 0)),
-                                  delayBefore: const Duration(seconds: 2),
-                                  pauseBetween: const Duration(seconds: 2),
-                                  style: TextStyle(
+                                  TextStyle(
                                     fontSize: 13,
                                     color: Theme.of(context).colorScheme.onSurface,
                                     fontWeight: FontWeight.w600,
                                   ),
-                                  textDirection: TextDirection.rtl,
-                                  textAlign: TextAlign.right,
                                 ),
                               ),
                             ],
@@ -616,6 +598,75 @@ class TaskOptionsSheet extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildParenthesesStyledText(String text, TextStyle baseStyle, {TextAlign textAlign = TextAlign.right, TextDirection textDirection = TextDirection.rtl}) {
+    final List<TextSpan> spans = [];
+    
+    // Pattern to match labels ending with colon OR text inside parentheses
+    // Group 1: Label with colon (e.g., "تاریخ شروع:")
+    // Group 2: Text inside parentheses (e.g., "(امروز)")
+    final RegExp regExp = RegExp(r'(^.*?:)|\((.*?)\)');
+    int lastIndex = 0;
+
+    for (final Match match in regExp.allMatches(text)) {
+      // Add text before the match
+      if (match.start > lastIndex) {
+        spans.add(TextSpan(
+          text: text.substring(lastIndex, match.start),
+          style: baseStyle,
+        ));
+      }
+      
+      final labelMatch = match.group(1);
+      final parenContentMatch = match.group(2);
+
+      if (labelMatch != null) {
+        // Style for label with colon
+        spans.add(TextSpan(
+          text: labelMatch,
+          style: baseStyle.copyWith(
+            color: baseStyle.color?.withValues(alpha: 0.6),
+            fontWeight: FontWeight.w500,
+          ),
+        ));
+      } else if (match.group(0)!.startsWith('(')) {
+        // Style for parentheses
+        final styledParenStyle = baseStyle.copyWith(
+          fontSize: (baseStyle.fontSize ?? 13) * 0.85,
+          color: baseStyle.color?.withValues(alpha: 0.5),
+          fontWeight: FontWeight.w400,
+        );
+
+        spans.add(TextSpan(text: '(', style: styledParenStyle));
+        spans.add(TextSpan(text: parenContentMatch, style: styledParenStyle));
+        spans.add(TextSpan(text: ')', style: styledParenStyle));
+      }
+      
+      lastIndex = match.end;
+    }
+
+    if (lastIndex < text.length) {
+      spans.add(TextSpan(
+        text: text.substring(lastIndex),
+        style: baseStyle,
+      ));
+    }
+
+    if (spans.isEmpty) {
+      return Text(
+        text,
+        style: baseStyle,
+        textAlign: textAlign,
+        textDirection: textDirection,
+      );
+    }
+
+    return Text.rich(
+      TextSpan(children: spans),
+      textAlign: textAlign,
+      textDirection: textDirection,
     );
   }
 
