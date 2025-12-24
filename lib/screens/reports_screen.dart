@@ -184,12 +184,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ).animate().fadeIn(delay: 200.ms),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 18),
                       if (filteredTasks.isNotEmpty)
                         Column(
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(20),
+                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
                               decoration: BoxDecoration(
                                 color: Theme.of(
                                   context,
@@ -239,7 +239,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                                     title: '',
                                                     color: Theme.of(
                                                       context,
-                                                    ).colorScheme.primary,
+                                                    ).colorScheme.surfaceContainerHigh,
                                                     radius: 35,
                                                   ),
                                                 if (deferredCount > 0)
@@ -258,7 +258,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                           ),
                                     ),
                                   ),
-                                  const SizedBox(width: 16),
+                                  const SizedBox(width: 24),
                                   Expanded(
                                     flex: 5,
                                     child: Column(
@@ -309,7 +309,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                       ?.copyWith(fontWeight: FontWeight.bold),
                                 ),
                               ).animate().fadeIn(delay: 400.ms),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 18),
                               Padding(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 10,
