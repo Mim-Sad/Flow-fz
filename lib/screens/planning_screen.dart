@@ -226,194 +226,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     );
   }
 
-  Widget _buildRecurringTaskGroup(List<Task> tasks) {
-    final tasksNotifier = ref.read(tasksProvider.notifier);
-
-    // Calculate progress for recurring tasks for the selected date
-    int total = 0;
-    int completed = 0;
-    for (var task in tasks) {
-      final taskId = task.id!;
-      final status = tasksNotifier.getStatusForDate(taskId, _selectedDate);
-      
-      // Exclude cancelled and deferred from progress calculation
-      if (status != TaskStatus.cancelled && status != TaskStatus.deferred) {
-        total++;
-        if (status == TaskStatus.success) completed++;
-      }
-    }
-    double progress = total == 0 ? 0 : completed / total;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(
-            alpha: 0.5,
-          ),
-          width: 1.2,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Row(
-              textDirection: TextDirection.rtl,
-              children: [
-                Lottie.asset(DuckEmojis.fire, width: 24, height: 24),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'تسک‌های تکرار شونده',
-                    textDirection: TextDirection.rtl,
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Thin divider line
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Divider(
-              height: 1,
-              thickness: 0.5,
-              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
-            ),
-          ),
-          const SizedBox(height: 8),
-          
-          // List of recurring tasks
-          ...tasks.map((task) => _buildRecurringTaskRow(task)),
-          const SizedBox(height: 12),
-
-          // Progress Bar
-          if (total > 0)
-            Container(
-              height: 3,
-              width: double.infinity,
-              alignment: Alignment.centerLeft,
-              child: LinearProgressIndicator(
-                value: progress,
-                backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                color: Theme.of(context).colorScheme.primary,
-                minHeight: 3,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecurringTaskRow(Task task) {
-    final status = ref.read(tasksProvider.notifier).getStatusForDate(task.id!, _selectedDate);
-    
-    final isCancelled = status == TaskStatus.cancelled;
-    final isSuccess = status == TaskStatus.success;
-    
-    final row = Opacity(
-      opacity: isCancelled ? 0.6 : 1.0,
-      child: Container(
-        color: Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 10.5, vertical: 3),
-        child: Row(
-          textDirection: TextDirection.ltr,
-          children: [
-            // Status Icon (Left side)
-            _getStatusIconForTile(task),
-
-            const SizedBox(width: 10),
-
-            // Task Title (Right side)
-            Expanded(
-              child: InkWell(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  _toggleTaskStatus(task, _selectedDate);
-                },
-                onLongPress: () {
-                  HapticFeedback.mediumImpact();
-                  _showTaskOptions(context, task, date: _selectedDate);
-                },
-                child: Row(
-                  textDirection: TextDirection.rtl,
-                  children: [
-                    if (task.taskEmoji != null) ...[
-                      Text(task.taskEmoji!, style: const TextStyle(fontSize: 14)),
-                      const SizedBox(width: 6),
-                    ],
-                    Expanded(
-                      child: TextScroll(
-                        task.title,
-                        mode: TextScrollMode.endless,
-                        velocity: const Velocity(
-                          pixelsPerSecond: Offset(30, 0),
-                        ),
-                        delayBefore: const Duration(seconds: 2),
-                        pauseBetween: const Duration(seconds: 2),
-                        textDirection: TextDirection.rtl,
-                        textAlign: TextAlign.right,
-                        style: TextStyle(
-                          fontSize: 13,
-                          decoration: isSuccess ? TextDecoration.lineThrough : null,
-                          color: isSuccess
-                              ? Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
-                              : Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    return Dismissible(
-      key: Key('planning_rec_dismiss_${task.id}_${_selectedDate.toIso8601String()}'),
-      direction: DismissDirection.horizontal,
-      confirmDismiss: (direction) async {
-        if (direction == DismissDirection.startToEnd) {
-          // Swipe Right: Done
-          HapticFeedback.mediumImpact();
-          _toggleTaskStatus(task, _selectedDate);
-          return false;
-        } else {
-          // Swipe Left: Defer
-          HapticFeedback.mediumImpact();
-          PostponeDialog.show(context, ref, task, targetDate: _selectedDate);
-          return false;
-        }
-      },
-      background: Container(
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(left: 12),
-        color: Colors.green.shade400,
-        child: const Icon(Icons.check, color: Colors.white),
-      ),
-      secondaryBackground: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 12),
-        color: Colors.orange.shade400,
-        child: const Icon(Icons.history, color: Colors.white),
-      ),
-      child: row,
-    );
-  }
+  
 
   Widget _buildMainContent(
     List<Task> allTasks,
@@ -819,18 +632,6 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       return _buildEmptyState('برای این روز برنامه‌ای نداری!');
     }
 
-
-    final recurringTasks = <Task>[];
-    final regularTasks = <Task>[];
-
-    for (var task in dailyTasks) {
-      if (task.recurrence != null && task.recurrence!.type != RecurrenceType.none) {
-        recurringTasks.add(task);
-      } else {
-        regularTasks.add(task);
-      }
-    }
-
     return ListView(
       padding: EdgeInsets.only(
         top: MediaQuery.of(context).padding.top + 80,
@@ -839,23 +640,13 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         bottom: 12,
       ),
       children: [
-        // Recurring Tasks Box
-        if (recurringTasks.isNotEmpty) ...[
-          () {
-            final key = 'daily_recurring_${_selectedDate.toIso8601String()}';
-            final shouldAnimate = !_animatedKeys.contains(key);
-            if (shouldAnimate) _animatedKeys.add(key);
-            return FadeInOnce(
-              key: ValueKey(key),
-              delay: 100.ms,
-              animate: shouldAnimate,
-              child: _buildRecurringTaskGroup(recurringTasks),
-            );
-          }(),
-        ],
-        
-        // Regular Task Groups
-        ..._getGroupedAndSortedTasks(regularTasks).entries.toList().asMap().entries.map((entry) {
+        // Task Groups
+        ..._getGroupedAndSortedTasks(dailyTasks, statusDateOverride: _selectedDate)
+            .entries
+            .toList()
+            .asMap()
+            .entries
+            .map((entry) {
              final index = entry.key;
              final group = entry.value;
              final key = 'daily_group_${group.key}_${_selectedDate.toIso8601String()}';
@@ -866,7 +657,12 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                key: ValueKey(key),
                delay: (200 + (index * 50)).ms,
                animate: shouldAnimate,
-               child: _buildTaskGroup(group.key, group.value, categories),
+               child: _buildTaskGroup(
+                 group.key,
+                 group.value,
+                 categories,
+                 dateOverride: _selectedDate,
+               ),
              );
         }),
       ],
@@ -1310,7 +1106,10 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     );
   }
 
-  Map<String, List<Task>> _getGroupedAndSortedTasks(List<Task> tasks) {
+  Map<String, List<Task>> _getGroupedAndSortedTasks(
+    List<Task> tasks, {
+    DateTime? statusDateOverride,
+  }) {
     final Map<String, List<Task>> grouped = {};
     for (var task in tasks) {
       String key;
@@ -1327,30 +1126,40 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     // Sort categories: "combined" first, then others, "uncategorized" last
     final sortedKeys = grouped.keys.toList()
       ..sort((a, b) {
+        if (a == 'combined') return -1;
+        if (b == 'combined') return 1;
+
         // 1. Uncategorized is always last (biggest)
         if (a == 'uncategorized') return 1;
         if (b == 'uncategorized') return -1;
-
-        // 2. Combined is second to last (bigger than normal, smaller than uncategorized)
-        if (a == 'combined') return 1;
-        if (b == 'combined') return -1;
 
         // 3. Normal categories
         return a.compareTo(b);
       });
 
     final Map<String, List<Task>> result = {};
+    final tasksNotifier = ref.read(tasksProvider.notifier);
     for (var key in sortedKeys) {
       final list = grouped[key]!;
       // Sort tasks within category: High priority first, then move cancelled to bottom
       list.sort((a, b) {
+        final dateA = statusDateOverride ?? a.dueDate;
+        final dateB = statusDateOverride ?? b.dueDate;
+
+        final statusA = a.id != null
+            ? tasksNotifier.getStatusForDate(a.id!, dateA)
+            : a.status;
+        final statusB = b.id != null
+            ? tasksNotifier.getStatusForDate(b.id!, dateB)
+            : b.status;
+
         // Move cancelled to bottom
-        if (a.status == TaskStatus.cancelled &&
-            b.status != TaskStatus.cancelled) {
+        if (statusA == TaskStatus.cancelled &&
+            statusB != TaskStatus.cancelled) {
           return 1;
         }
-        if (a.status != TaskStatus.cancelled &&
-            b.status == TaskStatus.cancelled) {
+        if (statusA != TaskStatus.cancelled &&
+            statusB == TaskStatus.cancelled) {
           return -1;
         }
 
@@ -1365,7 +1174,12 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     return result;
   }
 
-  Widget _buildTaskGroup(String key, List<Task> tasks, List<CategoryData> categories) {
+  Widget _buildTaskGroup(
+    String key,
+    List<Task> tasks,
+    List<CategoryData> categories, {
+    DateTime? dateOverride,
+  }) {
     String title;
     Color color;
     String emoji;
@@ -1392,7 +1206,8 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     int completed = 0;
 
     for (var t in tasks) {
-      final status = tasksNotifier.getStatusForDate(t.id!, t.dueDate);
+      final date = dateOverride ?? t.dueDate;
+      final status = tasksNotifier.getStatusForDate(t.id!, date);
 
       if (status != TaskStatus.cancelled && status != TaskStatus.deferred) {
         total++;
@@ -1470,7 +1285,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                 return Padding(
                   key: ValueKey(task.id ?? 'temp_${task.hashCode}_$index'),
                   padding: EdgeInsets.zero,
-                  child: _buildCompactTaskRow(task),
+                  child: _buildCompactTaskRow(task, dateOverride: dateOverride),
                 );
               },
             ),
@@ -1495,8 +1310,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     );
   }
 
-  Widget _buildCompactTaskRow(Task task) {
-    final status = ref.read(tasksProvider.notifier).getStatusForDate(task.id!, task.dueDate);
+  Widget _buildCompactTaskRow(Task task, {DateTime? dateOverride}) {
+    final date = dateOverride ?? task.dueDate;
+    final status = ref.read(tasksProvider.notifier).getStatusForDate(task.id!, date);
 
     final isCancelled = status == TaskStatus.cancelled;
     final isSuccess = status == TaskStatus.success;
@@ -1511,7 +1327,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           textDirection: TextDirection.ltr,
           children: [
             // Status Icon (Left side)
-            _buildStatusIcon(task: task, date: task.dueDate, size: 22),
+            _buildStatusIcon(task: task, date: date, size: 22),
 
             const SizedBox(width: 10),
 
@@ -1520,11 +1336,11 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
               child: InkWell(
                 onTap: () {
                   HapticFeedback.lightImpact();
-                  _toggleTaskStatus(task, task.dueDate);
+                  _toggleTaskStatus(task, date);
                 },
                 onLongPress: () {
                   HapticFeedback.mediumImpact();
-                  _showTaskOptions(context, task, date: task.dueDate);
+                  _showTaskOptions(context, task, date: date);
                 },
                 child: Row(
                   textDirection: TextDirection.rtl,
@@ -1566,18 +1382,18 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     );
 
     return Dismissible(
-      key: Key('planning_dismiss_${task.id}_${task.dueDate.toIso8601String()}'),
+      key: Key('planning_dismiss_${task.id}_${date.toIso8601String()}'),
       direction: DismissDirection.horizontal,
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.startToEnd) {
           // Swipe Right: Done
           HapticFeedback.mediumImpact();
-          _toggleTaskStatus(task, task.dueDate);
+          _toggleTaskStatus(task, date);
           return false;
         } else {
           // Swipe Left: Defer
           HapticFeedback.mediumImpact();
-          PostponeDialog.show(context, ref, task, targetDate: task.dueDate);
+          PostponeDialog.show(context, ref, task, targetDate: date);
           return false;
         }
       },
@@ -1718,10 +1534,6 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       },
       child: HugeIcon(icon: icon, size: size, color: color),
     );
-  }
-
-  Widget _getStatusIconForTile(Task task) {
-    return _buildStatusIcon(task: task, date: task.dueDate);
   }
 
   String _getDayName(int weekday) {
