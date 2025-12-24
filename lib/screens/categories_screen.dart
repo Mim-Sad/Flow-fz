@@ -21,126 +21,284 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     String selectedEmoji = category?.emoji ?? DuckEmojis.all.first;
     Color selectedColor = category?.color ?? Theme.of(context).colorScheme.primary;
     
-    // Simple color palette
     final List<Color> colors = [
       Colors.red, Colors.pink, Colors.purple, Colors.deepPurple,
       Colors.indigo, Colors.blue, Colors.lightBlue, Colors.cyan,
       Colors.teal, Colors.green, Colors.lightGreen, Colors.lime,
-      Colors.yellow, Colors.amber, Colors.orange, Colors.deepOrange,
-      Colors.brown, Colors.grey, Colors.blueGrey, Colors.black,
+      Colors.yellow, Colors.orange, Colors.deepOrange,
+      Colors.brown, Colors.grey, Colors.blueGrey,
     ];
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            title: Text(isEditing ? 'ویرایش دسته‌بندی' : 'افزودن دسته‌بندی'),
-            content: SingleChildScrollView(
+        builder: (context, setModalState) {
+          return Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TextField(
-                    controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'نام دسته',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('آیکون', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 200,
-                    width: double.maxFinite,
-                    child: GridView.builder(
-                      shrinkWrap: true,
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 5,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
+                  // Pull handle
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                      itemCount: DuckEmojis.all.length,
-                      itemBuilder: (context, index) {
-                        final emojiPath = DuckEmojis.all[index];
-                        final isSelected = selectedEmoji == emojiPath;
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() => selectedEmoji = emojiPath);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: isSelected ? Theme.of(context).colorScheme.primaryContainer : null,
-                              borderRadius: BorderRadius.circular(8),
-                              border: isSelected ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2) : Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-                            ),
-                            child: Lottie.asset(emojiPath, fit: BoxFit.contain),
-                          ),
-                        );
-                      },
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const Text('رنگ', style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: colors.map((color) {
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            selectedColor = color;
-                          });
-                        },
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                            border: selectedColor == color
-                                ? Border.all(color: Colors.black, width: 2)
-                                : null,
+                  
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: HugeIcon(
+                                  icon: HugeIcons.strokeRoundedArchive02, 
+                                  size: 20,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Text(
+                                isEditing ? 'ویرایش دسته‌بندی' : 'دسته‌بندی جدید',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                              const Spacer(),
+                              IconButton(
+                                onPressed: () => Navigator.pop(context),
+                                icon: const HugeIcon(
+                                  icon: HugeIcons.strokeRoundedCancel01,
+                                  size: 22,
+                                  color: Colors.grey,
+                                ),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                style: const ButtonStyle(
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                              ),
+                            ],
                           ),
-                          child: selectedColor == color
-                              ? const HugeIcon(icon: HugeIcons.strokeRoundedCheckmarkCircle03, size: 20, color: Colors.white)
-                              : null,
+                          const SizedBox(height: 24),
+
+                          // Name Input
+                          TextField(
+                            controller: nameController,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                            decoration: InputDecoration(
+                              hintText: 'نام دسته‌بندی...',
+                              hintStyle: const TextStyle(fontSize: 14),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(18),
+                                borderSide: BorderSide.none,
+                              ),
+                              filled: true,
+                              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Icon Section
+                          Text(
+                            'انتخاب آیکون',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ShaderMask(
+                            shaderCallback: (Rect bounds) {
+                              return LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.white,
+                                  Colors.white,
+                                  Colors.white.withValues(alpha: 0.0),
+                                ],
+                                stops: const [0.0, 0.8, 1.0],
+                              ).createShader(bounds);
+                            },
+                            blendMode: BlendMode.dstIn,
+                            child: SizedBox(
+                              height: 180,
+                              child: GridView.builder(
+                                padding: const EdgeInsets.only(bottom: 20),
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 5,
+                                  crossAxisSpacing: 8,
+                                  mainAxisSpacing: 8,
+                                ),
+                                itemCount: DuckEmojis.all.length,
+                                itemBuilder: (context, index) {
+                                  final emojiPath = DuckEmojis.all[index];
+                                  final isSelected = selectedEmoji == emojiPath;
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setModalState(() => selectedEmoji = emojiPath);
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      decoration: BoxDecoration(
+                                        color: isSelected 
+                                            ? selectedColor.withValues(alpha: 0.1)
+                                            : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: isSelected ? selectedColor : Colors.transparent,
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      padding: const EdgeInsets.all(6),
+                                      child: Lottie.asset(emojiPath, fit: BoxFit.contain),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Color Section
+                          Text(
+                            'انتخاب رنگ',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              alignment: WrapAlignment.spaceBetween,
+                              children: colors.map((color) {
+                                final isSelected = selectedColor == color;
+                                return GestureDetector(
+                                  onTap: () {
+                                    setModalState(() => selectedColor = color);
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    width: 42,
+                                    height: 42,
+                                    decoration: BoxDecoration(
+                                      color: color,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: isSelected ? Theme.of(context).colorScheme.onSurface : Colors.transparent,
+                                        width: 2.5,
+                                      ),
+                                      boxShadow: isSelected ? [
+                                        BoxShadow(
+                                          color: color.withValues(alpha: 0.4),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 4),
+                                        )
+                                      ] : null,
+                                    ),
+                                    child: isSelected 
+                                        ? const Icon(Icons.check, color: Colors.white, size: 22)
+                                        : null,
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  
+                  // Action Button
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, -5),
                         ),
-                      );
-                    }).toList(),
+                      ],
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: FilledButton.icon(
+                        onPressed: () {
+                          if (nameController.text.isNotEmpty) {
+                            final newCategory = CategoryData(
+                              id: isEditing ? category.id : const Uuid().v4(),
+                              label: nameController.text,
+                              emoji: selectedEmoji,
+                              color: selectedColor,
+                            );
+                            
+                            if (isEditing) {
+                              ref.read(categoryProvider.notifier).updateCategory(newCategory);
+                            } else {
+                              ref.read(categoryProvider.notifier).addCategory(newCategory);
+                            }
+                            Navigator.pop(context);
+                          }
+                        },
+                        icon: HugeIcon(
+                          icon: isEditing ? HugeIcons.strokeRoundedCheckmarkSquare04 : HugeIcons.strokeRoundedAddSquare, 
+                          size: 20, 
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                        ),
+                        label: Text(
+                          isEditing ? 'ذخیره تغییرات' : 'ثبت دسته‌بندی جدید',
+                          style: TextStyle(
+                            fontSize: 16, 
+                            fontWeight: FontWeight.bold, 
+                            color: Theme.of(context).colorScheme.onPrimary
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('انصراف'),
-              ),
-              FilledButton(
-                onPressed: () {
-                  if (nameController.text.isNotEmpty) {
-                    final newCategory = CategoryData(
-                      id: isEditing ? category.id : const Uuid().v4(),
-                      label: nameController.text,
-                      emoji: selectedEmoji,
-                      color: selectedColor,
-                    );
-                    
-                    if (isEditing) {
-                      ref.read(categoryProvider.notifier).updateCategory(newCategory);
-                    } else {
-                      ref.read(categoryProvider.notifier).addCategory(newCategory);
-                    }
-                    Navigator.pop(context);
-                  }
-                },
-                child: Text(isEditing ? 'بروزرسانی' : 'افزودن'),
-              ),
-            ],
           );
         },
       ),

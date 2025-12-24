@@ -245,7 +245,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                       title: const Text('مدیریت دسته‌بندی‌ها', style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16,)),
                       subtitle: const Text('افزودن، ویرایش و حذف دسته‌بندی‌ها',style: TextStyle(fontSize: 12,),),
-                      leading: HugeIcon(icon: HugeIcons.strokeRoundedTag01, color: Theme.of(context).colorScheme.primary),
+                      leading: HugeIcon(icon: HugeIcons.strokeRoundedArchive02, color: Theme.of(context).colorScheme.primary),
                       trailing: const HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: Colors.grey, size: 20),
                       onTap: () {
                         Navigator.push(
