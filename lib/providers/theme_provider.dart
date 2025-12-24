@@ -35,46 +35,11 @@ class ThemeNotifier extends Notifier<ThemeState> {
 
   @override
   ThemeState build() {
-    // We return a default state first, then load from prefs asynchronously
-    _initSettings();
+    _prefs = ref.read(sharedPreferencesProvider);
     
-    return ThemeState(
-      seedColor: const Color(0xFF6750A4), // Default color
-      themeMode: ThemeMode.dark,
-      isInitialized: false,
-    );
-  }
-
-  Future<void> _initSettings() async {
-    _prefs = await SharedPreferences.getInstance();
-    await _loadSettings();
-  }
-
-  Future<void> _loadSettings() async {
-    // Try SharedPreferences first
-    int? colorValue = _prefs.getInt(_seedColorKey);
-    int? modeIndex = _prefs.getInt(_themeModeKey);
-
-    // If not in SharedPreferences, try Database
-    if (colorValue == null) {
-      final dbColor = await _dbService.getSetting(_seedColorKey);
-      if (dbColor != null) {
-        colorValue = int.tryParse(dbColor);
-        if (colorValue != null) {
-          await _prefs.setInt(_seedColorKey, colorValue);
-        }
-      }
-    }
-
-    if (modeIndex == null) {
-      final dbMode = await _dbService.getSetting(_themeModeKey);
-      if (dbMode != null) {
-        modeIndex = int.tryParse(dbMode);
-        if (modeIndex != null) {
-          await _prefs.setInt(_themeModeKey, modeIndex);
-        }
-      }
-    }
+    // Load settings synchronously from SharedPreferences
+    final colorValue = _prefs.getInt(_seedColorKey);
+    final modeIndex = _prefs.getInt(_themeModeKey);
 
     Color seedColor = const Color(0xFF6750A4);
     if (colorValue != null) {
@@ -85,12 +50,63 @@ class ThemeNotifier extends Notifier<ThemeState> {
     if (modeIndex != null) {
       themeMode = ThemeMode.values[modeIndex];
     }
+    
+    // Check DB in background if needed, but return valid state immediately
+    if (colorValue == null || modeIndex == null) {
+       _syncWithDb();
+    }
 
-    state = ThemeState(
+    return ThemeState(
       seedColor: seedColor,
       themeMode: themeMode,
       isInitialized: true,
     );
+  }
+
+  Future<void> _syncWithDb() async {
+    // If not in SharedPreferences, try Database
+    int? colorValue = _prefs.getInt(_seedColorKey);
+    int? modeIndex = _prefs.getInt(_themeModeKey);
+    bool changed = false;
+
+    if (colorValue == null) {
+      final dbColor = await _dbService.getSetting(_seedColorKey);
+      if (dbColor != null) {
+        colorValue = int.tryParse(dbColor);
+        if (colorValue != null) {
+          await _prefs.setInt(_seedColorKey, colorValue);
+          changed = true;
+        }
+      }
+    }
+
+    if (modeIndex == null) {
+      final dbMode = await _dbService.getSetting(_themeModeKey);
+      if (dbMode != null) {
+        modeIndex = int.tryParse(dbMode);
+        if (modeIndex != null) {
+          await _prefs.setInt(_themeModeKey, modeIndex);
+          changed = true;
+        }
+      }
+    }
+    
+    if (changed) {
+       Color seedColor = state.seedColor;
+       if (colorValue != null) {
+          seedColor = Color(colorValue);
+       }
+       
+       ThemeMode themeMode = state.themeMode;
+       if (modeIndex != null) {
+          themeMode = ThemeMode.values[modeIndex];
+       }
+       
+       state = state.copyWith(
+         seedColor: seedColor,
+         themeMode: themeMode,
+       );
+    }
   }
 
   Future<void> setSeedColor(Color color) async {
@@ -127,4 +143,8 @@ class ThemeNotifier extends Notifier<ThemeState> {
 
 final themeProvider = NotifierProvider<ThemeNotifier, ThemeState>(() {
   return ThemeNotifier();
+});
+
+final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
+  throw UnimplementedError();
 });

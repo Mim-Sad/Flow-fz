@@ -1,19 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:ui'; // Added for PlatformDispatcher
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:animated_theme_switcher/animated_theme_switcher.dart' as ats; // Added
 import '../services/database_service.dart';
 import '../providers/theme_provider.dart';
 import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
-import '../utils/app_theme.dart'; // Added
 import 'categories_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -35,28 +32,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  Offset? _tapOffset;
   
-  void _switchTheme({
-    required BuildContext context,
-    required Color seedColor,
-    required ThemeMode themeMode,
-    required VoidCallback onUpdateState,
-    Offset? offset,
-  }) {
-    final brightness = themeMode == ThemeMode.system
-        ? PlatformDispatcher.instance.platformBrightness
-        : (themeMode == ThemeMode.dark ? Brightness.dark : Brightness.light);
-    
-    final newTheme = AppTheme.getTheme(seedColor: seedColor, brightness: brightness);
-    
-    ats.ThemeSwitcher.of(context).changeTheme(
-      theme: newTheme,
-      offset: offset,
-    );
-    onUpdateState();
-  }
-
   Future<void> _exportData() async {
     try {
       final data = await DatabaseService().exportData();
@@ -166,24 +142,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // We only watch isInitialized to know when to show the content.
-    // The actual theme values are handled by ThemeSwitcher and Theme.of(context).
-    final isInitialized = ref.watch(themeProvider.select((s) => s.isInitialized));
+    final themeState = ref.watch(themeProvider);
     final themeNotifier = ref.read(themeProvider.notifier);
 
-    if (!isInitialized) return const Scaffold();
+    if (!themeState.isInitialized) return const Scaffold();
 
-    return ats.ThemeSwitcher(
-      clipper: const ats.ThemeSwitcherCircleClipper(),
-      builder: (context) {
-        final theme = Theme.of(context);
-        final onCardColor = theme.colorScheme.onSurface;
-        // We still need the current state for selection indicators, 
-        // but we read it inside the builder to get the current values
-        // without subscribing to further updates that might interrupt the switcher.
-        final themeState = ref.read(themeProvider);
+    final theme = Theme.of(context);
+    final onCardColor = theme.colorScheme.onSurface;
 
-        return Scaffold(
+    return Scaffold(
           appBar: AppBar(
             title: const Text('تنظیمات'),
             centerTitle: true,
@@ -289,7 +256,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           _buildIconWithBackground(context, HugeIcons.strokeRoundedPaintBoard),
                           const SizedBox(width: 12),
                           const Text(
-                            'حال و هوای جریان',
+                            'حال و هوامون',
                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -306,15 +273,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             final name = SettingsScreen._poeticColorNames[color.toARGB32()] ?? '';
       
                             return GestureDetector(
-                              onTapDown: (details) {
+                              onTap: () {
                                 if (!isSelected) {
-                                  _switchTheme(
-                                    context: context,
-                                    seedColor: color,
-                                    themeMode: themeState.themeMode,
-                                    offset: details.globalPosition,
-                                    onUpdateState: () => themeNotifier.setSeedColor(color),
-                                  );
+                                  themeNotifier.setSeedColor(color);
                                 }
                               },
                               child: AnimatedContainer(
@@ -381,7 +342,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           _buildIconWithBackground(context, HugeIcons.strokeRoundedMoon),
                           const SizedBox(width: 12),
                           const Text(
-                            'خورشید و ماه جریان',
+                            'شب  و روزمون',
                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -389,9 +350,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
-                        child: Listener(
-                          onPointerDown: (event) => _tapOffset = event.position,
-                          child: SegmentedButton<ThemeMode>(
+                        child: SegmentedButton<ThemeMode>(
                             segments: [
                               ButtonSegment<ThemeMode>(
                                 value: ThemeMode.light,
@@ -420,16 +379,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ],
                             selected: {themeState.themeMode},
                             onSelectionChanged: (newSelection) {
-                              _switchTheme(
-                                context: context,
-                                seedColor: themeState.seedColor,
-                                themeMode: newSelection.first,
-                                offset: _tapOffset,
-                                onUpdateState: () => themeNotifier.setThemeMode(newSelection.first),
-                              );
+                              themeNotifier.setThemeMode(newSelection.first);
                             },
                           ),
-                        ),
                       ),
                     ],
                   ),
@@ -437,8 +389,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(height: 40),
             ],
           ),
-        );
-      },
     );
   }
 }

@@ -1,10 +1,9 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
-import 'package:animated_theme_switcher/animated_theme_switcher.dart' as ats;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/home_screen.dart';
 import 'screens/planning_screen.dart';
 import 'screens/reports_screen.dart';
@@ -13,11 +12,16 @@ import 'widgets/navigation_wrapper.dart';
 import 'providers/theme_provider.dart';
 import 'utils/app_theme.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  
   runApp(
-    const ProviderScope(
-      child: FlowApp(),
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const FlowApp(),
     ),
   );
 }
@@ -56,48 +60,36 @@ class FlowApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isInitialized = ref.watch(themeProvider.select((s) => s.isInitialized));
+    final themeState = ref.watch(themeProvider);
     
-    if (!isInitialized) {
-      return const MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: Scaffold(),
-      );
+    // With synchronous initialization, isInitialized should be true immediately.
+    // But we keep the check just in case, though it shouldn't be needed if setup correctly.
+    if (!themeState.isInitialized) {
+      return const SizedBox.shrink(); // Render nothing instead of a scaffold if still initializing
     }
 
-    // Read the theme state once for initialization.
-    // We don't watch it here because ThemeSwitcher handles updates with animation.
-    final themeState = ref.read(themeProvider);
-    
-    final brightness = themeState.themeMode == ThemeMode.system
-        ? PlatformDispatcher.instance.platformBrightness
-        : (themeState.themeMode == ThemeMode.dark ? Brightness.dark : Brightness.light);
-
-    final initialTheme = AppTheme.getTheme(
-      seedColor: themeState.seedColor,
-      brightness: brightness,
-    );
-
-    return ats.ThemeProvider(
-      initTheme: initialTheme,
-      duration: const Duration(milliseconds: 700),
-      builder: (context, theme) {
-        return MaterialApp.router(
-          title: 'Flow',
-          debugShowCheckedModeBanner: false,
-          locale: const Locale('fa', 'IR'),
-          supportedLocales: const [Locale('fa', 'IR')],
-          localizationsDelegates: const [
-            PersianMaterialLocalizations.delegate,
-            PersianCupertinoLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          routerConfig: _router,
-          theme: theme,
-        );
-      },
+    return MaterialApp.router(
+      title: 'Flow',
+      debugShowCheckedModeBanner: false,
+      locale: const Locale('fa', 'IR'),
+      supportedLocales: const [Locale('fa', 'IR')],
+      localizationsDelegates: const [
+        PersianMaterialLocalizations.delegate,
+        PersianCupertinoLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      routerConfig: _router,
+      theme: AppTheme.getTheme(
+        seedColor: themeState.seedColor,
+        brightness: Brightness.light,
+      ),
+      darkTheme: AppTheme.getTheme(
+        seedColor: themeState.seedColor,
+        brightness: Brightness.dark,
+      ),
+      themeMode: themeState.themeMode,
     );
   }
 }
