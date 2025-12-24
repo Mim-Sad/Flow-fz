@@ -252,11 +252,14 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
               ),
               
               Flexible(
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                child: Stack(
+                  children: [
+                    SingleChildScrollView(
+                      padding: const EdgeInsets.only(bottom: 60),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                       // Header
                       Row(
                         children: [
@@ -886,34 +889,54 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                     ],
                   ),
                 ),
-              ),
-
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: FilledButton.icon(
-                  onPressed: _saveTask,
-                  icon: HugeIcon(
-                    icon: widget.task == null ? HugeIcons.strokeRoundedAddSquare : HugeIcons.strokeRoundedCheckmarkSquare04, 
-                    size: 20, 
-                    color: Theme.of(context).colorScheme.onPrimary,
-                  ),
-                  style: FilledButton.styleFrom(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                  ),
-                  label: Text(
-                    widget.task == null ? 'ثبت و شروع کار' : 'ذخیره تغییرات',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.only(top: 20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          Theme.of(context).colorScheme.surface,
+                          Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+                          Theme.of(context).colorScheme.surface.withValues(alpha: 0),
+                        ],
+                        stops: const [0, 0.6, 1.0],
+                      ),
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: FilledButton.icon(
+                        onPressed: _saveTask,
+                        icon: HugeIcon(
+                          icon: widget.task == null ? HugeIcons.strokeRoundedAddSquare : HugeIcons.strokeRoundedCheckmarkSquare04, 
+                          size: 20, 
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                        style: FilledButton.styleFrom(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                        ),
+                        label: Text(
+                          widget.task == null ? 'ثبت و شروع کار' : 'ذخیره تغییرات',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        ],
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 
   String _getRecurrenceText() {
     if (_recurrence == null || _recurrence!.type == RecurrenceType.none) {
@@ -945,14 +968,22 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   
   String _getDayName(int weekday) {
     switch (weekday) {
-      case DateTime.saturday: return 'شنبه';
-      case DateTime.sunday: return '۱شنبه';
-      case DateTime.monday: return '۲شنبه';
-      case DateTime.tuesday: return '۳شنبه';
-      case DateTime.wednesday: return '۴شنبه';
-      case DateTime.thursday: return '۵شنبه';
-      case DateTime.friday: return 'جمعه';
-      default: return '';
+      case DateTime.saturday:
+        return 'شنبه';
+      case DateTime.sunday:
+        return 'یک‌شنبه';
+      case DateTime.monday:
+        return 'دو‌شنبه';
+      case DateTime.tuesday:
+        return 'سه‌شنبه';
+      case DateTime.wednesday:
+        return 'چهارشنبه';
+      case DateTime.thursday:
+        return 'پنج‌شنبه';
+      case DateTime.friday:
+        return 'جمعه';
+      default:
+        return '';
     }
   }
 
@@ -968,7 +999,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
               color: Theme.of(context).colorScheme.surface,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             ),
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -986,166 +1017,188 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                 ),
                 
                 Flexible(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Header
-                        Row(
+                  child: Stack(
+                    children: [
+                      SingleChildScrollView(
+                        padding: const EdgeInsets.only(bottom: 80),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: HugeIcon(
-                                icon: HugeIcons.strokeRoundedRefresh, 
-                                size: 20,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Text(
-                              'تنظیمات تکرار',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                            ),
-                            const Spacer(),
-                            IconButton(
-                              onPressed: () => Navigator.pop(context),
-                              icon: const HugeIcon(
-                                icon: HugeIcons.strokeRoundedCancel01,
-                                size: 22,
-                                color: Colors.grey,
-                              ),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              style: const ButtonStyle(
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        
-                        // Options Grid/List
-                        _buildRecurrenceOption(RecurrenceType.none, 'بدون تکرار', HugeIcons.strokeRoundedCalendarRemove01, setSheetState),
-                        _buildRecurrenceOption(RecurrenceType.daily, 'روزانه', HugeIcons.strokeRoundedCalendar03, setSheetState),
-                        _buildRecurrenceOption(RecurrenceType.weekly, 'هفتگی', HugeIcons.strokeRoundedCalendar01, setSheetState),
-                        _buildRecurrenceOption(RecurrenceType.monthly, 'ماهانه', HugeIcons.strokeRoundedCalendar04, setSheetState),
-                        _buildRecurrenceOption(RecurrenceType.yearly, 'سالانه', HugeIcons.strokeRoundedCalendar02, setSheetState),
-                        _buildRecurrenceOption(RecurrenceType.specificDays, 'روزهای خاص هفته', HugeIcons.strokeRoundedCalendarCheckIn01, setSheetState),
-                        
-                        if (_recurrence?.type == RecurrenceType.specificDays) ...[
-                          const SizedBox(height: 8),
-                          _buildSpecifiDaysSelector(setSheetState),
-                        ],
-                           
-                        const SizedBox(height: 10),
-                        const Divider(height: 1),
-                        const SizedBox(height: 10),
-                        
-                        // End Date Selection
-                        InkWell(
-                          onTap: () async {
-                            final picked = await showPersianDatePicker(
-                              context: context,
-                              initialDate: Jalali.fromDateTime(_recurrence?.endDate ?? _selectedDate.add(const Duration(days: 30))),
-                              firstDate: Jalali.fromDateTime(_selectedDate),
-                              lastDate: Jalali(1500, 1, 1),
-                            );
-                            if (picked != null) {
-                              setState(() {
-                                _recurrence = RecurrenceConfig(
-                                  type: _recurrence?.type ?? RecurrenceType.daily,
-                                  interval: _recurrence?.interval ?? 1,
-                                  daysOfWeek: _recurrence?.daysOfWeek,
-                                  specificDates: _recurrence?.specificDates,
-                                  dayOfMonth: _recurrence?.dayOfMonth,
-                                  endDate: picked.toDateTime(),
-                                );
-                              });
-                              setSheetState(() {});
-                            }
-                          },
-                          borderRadius: BorderRadius.circular(16),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Row(
+                            // Header
+                            Row(
                               children: [
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
+                                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: HugeIcon(
-                                    icon: HugeIcons.strokeRoundedCalendar03, 
+                                    icon: HugeIcons.strokeRoundedRefresh, 
                                     size: 20,
-                                    color: Theme.of(context).colorScheme.secondary,
+                                    color: Theme.of(context).colorScheme.primary,
                                   ),
                                 ),
                                 const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'تاریخ پایان تکرار',
-                                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                Text(
+                                  'تنظیمات تکرار',
+                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
                                       ),
-                                      Text(
-                                        _recurrence?.endDate != null 
-                                          ? _formatJalali(Jalali.fromDateTime(_recurrence!.endDate!))
-                                          : 'نامحدود (همیشگی)',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
                                 ),
-                                HugeIcon(
-                                  icon: HugeIcons.strokeRoundedArrowLeft01, 
-                                  size: 20,
-                                  color: Theme.of(context).colorScheme.outline,
+                                const Spacer(),
+                                IconButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  icon: const HugeIcon(
+                                    icon: HugeIcons.strokeRoundedCancel01,
+                                    size: 22,
+                                    color: Colors.grey,
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  style: const ButtonStyle(
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 24),
+                            
+                            // Options Grid/List
+                            _buildRecurrenceOption(RecurrenceType.none, 'بدون تکرار', HugeIcons.strokeRoundedCalendarRemove01, setSheetState),
+                            _buildRecurrenceOption(RecurrenceType.daily, 'روزانه', HugeIcons.strokeRoundedCalendar03, setSheetState),
+                            _buildRecurrenceOption(RecurrenceType.weekly, 'هفتگی', HugeIcons.strokeRoundedCalendar01, setSheetState),
+                            _buildRecurrenceOption(RecurrenceType.monthly, 'ماهانه', HugeIcons.strokeRoundedCalendar04, setSheetState),
+                            _buildRecurrenceOption(RecurrenceType.yearly, 'سالانه', HugeIcons.strokeRoundedCalendar02, setSheetState),
+                            _buildRecurrenceOption(RecurrenceType.specificDays, 'روزهای خاص هفته', HugeIcons.strokeRoundedCalendarCheckIn01, setSheetState),
+                            
+                            if (_recurrence?.type == RecurrenceType.specificDays) ...[
+                              const SizedBox(height: 8),
+                              _buildSpecifiDaysSelector(setSheetState),
+                            ],
+                               
+                            const SizedBox(height: 10),
+                            const Divider(height: 1),
+                            const SizedBox(height: 10),
+                            
+                            // End Date Selection
+                            InkWell(
+                              onTap: () async {
+                                final picked = await showPersianDatePicker(
+                                  context: context,
+                                  initialDate: Jalali.fromDateTime(_recurrence?.endDate ?? _selectedDate.add(const Duration(days: 30))),
+                                  firstDate: Jalali.fromDateTime(_selectedDate),
+                                  lastDate: Jalali(1500, 1, 1),
+                                );
+                                if (picked != null) {
+                                  setState(() {
+                                    _recurrence = RecurrenceConfig(
+                                      type: _recurrence?.type ?? RecurrenceType.daily,
+                                      interval: _recurrence?.interval ?? 1,
+                                      daysOfWeek: _recurrence?.daysOfWeek,
+                                      specificDates: _recurrence?.specificDates,
+                                      dayOfMonth: _recurrence?.dayOfMonth,
+                                      endDate: picked.toDateTime(),
+                                    );
+                                  });
+                                  setSheetState(() {});
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(16),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: HugeIcon(
+                                        icon: HugeIcons.strokeRoundedCalendar03, 
+                                        size: 20,
+                                        color: Theme.of(context).colorScheme.secondary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'تاریخ پایان تکرار',
+                                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                          ),
+                                          Text(
+                                            _recurrence?.endDate != null 
+                                              ? _formatJalali(Jalali.fromDateTime(_recurrence!.endDate!))
+                                              : 'نامحدود (همیشگی)',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    HugeIcon(
+                                      icon: HugeIcons.strokeRoundedArrowLeft01, 
+                                      size: 20,
+                                      color: Theme.of(context).colorScheme.outline,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            
+                            const SizedBox(height: 16),
+                          ],
+                        ),
+                      ),
+                      
+                      // Sticky Confirm Button
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(0, 20, 0, 24),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                                Theme.of(context).colorScheme.surface,
+                                Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+                                Theme.of(context).colorScheme.surface.withValues(alpha: 0),
+                              ],
+                              stops: const [0, 0.6, 1.0],
+                            ),
+                          ),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: FilledButton.icon(
+                              onPressed: () => Navigator.pop(context),
+                              icon: HugeIcon(
+                                icon: HugeIcons.strokeRoundedCheckmarkSquare04,
+                                size: 20,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
+                              style: FilledButton.styleFrom(
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                              ),
+                              label: const Text(
+                                'تایید و ثبت تکرار',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                            ),
                           ),
                         ),
-                        
-                        const SizedBox(height: 16),
-                      ],
-                    ),
-                  ),
-                ),
-                
-                // Sticky Confirm Button
-                Container(
-                  padding: const EdgeInsets.only(top: 16),
-                  width: double.infinity,
-                  child: SizedBox(
-                    height: 56,
-                    child: FilledButton.icon(
-                      onPressed: () => Navigator.pop(context),
-                      icon: HugeIcon(
-                        icon: HugeIcons.strokeRoundedCheckmarkSquare04,
-                        size: 20,
-                        color: Theme.of(context).colorScheme.onPrimary,
                       ),
-                      style: FilledButton.styleFrom(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                      ),
-                      label: const Text(
-                        'تایید و ثبت تکرار',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ),
+                    ],
                   ),
                 ),
               ],

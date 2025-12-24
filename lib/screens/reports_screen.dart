@@ -164,7 +164,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     top: MediaQuery.of(context).padding.top + 80,
                     left: 12,
                     right: 12,
-                    bottom: 12,
+                    bottom: 110,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,8 +354,31 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ),
                 ),
               ),
-              _buildRangePicker(),
             ],
+          ),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Theme.of(context).colorScheme.surface,
+                    Theme.of(
+                      context,
+                    ).colorScheme.surface.withValues(alpha: 0.8),
+                    Theme.of(
+                      context,
+                    ).colorScheme.surface.withValues(alpha: 0),
+                  ],
+                  stops: const [0, 0.6, 1.0],
+                ),
+              ),
+              child: _buildRangePicker(),
+            ),
           ),
           Positioned(
             top: 0,
@@ -444,12 +467,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
-      decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainer,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
+      decoration: const BoxDecoration(
+        color: Colors.transparent,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
