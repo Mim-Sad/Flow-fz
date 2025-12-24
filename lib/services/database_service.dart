@@ -365,7 +365,7 @@ class DatabaseService {
     
     try {
       await db.transaction((txn) async {
-        // 1. Import Categories (Deduplicate by label)
+        // 1. Import Categories (Deduplicate by ID or label - Case Insensitive)
         Map<String, String> categoryIdMap = {}; // oldId -> newId
         if (data['categories'] != null) {
           final categoriesList = (data['categories'] as List).cast<Map<String, dynamic>>();
@@ -374,29 +374,41 @@ class DatabaseService {
           final existingCategories = await txn.query('categories');
           
           for (var catMap in categoriesList) {
-            final oldId = catMap['id'] as String;
-            final label = catMap['label'] as String;
+            final importId = catMap['id']?.toString() ?? '';
+            final importLabel = catMap['label']?.toString() ?? '';
             
-            // Check if category with same label exists
+            // Check if category with same ID or label exists (case-insensitive)
             final existing = existingCategories.firstWhere(
-              (c) => c['label'] == label,
+              (c) {
+                final dbId = c['id']?.toString().toLowerCase();
+                final dbLabel = c['label']?.toString().toLowerCase();
+                final impIdLower = importId.toLowerCase();
+                final impLabelLower = importLabel.toLowerCase();
+                return dbId == impIdLower || dbLabel == impLabelLower;
+              },
               orElse: () => {},
             );
             
             if (existing.isNotEmpty) {
-              categoryIdMap[oldId] = existing['id'] as String;
-            } else {
-              // Check if oldId already exists in DB with different label
-              final idExists = existingCategories.any((c) => c['id'] == oldId);
-              String newId = oldId;
-              if (idExists) {
-                 newId = 'cat_${DateTime.now().millisecondsSinceEpoch}_${oldId.substring(0, oldId.length > 5 ? 5 : oldId.length)}';
+              final existingId = existing['id'] as String;
+              categoryIdMap[importId] = existingId;
+              
+              // Update emoji or color if they changed
+              final updates = <String, dynamic>{};
+              if (catMap['emoji'] != null && catMap['emoji'] != existing['emoji']) {
+                updates['emoji'] = catMap['emoji'];
+              }
+              if (catMap['color'] != null && catMap['color'] != existing['color']) {
+                updates['color'] = catMap['color'];
               }
               
-              final newCatMap = Map<String, dynamic>.from(catMap);
-              newCatMap['id'] = newId;
-              await txn.insert('categories', newCatMap);
-              categoryIdMap[oldId] = newId;
+              if (updates.isNotEmpty) {
+                await txn.update('categories', updates, where: 'id = ?', whereArgs: [existingId]);
+              }
+            } else {
+              // New category
+              await txn.insert('categories', catMap, conflictAlgorithm: ConflictAlgorithm.replace);
+              categoryIdMap[importId] = importId;
             }
           }
         }
