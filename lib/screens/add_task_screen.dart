@@ -13,6 +13,8 @@ import '../models/task.dart';
 import '../models/category_data.dart';
 import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
+import '../providers/tag_provider.dart';
+import '../utils/string_utils.dart';
 import 'package:intl/intl.dart' as intl;
 
 class AddTaskScreen extends ConsumerStatefulWidget {
@@ -195,6 +197,25 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     super.dispose();
   }
 
+  void _addTag(String tag) {
+    final trimmedTag = tag.trim();
+    if (trimmedTag.isNotEmpty && !StringUtils.containsTag(_tags, trimmedTag)) {
+      setState(() {
+        _tags.add(trimmedTag);
+        _tagController.clear();
+      });
+    } else if (trimmedTag.isNotEmpty) {
+      // Clear if it's a duplicate to give feedback it wasn't added
+      _tagController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('این تگ قبلاً اضافه شده است', style: TextStyle(fontFamily: 'IRANSansX')),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -276,7 +297,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                           Expanded(
                             child: TextField(
                               controller: _titleController,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                               decoration: InputDecoration(
                                 hintText: 'چه کاری باید انجام بشه؟',
                                 hintStyle: const TextStyle(fontSize: 14),
@@ -295,8 +316,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                       const SizedBox(height: 20),
 
                       // Categories
-                      const Text('دسته‌بندی', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                      const SizedBox(height: 10),
+                      
                       Consumer(
                         builder: (context, ref, child) {
                           final categoriesAsync = ref.watch(categoryProvider);
@@ -557,11 +577,6 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                             const SizedBox(height: 16),
 
                             // Priority
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12),
-                              child: Text('اولویت', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            ),
-                            const SizedBox(height: 10),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 12),
                               child: SizedBox(
@@ -603,6 +618,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 12),
                               child: TextField(
                                 controller: _tagController,
+                                onChanged: (value) => setState(() {}),
                                 decoration: InputDecoration(
                                   hintText: 'افزودن تگ جدید...',
                                   hintStyle: const TextStyle(fontSize: 12),
@@ -619,19 +635,11 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                     minHeight: 0,
                                   ),
                                   suffixIcon: IconButton(
-                                    icon: HugeIcon(
+                                    icon: const HugeIcon(
                                       icon: HugeIcons.strokeRoundedAddCircle, 
                                       size: 20
                                     ),
-                                    onPressed: () {
-                                      final tag = _tagController.text.trim();
-                                      if (tag.isNotEmpty && !_tags.contains(tag)) {
-                                        setState(() {
-                                          _tags.add(tag);
-                                          _tagController.clear();
-                                        });
-                                      }
-                                    },
+                                    onPressed: () => _addTag(_tagController.text),
                                   ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(15),
@@ -643,35 +651,90 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                   ),
                                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                 ),
-                                onSubmitted: (val) {
-                                  final tag = val.trim();
-                                  if (tag.isNotEmpty && !_tags.contains(tag)) {
-                                    setState(() {
-                                      _tags.add(tag);
-                                      _tagController.clear();
-                                    });
-                                  }
-                                },
+                                onSubmitted: (val) => _addTag(val),
                               ),
                             ),
+
+                            // Suggestions (Centered and padded like main tags) - Shown first while typing
+                            if (_tagController.text.isNotEmpty) ...[
+                              Consumer(
+                                builder: (context, ref, child) {
+                                  final suggestions = ref.watch(tagSuggestionsProvider(_tagController.text));
+                                  final filteredSuggestions = suggestions
+                                      .where((s) => !StringUtils.containsTag(_tags, s))
+                                      .take(5)
+                                      .toList();
+                                  
+                                  if (filteredSuggestions.isEmpty) return const SizedBox.shrink();
+                                  
+                                  return Padding(
+                                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                                    child: Center(
+                                      child: Wrap(
+                                        alignment: WrapAlignment.center,
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: filteredSuggestions.map((suggestion) => ActionChip(
+                                          label: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(suggestion, style: const TextStyle(fontSize: 11)),
+                                              const SizedBox(width: 4),
+                                              Icon(
+                                                Icons.add, 
+                                                size: 14, 
+                                                color: Theme.of(context).colorScheme.primary
+                                              ),
+                                            ],
+                                          ),
+                                          onPressed: () => _addTag(suggestion),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                          backgroundColor: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                                          side: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
+                                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                                        )).toList(),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+
+                            // Added Tags (Centered and padded)
                             if (_tags.isNotEmpty) ...[
                               const SizedBox(height: 12),
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                                child: Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: _tags.map((tag) => InputChip(
-                                    label: Text(tag, style: const TextStyle(fontSize: 11)),
-                                    onDeleted: () => setState(() => _tags.remove(tag)),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                    backgroundColor: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
-                                    deleteIcon: const Icon(Icons.close, size: 14),
-                                  )).toList(),
+                                child: Center(
+                                  child: Wrap(
+                                    alignment: WrapAlignment.center,
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: _tags.map((tag) => ActionChip(
+                                      label: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(tag, style: const TextStyle(fontSize: 11)),
+                                          const SizedBox(width: 4),
+                                          Icon(
+                                            Icons.close, 
+                                            size: 14, 
+                                            color: Theme.of(context).colorScheme.secondary
+                                          ),
+                                        ],
+                                      ),
+                                      onPressed: () => setState(() => _tags.remove(tag)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      backgroundColor: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
+                                      side: BorderSide(color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2)),
+                                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                                    )).toList(),
+                                  ),
                                 ),
                               ),
                             ],
-
                             const SizedBox(height: 20),
 
                             // Description (Moved here and styled smaller)
