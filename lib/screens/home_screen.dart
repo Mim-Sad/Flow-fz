@@ -32,6 +32,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final today = DateTime.now();
     final todayTasks = [...ref.watch(activeTasksProvider(today))];
+    final isLoading = ref.watch(tasksLoadingProvider);
     
     // Apply Sorting
     if (_sortMode == SortMode.manual) {
@@ -89,9 +90,60 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           SliverPadding(
             padding: const EdgeInsets.only(left: 12, right: 12, bottom: 80),
-            sliver: todayTasks.isEmpty 
-              ? SliverToBoxAdapter(
-                  child: Column(
+            sliver: isLoading 
+              ? SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                           width: 72,
+                           height: 72,
+                           child: CircularProgressIndicator(
+                             strokeWidth: 8,
+                             strokeCap: StrokeCap.round,
+                             backgroundColor: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.2),
+                           ),
+                         )
+                         .animate(onPlay: (controller) => controller.repeat())
+                         .scale(
+                           begin: const Offset(0.7, 0.7),
+                           end: const Offset(1.0, 1.0),
+                           duration: 800.ms,
+                           curve: Curves.elasticOut,
+                         )
+                         .rotate(
+                           begin: 0,
+                           end: 0.1,
+                           duration: 800.ms,
+                           curve: Curves.easeInOut,
+                         )
+                         .then()
+                         .scale(
+                           begin: const Offset(1.0, 1.0),
+                           end: const Offset(0.7, 0.7),
+                           duration: 800.ms,
+                           curve: Curves.easeInOut,
+                         )
+                         .rotate(
+                           begin: 0.1,
+                           end: 0,
+                           duration: 800.ms,
+                           curve: Curves.easeInOut,
+                         )
+                        
+                        .animate(onPlay: (controller) => controller.repeat())
+                        .shimmer(duration: 2000.ms, color: Theme.of(context).colorScheme.primaryContainer)
+                        .then()
+                        .shake(hz: 1),
+                      ],
+                    ),
+                  ),
+                )
+              : todayTasks.isEmpty 
+                ? SliverToBoxAdapter(
+                    child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const SizedBox(height: 40),

@@ -5,6 +5,8 @@ import '../services/database_service.dart';
 
 final databaseServiceProvider = Provider((ref) => DatabaseService());
 
+final tasksLoadingProvider = StateProvider<bool>((ref) => true);
+
 // Provider for all tasks including deleted (for reports)
 final allTasksIncludingDeletedProvider = FutureProvider<List<Task>>((ref) async {
   final dbService = ref.watch(databaseServiceProvider);
@@ -20,11 +22,16 @@ class TasksNotifier extends StateNotifier<List<Task>> {
   }
 
   Future<void> _loadTasks() async {
-    state = await _dbService.getAllTasks();
+    try {
+      state = await _dbService.getAllTasks();
+    } finally {
+      _ref.read(tasksLoadingProvider.notifier).state = false;
+    }
   }
 
   // Public method to force reload tasks from database
   Future<void> reloadTasks() async {
+    _ref.read(tasksLoadingProvider.notifier).state = true;
     await _loadTasks();
     _ref.invalidate(allTasksIncludingDeletedProvider);
   }
