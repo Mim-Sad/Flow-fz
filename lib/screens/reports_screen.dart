@@ -44,9 +44,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     if (viewMode == 0) {
       return intl.DateFormat('d MMMM yyyy', 'en_US').format(dt);
     } else if (viewMode == 1) {
-      final startOfWeek = dt.subtract(
-        Duration(days: (dt.weekday + 1) % 7),
-      );
+      final startOfWeek = dt.subtract(Duration(days: (dt.weekday + 1) % 7));
       final endOfWeek = startOfWeek.add(const Duration(days: 6));
       if (startOfWeek.year == endOfWeek.year) {
         return '${intl.DateFormat('d MMM', 'en_US').format(startOfWeek)} - ${intl.DateFormat('d MMM yyyy', 'en_US').format(endOfWeek)}';
@@ -131,9 +129,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final filteredTasks = ref.watch(tasksForRangeProvider(range));
 
     // For productivity: exclude cancelled and deferred tasks
-    final relevantTasks = filteredTasks.where((t) => 
-      t.status != TaskStatus.cancelled && t.status != TaskStatus.deferred
-    ).toList();
+    final relevantTasks = filteredTasks
+        .where(
+          (t) =>
+              t.status != TaskStatus.cancelled &&
+              t.status != TaskStatus.deferred,
+        )
+        .toList();
 
     final successCount = filteredTasks
         .where((t) => t.status == TaskStatus.success)
@@ -171,15 +173,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         context,
                         successCount,
                         failedCount,
-                        relevantTasks.length, // Total relevant tasks (excluding cancelled/deferred)
+                        relevantTasks
+                            .length, // Total relevant tasks (excluding cancelled/deferred)
                       ),
                       const SizedBox(height: 32),
                       Center(
                         child: Text(
                           'وضعیت کلی تسک‌ها',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ).animate().fadeIn(delay: 200.ms),
                       const SizedBox(height: 24),
@@ -208,14 +210,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                               sections: [
                                                 if (successCount > 0)
                                                   PieChartSectionData(
-                                                    value: successCount.toDouble(),
+                                                    value: successCount
+                                                        .toDouble(),
                                                     title: '',
                                                     color: Colors.greenAccent,
                                                     radius: 35,
                                                   ),
                                                 if (failedCount > 0)
                                                   PieChartSectionData(
-                                                    value: failedCount.toDouble(),
+                                                    value: failedCount
+                                                        .toDouble(),
                                                     title: '',
                                                     color: Colors.redAccent,
                                                     radius: 35,
@@ -230,14 +234,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                                   ),
                                                 if (pendingCount > 0)
                                                   PieChartSectionData(
-                                                    value: pendingCount.toDouble(),
+                                                    value: pendingCount
+                                                        .toDouble(),
                                                     title: '',
-                                                    color: Theme.of(context).colorScheme.primary,
+                                                    color: Theme.of(
+                                                      context,
+                                                    ).colorScheme.primary,
                                                     radius: 35,
                                                   ),
                                                 if (deferredCount > 0)
                                                   PieChartSectionData(
-                                                    value: deferredCount.toDouble(),
+                                                    value: deferredCount
+                                                        .toDouble(),
                                                     title: '',
                                                     color: Colors.orangeAccent,
                                                     radius: 35,
@@ -303,12 +311,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               ).animate().fadeIn(delay: 400.ms),
                               const SizedBox(height: 24),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 10),
-                                child: SizedBox(
-                                  height: 200,
-                                  child: _buildSuccessRateChart(filteredTasks),
-                                ),
-                              ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                    ),
+                                    child: SizedBox(
+                                      height: 200,
+                                      child: _buildSuccessRateChart(
+                                        filteredTasks,
+                                      ),
+                                    ),
+                                  )
+                                  .animate()
+                                  .fadeIn(delay: 500.ms)
+                                  .slideY(begin: 0.1),
                             ],
                           ],
                         )
@@ -327,8 +342,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               Text(
                                 'تسکی برای این بازه پیدا نکردم!',
                                 style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                               ),
                             ],
                           ),
@@ -354,9 +371,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     Theme.of(
                       context,
                     ).colorScheme.surface.withValues(alpha: 0.8),
-                    Theme.of(
-                      context,
-                    ).colorScheme.surface.withValues(alpha: 0),
+                    Theme.of(context).colorScheme.surface.withValues(alpha: 0),
                   ],
                   stops: const [0, 0.6, 1.0],
                 ),
@@ -392,17 +407,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         icon: HugeIcon(
                           icon: HugeIcons.strokeRoundedCalendar01,
                           size: 18,
-                            ),
-                          ),
-                        ],
-                        selected: {_viewMode},
-                        onSelectionChanged:
-                            (val) => setState(() => _viewMode = val.first),
+                        ),
                       ),
-                    ),
+                    ],
+                    selected: {_viewMode},
+                    onSelectionChanged: (val) =>
+                        setState(() => _viewMode = val.first),
                   ),
                 ),
               ),
+            ),
+          ),
         ],
       ),
     );
@@ -459,18 +474,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     fontSize: 16,
                   ),
                 ),
-                 Directionality(
-                   textDirection: TextDirection.ltr,
-                   child: Text(
-                     _formatMiladi(_selectedDate, _viewMode),
-                     style: TextStyle(
-                       fontSize: 10,
-                       color: Theme.of(
-                         context,
-                       ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                     ),
-                   ),
-                 ),
+                Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: Text(
+                    _formatMiladi(_selectedDate, _viewMode),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ),
                 if (!_isCurrentRange())
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
@@ -520,20 +535,22 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     });
   }
 
-  Widget _buildStatSummary(BuildContext context, int success, int failed, int total) {
+  Widget _buildStatSummary(
+    BuildContext context,
+    int success,
+    int failed,
+    int total,
+  ) {
     // Productivity formula: success / (success + failed)
     final int denominator = success + failed;
     double percentage = denominator == 0 ? -1.0 : (success / denominator) * 100;
-    
+
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: BoxDecoration(
-            color: isDark
-                ? theme.colorScheme.surfaceContainerHighest
-                : theme.colorScheme.primaryContainer,
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
@@ -552,7 +569,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    percentage < 0 
+                    percentage < 0
                         ? 'داده‌ای نداریم'
                         : '${_toPersianDigit(percentage.toStringAsFixed(1))}%',
                     style: TextStyle(
@@ -669,12 +686,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             .length;
         final denominator = success + failed;
 
-        final isFuture = day.isAfter(DateTime.now()) && !DateUtils.isSameDay(day, DateTime.now());
-      if (!isFuture && denominator > 0) {
-        double rate = (success / denominator) * 100;
-        spots.add(FlSpot(i.toDouble(), rate));
-      }
-        
+        final isFuture =
+            day.isAfter(DateTime.now()) &&
+            !DateUtils.isSameDay(day, DateTime.now());
+        if (!isFuture && denominator > 0) {
+          double rate = (success / denominator) * 100;
+          spots.add(FlSpot(i.toDouble(), rate));
+        }
+
         final j = Jalali.fromDateTime(day);
         labels.add('${j.formatter.wN.substring(0, 1)} ${j.day}');
       }
@@ -695,11 +714,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             .length;
         final denominator = success + failed;
 
-        final isFuture = day.isAfter(DateTime.now()) && !DateUtils.isSameDay(day, DateTime.now());
-      if (!isFuture && denominator > 0) {
-        double rate = (success / denominator) * 100;
-        spots.add(FlSpot(i.toDouble(), rate));
-      }
+        final isFuture =
+            day.isAfter(DateTime.now()) &&
+            !DateUtils.isSameDay(day, DateTime.now());
+        if (!isFuture && denominator > 0) {
+          double rate = (success / denominator) * 100;
+          spots.add(FlSpot(i.toDouble(), rate));
+        }
 
         if (i % 5 == 0 || i == 1 || i == daysInMonth) {
           labels.add(i.toString());
@@ -723,7 +744,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         maxX: maxX,
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (spot) => Theme.of(context).colorScheme.surfaceContainerHighest,
+            getTooltipColor: (spot) =>
+                Theme.of(context).colorScheme.surfaceContainerHighest,
             getTooltipItems: (List<LineBarSpot> touchedSpots) {
               return touchedSpots.map((LineBarSpot touchedSpot) {
                 if (touchedSpot.y < 0) {
@@ -841,7 +863,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             belowBarData: BarAreaData(
               show: true,
               gradient: LinearGradient(
-                colors: _calculateGradient(spots).colors.map((c) => c.withValues(alpha: 0.15)).toList(),
+                colors: _calculateGradient(
+                  spots,
+                ).colors.map((c) => c.withValues(alpha: 0.15)).toList(),
                 stops: _calculateGradient(spots).stops,
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
