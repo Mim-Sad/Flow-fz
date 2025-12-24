@@ -249,7 +249,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: Theme.of(context).colorScheme.outlineVariant.withValues(
             alpha: 0.5,
@@ -684,7 +684,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
           width: 1.2,
@@ -1125,7 +1125,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: Theme.of(context)
               .colorScheme
@@ -1379,7 +1379,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       clipBehavior: Clip.antiAlias, // For progress bar clipping
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: Theme.of(context).colorScheme.outlineVariant.withValues(
             alpha: 0.5,
