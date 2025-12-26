@@ -242,7 +242,7 @@ class TaskCard extends ConsumerWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Lottie.asset(catData.emoji, width: 14, height: 14),
+              Lottie.asset(catData.emoji, width: 14, height: 14, repeat: false),
               const SizedBox(width: 4),
               Text(
                 catData.label,
@@ -281,6 +281,9 @@ class TaskCard extends ConsumerWidget {
     return Align(
       alignment: Alignment.centerRight,
       child: InkWell(
+         hoverColor: Colors.transparent,
+         splashColor: Colors.transparent,
+         highlightColor: Colors.transparent,
          onLongPress: () {
             HapticFeedback.heavyImpact();
             showModalBottomSheet(

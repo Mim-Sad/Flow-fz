@@ -684,7 +684,7 @@ class TaskOptionsSheet extends ConsumerWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   textDirection: TextDirection.rtl,
                                   children: [
-                                    Lottie.asset(catData.emoji, width: 22, height: 22),
+                                    Lottie.asset(catData.emoji, width: 22, height: 22, repeat: false),
                                     const SizedBox(width: 8),
                                     Text(
                                       catData.label,

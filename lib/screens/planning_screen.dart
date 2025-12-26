@@ -14,6 +14,7 @@ import '../models/task.dart';
 import '../models/category_data.dart';
 import '../widgets/postpone_dialog.dart';
 import '../widgets/task_sheets.dart';
+import '../widgets/animations.dart';
 // Removed unused import: add_task_screen.dart as it is handled in TaskSheets
 
 class PlanningScreen extends ConsumerStatefulWidget {
@@ -847,7 +848,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             child: Row(
               textDirection: TextDirection.rtl,
               children: [
-                Lottie.asset(emoji, width: 24, height: 24),
+                Lottie.asset(emoji, width: 24, height: 24, repeat: false),
                 const SizedBox(width: 6),
                 Expanded(
                   child: TextScroll(
@@ -1000,7 +1001,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             child: Row(
               textDirection: TextDirection.rtl,
               children: [
-                Lottie.asset(emoji, width: 24, height: 24),
+                Lottie.asset(emoji, width: 24, height: 24, repeat: false),
                 const SizedBox(width: 6),
                 Expanded(
                   child: TextScroll(
@@ -1454,7 +1455,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             child: Row(
               textDirection: TextDirection.rtl,
               children: [
-                Lottie.asset(emoji, width: 24, height: 24),
+                Lottie.asset(emoji, width: 24, height: 24, repeat: false),
                 const SizedBox(width: 6),
                 Expanded(
                   child: TextScroll(
@@ -1754,6 +1755,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         HapticFeedback.lightImpact();
         _toggleTaskStatus(task, date);
       },
+      hoverColor: Colors.transparent,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
       onLongPress: () {
         if (_isSelectionMode) return;
         HapticFeedback.heavyImpact();
@@ -1774,36 +1778,4 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     );
   }
 
-}
-
-class FadeInOnce extends StatefulWidget {
-  final Widget child;
-  final Duration delay;
-  final bool animate;
-  const FadeInOnce({
-    super.key,
-    required this.child,
-    required this.delay,
-    this.animate = true,
-  });
-
-  @override
-  State<FadeInOnce> createState() => _FadeInOnceState();
-}
-
-class _FadeInOnceState extends State<FadeInOnce> with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    if (!widget.animate) return widget.child;
-
-    return widget.child
-        .animate()
-        .fadeIn(duration: 400.ms, delay: widget.delay)
-        .slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic)
-        .blur(begin: const Offset(4, 4), end: Offset.zero);
-  }
 }

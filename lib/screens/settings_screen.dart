@@ -9,6 +9,7 @@ import 'package:intl/intl.dart' as intl;
 import 'package:flutter_animate/flutter_animate.dart';
 import '../services/database_service.dart';
 import '../providers/theme_provider.dart';
+import '../widgets/animations.dart';
 import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
 import 'categories_screen.dart';
@@ -474,33 +475,5 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ],
           ),
     );
-  }
-}
-
-class FadeInOnce extends StatefulWidget {
-  final Widget child;
-  final Duration delay;
-  const FadeInOnce({super.key, required this.child, required this.delay});
-
-  @override
-  State<FadeInOnce> createState() => _FadeInOnceState();
-}
-
-class _FadeInOnceState extends State<FadeInOnce> with AutomaticKeepAliveClientMixin {
-  bool _hasAnimated = false;
-
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    if (_hasAnimated) return widget.child;
-
-    return widget.child
-        .animate(onComplete: (controller) => _hasAnimated = true)
-        .fadeIn(duration: 400.ms, delay: widget.delay)
-        .slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic)
-        .blur(begin: const Offset(4, 4), end: Offset.zero);
   }
 }

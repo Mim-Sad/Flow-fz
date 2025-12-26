@@ -406,7 +406,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Lottie.asset(cat.emoji, width: 22, height: 22),
+                                          Lottie.asset(cat.emoji, width: 22, height: 22, repeat: false),
                                           const SizedBox(width: 8),
                                           Text(
                                             cat.label,

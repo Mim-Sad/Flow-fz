@@ -179,7 +179,11 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                                         ),
                                       ),
                                       padding: const EdgeInsets.all(6),
-                                      child: Lottie.asset(emojiPath, fit: BoxFit.contain),
+                                      child: Lottie.asset(
+                                        emojiPath,
+                                        fit: BoxFit.contain,
+                                        repeat: false,
+                                      ),
                                     ),
                                   );
                                 },
@@ -393,7 +397,12 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                       ),
                     ),
                     alignment: Alignment.center,
-                    child: Lottie.asset(category.emoji, width: 32, height: 32),
+                    child: Lottie.asset(
+                      category.emoji,
+                      width: 32,
+                      height: 32,
+                      repeat: false,
+                    ),
                   ),
                   title: Text(
                     category.label,

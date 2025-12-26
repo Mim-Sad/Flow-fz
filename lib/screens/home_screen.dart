@@ -11,6 +11,7 @@ import '../models/task.dart';
 import '../models/category_data.dart';
 import '../widgets/postpone_dialog.dart';
 import '../widgets/task_sheets.dart';
+import '../widgets/animations.dart';
 import 'add_task_screen.dart';
 
 enum SortMode { manual, defaultSort }
@@ -438,34 +439,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-class FadeInOnce extends StatefulWidget {
-  final Widget child;
-  final Duration delay;
-  const FadeInOnce({super.key, required this.child, required this.delay});
-
-  @override
-  State<FadeInOnce> createState() => _FadeInOnceState();
-}
-
-class _FadeInOnceState extends State<FadeInOnce> with AutomaticKeepAliveClientMixin {
-  bool _hasAnimated = false;
-
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    if (_hasAnimated) return widget.child;
-
-    return widget.child
-        .animate(onComplete: (controller) => _hasAnimated = true)
-        .fadeIn(duration: 400.ms, delay: widget.delay)
-        .slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic)
-        .blur(begin: const Offset(4, 4), end: Offset.zero);
-  }
-}
-
 class TaskListTile extends ConsumerWidget {
   final Task task;
   final int index;
@@ -737,7 +710,7 @@ class TaskListTile extends ConsumerWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Lottie.asset(catData.emoji, width: 14, height: 14),
+              Lottie.asset(catData.emoji, width: 14, height: 14, repeat: false),
               const SizedBox(width: 4),
               Text(
                 _toPersianDigit(catData.label),
@@ -782,6 +755,9 @@ class TaskListTile extends ConsumerWidget {
 
     return InkWell(
       onTap: onToggle,
+      hoverColor: Colors.transparent,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
       onLongPress: () {
          HapticFeedback.heavyImpact();
          showModalBottomSheet(
