@@ -12,7 +12,6 @@ import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
 import '../models/task.dart';
 import '../models/category_data.dart';
-import '../widgets/postpone_dialog.dart';
 import '../widgets/task_sheets.dart';
 import '../widgets/animations.dart';
 // Removed unused import: add_task_screen.dart as it is handled in TaskSheets
@@ -649,7 +648,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
     return Container(
       color: isSelected ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.4) : Colors.transparent,
-      padding: const EdgeInsets.symmetric(horizontal: 10.5, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10.5, vertical: 5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1539,7 +1538,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       child: Container(
         // Add transparent background to catch drag gestures effectively
         color: isSelected ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.4) : Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 10.5, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 10.5, vertical: 5),
         child: Row(
           textDirection: TextDirection.ltr,
           children: [
@@ -1608,41 +1607,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       ),
     );
 
-    // Disable Dismissible in Selection Mode to prevent conflicts
-    if (_isSelectionMode) {
-      return row;
-    }
-
-    return Dismissible(
-      key: Key('planning_dismiss_${task.id}_${date.toIso8601String()}'),
-      direction: DismissDirection.horizontal,
-      confirmDismiss: (direction) async {
-        if (direction == DismissDirection.startToEnd) {
-          // Swipe Right: Done
-          HapticFeedback.mediumImpact();
-          _toggleTaskStatus(task, date);
-          return false;
-        } else {
-          // Swipe Left: Defer
-          HapticFeedback.mediumImpact();
-          PostponeDialog.show(context, ref, task, targetDate: date);
-          return false;
-        }
-      },
-      background: Container(
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(left: 12),
-        color: Colors.green.shade400,
-        child: const Icon(Icons.check, color: Colors.white),
-      ),
-      secondaryBackground: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 12),
-        color: Colors.orange.shade400,
-        child: const Icon(Icons.history, color: Colors.white),
-      ),
-      child: row,
-    );
+    return row;
   }
 
   void _showTaskOptions(BuildContext context, Task task, {DateTime? date}) {
