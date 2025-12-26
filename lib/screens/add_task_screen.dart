@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
@@ -186,6 +187,24 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('خطا در پخش صدا')),
+      );
+    }
+  }
+
+  Future<void> _openFile(String path) async {
+    try {
+      final result = await OpenFilex.open(path);
+      if (result.type != ResultType.done) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطا در باز کردن فایل: ${result.message}')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error opening file: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('خطا در باز کردن فایل')),
       );
     }
   }
@@ -862,7 +881,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) 
                                               : const HugeIcon(icon: HugeIcons.strokeRoundedPlay, size: 18))
                                           : const HugeIcon(icon: HugeIcons.strokeRoundedFile01, size: 16),
-                                      onPressed: isVoice ? () => _playVoice(att) : null,
+                                      onPressed: () => isVoice ? _playVoice(att) : _openFile(att),
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                       onDeleted: () {
                                         if (isPlayingThis) {

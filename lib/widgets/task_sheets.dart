@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shamsi_date/shamsi_date.dart';
+import 'package:open_filex/open_filex.dart';
 import '../models/task.dart';
 import '../models/category_data.dart';
 import '../providers/task_provider.dart';
@@ -731,6 +732,47 @@ class TaskOptionsSheet extends ConsumerWidget {
                                 ],
                               ),
                             )).toList(),
+                          ),
+                        ],
+                        
+                        if (task.attachments.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          const Divider(height: 1, thickness: 0.5),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'پیوست‌ها',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textDirection: TextDirection.rtl,
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              textDirection: TextDirection.rtl,
+                              children: task.attachments.map((att) {
+                                final name = att.split('/').last;
+                                final isVoice = name.startsWith('voice_') || att.endsWith('.m4a');
+                                return ActionChip(
+                                  avatar: HugeIcon(
+                                    icon: isVoice ? HugeIcons.strokeRoundedPlay : HugeIcons.strokeRoundedFile01,
+                                    size: 16,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                  label: Text(
+                                    name.length > 15 ? '${name.substring(0, 15)}...' : name,
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                  onPressed: () => OpenFilex.open(att),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                );
+                              }).toList(),
+                            ),
                           ),
                         ],
                       ],
