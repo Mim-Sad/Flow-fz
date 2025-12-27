@@ -337,26 +337,33 @@ class DatabaseService {
     // Convert new attachment paths to media IDs
     final List<int> newMediaIds = [];
     for (var attachment in task.attachments) {
-      // Check if it's already a media ID
-      if (RegExp(r'^\d+$').hasMatch(attachment)) {
-        newMediaIds.add(int.parse(attachment));
-      } else {
-        // It's a file path, create media entry
-        final file = File(attachment);
-        if (await file.exists()) {
-          final fileName = attachment.split('/').last;
-          final fileSize = await file.length();
-          final mimeType = _getMimeType(fileName);
-          
-          final mediaId = await insertMedia(
-            filePath: attachment,
-            fileName: fileName,
-            fileSize: fileSize,
-            mimeType: mimeType,
-            taskId: task.id,
-          );
-          newMediaIds.add(mediaId);
+      try {
+        // Check if it's already a media ID (as string)
+        if (RegExp(r'^\d+$').hasMatch(attachment.toString())) {
+          newMediaIds.add(int.parse(attachment.toString()));
+        } else {
+          // It's a file path, create media entry
+          final file = File(attachment.toString());
+          if (await file.exists()) {
+            final fileName = attachment.toString().split('/').last;
+            final fileSize = await file.length();
+            final mimeType = _getMimeType(fileName);
+            
+            final mediaId = await insertMedia(
+              filePath: attachment.toString(),
+              fileName: fileName,
+              fileSize: fileSize,
+              mimeType: mimeType,
+              taskId: task.id,
+            );
+            newMediaIds.add(mediaId);
+          } else {
+            debugPrint('Warning: Attachment file not found: $attachment');
+          }
         }
+      } catch (e) {
+        debugPrint('Error processing attachment $attachment: $e');
+        // Continue with other attachments
       }
     }
 

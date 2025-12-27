@@ -5,6 +5,8 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shamsi_date/shamsi_date.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 import '../models/task.dart';
 import '../models/category_data.dart';
 import '../providers/task_provider.dart';
@@ -753,40 +755,46 @@ class TaskOptionsSheet extends ConsumerWidget {
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 8),
                                 child: isVoice
-                                    ? AudioWaveformPlayer(
-                                        audioPath: att,
-                                      )
-                                    : Container(
-                                        height: 48,
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                        decoration: BoxDecoration(
-                                          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
-                                          ),
+                                    ? GestureDetector(
+                                        onLongPress: () => _showAttachmentOptions(context, att, name),
+                                        child: AudioWaveformPlayer(
+                                          audioPath: att,
                                         ),
-                                        child: InkWell(
-                                          onTap: () => OpenFilex.open(att),
-                                          borderRadius: BorderRadius.circular(12),
-                                          child: Row(
-                                            children: [
-                                              HugeIcon(
-                                                icon: isImage 
-                                                    ? HugeIcons.strokeRoundedImage01 
-                                                    : HugeIcons.strokeRoundedFile01, 
-                                                size: 18,
-                                                color: Theme.of(context).colorScheme.primary,
-                                              ),
-                                              const SizedBox(width: 12),
-                                              Expanded(
-                                                child: Text(
-                                                  name.length > 30 ? '${name.substring(0, 30)}...' : name,
-                                                  style: const TextStyle(fontSize: 12),
-                                                  overflow: TextOverflow.ellipsis,
+                                      )
+                                    : GestureDetector(
+                                        onLongPress: () => _showAttachmentOptions(context, att, name),
+                                        child: Container(
+                                          height: 48,
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                                            ),
+                                          ),
+                                          child: InkWell(
+                                            onTap: () => OpenFilex.open(att),
+                                            borderRadius: BorderRadius.circular(12),
+                                            child: Row(
+                                              children: [
+                                                HugeIcon(
+                                                  icon: isImage 
+                                                      ? HugeIcons.strokeRoundedImage01 
+                                                      : HugeIcons.strokeRoundedFile01, 
+                                                  size: 18,
+                                                  color: Theme.of(context).colorScheme.primary,
                                                 ),
-                                              ),
-                                            ],
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: Text(
+                                                    name.length > 30 ? '${name.substring(0, 30)}...' : name,
+                                                    style: const TextStyle(fontSize: 12),
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -1101,5 +1109,123 @@ class TaskOptionsSheet extends ConsumerWidget {
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     );
+  }
+
+  void _showAttachmentOptions(BuildContext context, String filePath, String fileName) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle Line
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            // Download Option
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: HugeIcon(
+                  icon: HugeIcons.strokeRoundedDownload01,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              title: const Text(
+                'دانلود فایل',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(
+                fileName,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _downloadAttachment(context, filePath, fileName);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _downloadAttachment(BuildContext context, String filePath, String fileName) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('فایل یافت نشد')),
+          );
+        }
+        return;
+      }
+
+      final bytes = await file.readAsBytes();
+      
+      // Get file extension
+      final extension = fileName.split('.').last;
+      
+      String? savedPath;
+      
+      if (Platform.isAndroid || Platform.isIOS) {
+        // On mobile, use saveFile with bytes
+        savedPath = await FilePicker.platform.saveFile(
+          dialogTitle: 'ذخیره فایل',
+          fileName: fileName,
+          bytes: bytes,
+        );
+      } else {
+        // On desktop, use saveFile and then write the file
+        savedPath = await FilePicker.platform.saveFile(
+          dialogTitle: 'ذخیره فایل',
+          fileName: fileName,
+          type: FileType.custom,
+          allowedExtensions: [extension],
+        );
+        
+        if (savedPath != null) {
+          final savedFile = File(savedPath);
+          await savedFile.writeAsBytes(bytes);
+        }
+      }
+
+      if (savedPath != null && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('فایل با موفقیت ذخیره شد')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطا در دانلود فایل: $e')),
+        );
+      }
+    }
   }
 }

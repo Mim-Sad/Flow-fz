@@ -1421,35 +1421,44 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   Future<void> _saveTask() async {
     if (_titleController.text.isEmpty) return;
     
-    final metadata = Map<String, dynamic>.from(widget.task?.metadata ?? {});
-    metadata['hasTime'] = _hasTime;
+    try {
+      final metadata = Map<String, dynamic>.from(widget.task?.metadata ?? {});
+      metadata['hasTime'] = _hasTime;
 
-    final task = Task(
-      id: widget.task?.id,
-      title: _titleController.text,
-      description: _descController.text,
-      dueDate: _selectedDate,
-      priority: _priority,
-      categories: _selectedCategories,
-      statusHistory: widget.task?.statusHistory,
-      createdAt: widget.task?.createdAt,
-      updatedAt: widget.task?.updatedAt,
-      taskEmoji: _selectedEmoji,
-      attachments: _attachments,
-      tags: _tags,
-      recurrence: _recurrence,
-      metadata: metadata,
-    );
-    
-    if (task.id == null) {
-      final isDuplicated = widget.task != null && widget.task!.id == null;
-      await ref.read(tasksProvider.notifier).addTask(task, isDuplicate: isDuplicated);
-    } else {
-      await ref.read(tasksProvider.notifier).updateTask(task);
-    }
-    
-    if (mounted) {
-      Navigator.pop(context);
+      final task = Task(
+        id: widget.task?.id,
+        title: _titleController.text,
+        description: _descController.text,
+        dueDate: _selectedDate,
+        priority: _priority,
+        categories: _selectedCategories,
+        statusHistory: widget.task?.statusHistory,
+        createdAt: widget.task?.createdAt,
+        updatedAt: widget.task?.updatedAt,
+        taskEmoji: _selectedEmoji,
+        attachments: _attachments,
+        tags: _tags,
+        recurrence: _recurrence,
+        metadata: metadata,
+      );
+      
+      if (task.id == null) {
+        final isDuplicated = widget.task != null && widget.task!.id == null;
+        await ref.read(tasksProvider.notifier).addTask(task, isDuplicate: isDuplicated);
+      } else {
+        await ref.read(tasksProvider.notifier).updateTask(task);
+      }
+      
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      debugPrint('Error saving task: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطا در ذخیره تسک: $e')),
+        );
+      }
     }
   }
 }
