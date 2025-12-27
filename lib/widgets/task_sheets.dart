@@ -739,15 +739,6 @@ class TaskOptionsSheet extends ConsumerWidget {
                           const SizedBox(height: 16),
                           const Divider(height: 1, thickness: 0.5),
                           const SizedBox(height: 16),
-                          const Text(
-                            'پیوست‌ها',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textDirection: TextDirection.rtl,
-                          ),
-                          const SizedBox(height: 8),
                           SizedBox(
                             width: double.infinity,
                             child: Wrap(

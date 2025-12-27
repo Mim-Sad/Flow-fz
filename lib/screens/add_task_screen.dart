@@ -832,6 +832,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 12),
                               child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   OutlinedButton.icon(
                                     onPressed: _pickFile,
@@ -869,6 +870,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                 child: Wrap(
                                   spacing: 8,
                                   runSpacing: 8,
+                                  alignment: WrapAlignment.center,
                                   children: _attachments.map((att) {
                                     final name = att.split('/').last;
                                     final isVoice = name.startsWith('voice_') || att.endsWith('.m4a');
