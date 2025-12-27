@@ -1127,7 +1127,11 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
   Widget _buildWeeklyView(List<Task> tasks, List<CategoryData> categories) {
     final offset = (_selectedDate.weekday + 1) % 7;
-    final startOfWeek = _selectedDate.subtract(Duration(days: offset));
+    final startOfWeek = DateTime(
+      _selectedDate.subtract(Duration(days: offset)).year,
+      _selectedDate.subtract(Duration(days: offset)).month,
+      _selectedDate.subtract(Duration(days: offset)).day,
+    );
     final endOfWeek = startOfWeek.add(const Duration(days: 6));
 
     final tasksForWeek = <Task>[];
@@ -1135,32 +1139,31 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       final hasRecurrence = task.recurrence != null && task.recurrence!.type != RecurrenceType.none;
 
       if (hasRecurrence) {
-        bool isActiveOrHasStatus = false;
+        bool isActiveInWeek = false;
         for (int i = 0; i < 7; i++) {
           final date = startOfWeek.add(Duration(days: i));
-          if (task.isActiveOnDate(date) || task.statusHistory.containsKey(getDateKey(date))) {
-            isActiveOrHasStatus = true;
+          // Only show task if it's active on at least one day in the week
+          // Status history entries are only valid if the task is active on that date
+          if (task.isActiveOnDate(date)) {
+            isActiveInWeek = true;
             break;
           }
         }
-        if (isActiveOrHasStatus) tasksForWeek.add(task);
+        if (isActiveInWeek) tasksForWeek.add(task);
       } else {
-        final isInRange = task.dueDate.isAfter(startOfWeek.subtract(const Duration(seconds: 1))) &&
-            task.dueDate.isBefore(endOfWeek.add(const Duration(days: 1)));
+        // Normalize task dueDate to date-only for comparison
+        final taskDueDateOnly = DateTime(task.dueDate.year, task.dueDate.month, task.dueDate.day);
+        final startOfWeekOnly = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+        final endOfWeekOnly = DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day);
+        
+        // Check if task is within the week (inclusive of both start and end)
+        final isInRange = !taskDueDateOnly.isBefore(startOfWeekOnly) && 
+                         !taskDueDateOnly.isAfter(endOfWeekOnly);
 
         if (isInRange) {
           tasksForWeek.add(task);
-        } else {
-          bool hasStatusInWeek = false;
-          for (int i = 0; i < 7; i++) {
-            final date = startOfWeek.add(Duration(days: i));
-            if (task.statusHistory.containsKey(getDateKey(date))) {
-              hasStatusInWeek = true;
-              break;
-            }
-          }
-          if (hasStatusInWeek) tasksForWeek.add(task);
         }
+        // Don't show tasks with invalid statuses (statuses outside their time range)
       }
     }
 

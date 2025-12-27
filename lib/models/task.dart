@@ -259,7 +259,7 @@ class Task {
       taskEmoji: taskEmoji,
       attachments: List.from(attachments),
       recurrence: recurrence,
-      statusHistory: Map.from(statusHistory),
+      statusHistory: {}, // Don't copy status history when duplicating
       metadata: newMetadata,
     );
   }
