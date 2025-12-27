@@ -71,11 +71,52 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _exportFullData() async {
+    try {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('در حال ایجاد پشتیبان کامل...')),
+        );
+      }
+      
+      final zipBytes = await DatabaseService().exportFullData();
+      
+      String? outputFile = await FilePicker.platform.saveFile(
+        dialogTitle: 'ذخیره فایل پشتیبان کامل',
+        fileName: 'flow_backup_full_${intl.DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}.zip',
+        allowedExtensions: ['zip'],
+        type: FileType.custom,
+        bytes: zipBytes,
+      );
+
+      if (outputFile != null) {
+        // On Desktop, saveFile just returns the path, so we need to write the file.
+        // On Mobile (Android/iOS), saveFile handles writing if bytes are provided.
+        if (!Platform.isAndroid && !Platform.isIOS) {
+          final file = File(outputFile);
+          await file.writeAsBytes(zipBytes);
+        }
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('پشتیبان‌گیری کامل با موفقیت انجام شد')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطا در پشتیبان‌گیری کامل: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _importData() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['json'],
+        allowedExtensions: ['json', 'zip'],
       );
 
       if (result != null && result.files.single.path != null) {
@@ -94,10 +135,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
         if (confirm == true) {
           File file = File(result.files.single.path!);
-          String jsonString = await file.readAsString();
-          dynamic data = jsonDecode(jsonString);
+          final fileName = file.path.toLowerCase();
           
-          await DatabaseService().importData(data);
+          // Check if it's a ZIP file
+          if (fileName.endsWith('.zip')) {
+            // Import full backup (ZIP with media)
+            await DatabaseService().importFullData(file.path);
+          } else {
+            // Import JSON backup
+            String jsonString = await file.readAsString();
+            dynamic data = jsonDecode(jsonString);
+            await DatabaseService().importData(data);
+          }
           
           // Invalidate providers to refresh data
           // Instead of invalidating, we directly reload the notifier to ensure immediate state update
@@ -294,16 +343,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               ListTile(
                                 leading: _buildIconWithBackground(context, HugeIcons.strokeRoundedUpload01, color: Colors.blue),
                                 title: const Text('خروجی گرفتن از اطلاعات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                subtitle: const Text('ذخیره تمام اطلاعات در یک فایل', style: TextStyle(fontSize: 10)),
+                                subtitle: const Text('ذخیره تمام اطلاعات در یک فایل JSON', style: TextStyle(fontSize: 10)),
                                 onTap: () {
                                   Navigator.pop(context);
                                   _exportData();
                                 },
                               ),
                               ListTile(
+                                leading: _buildIconWithBackground(context, HugeIcons.strokeRoundedUpload01, color: Colors.purple),
+                                title: const Text('پشتیبان‌گیری کامل', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                subtitle: const Text('ذخیره اطلاعات و فایل‌های مدیا در فایل ZIP', style: TextStyle(fontSize: 10)),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  _exportFullData();
+                                },
+                              ),
+                              ListTile(
                                 leading: _buildIconWithBackground(context, HugeIcons.strokeRoundedDownload01, color: Colors.green),
                                 title: const Text('وارد کردن اطلاعات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                subtitle: const Text('بازگردانی اطلاعات از فایل ذخیره شده', style: TextStyle(fontSize: 10)),
+                                subtitle: const Text('بازگردانی اطلاعات از فایل JSON یا ZIP', style: TextStyle(fontSize: 10)),
                                 onTap: () {
                                   Navigator.pop(context);
                                   _importData();

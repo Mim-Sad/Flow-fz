@@ -1,8 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:archive/archive.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/task.dart';
 import '../models/category_data.dart';
 
@@ -602,6 +605,54 @@ class DatabaseService {
     };
   }
 
+  // Export full data including media files as ZIP
+  Future<Uint8List> exportFullData() async {
+    // Export JSON data
+    final data = await exportData();
+    final jsonString = jsonEncode(data);
+    final jsonBytes = utf8.encode(jsonString);
+
+    // Get all media files
+    final db = await database;
+    final allMedia = await db.query('media');
+    
+    // Create ZIP archive
+    final archive = Archive();
+    
+    // Add JSON data file
+    archive.addFile(ArchiveFile('data.json', jsonBytes.length, jsonBytes));
+    
+    // Add all media files
+    for (var media in allMedia) {
+      final filePath = media['filePath'] as String;
+      final fileName = media['fileName'] as String;
+      final mediaId = media['id'] as int;
+      
+      try {
+        final file = File(filePath);
+        if (await file.exists()) {
+          final fileBytes = await file.readAsBytes();
+          // Store in media/ folder with media ID prefix to avoid name conflicts
+          archive.addFile(ArchiveFile('media/${mediaId}_$fileName', fileBytes.length, fileBytes));
+        } else {
+          debugPrint('Media file not found: $filePath');
+        }
+      } catch (e) {
+        debugPrint('Error reading media file $filePath: $e');
+      }
+    }
+    
+    // Create ZIP file
+    final zipEncoder = ZipEncoder();
+    final zipBytes = zipEncoder.encode(archive);
+    
+    if (zipBytes == null) {
+      throw Exception('Failed to create ZIP archive');
+    }
+    
+    return Uint8List.fromList(zipBytes);
+  }
+
   Future<void> importData(dynamic inputData) async {
     debugPrint('Starting data import...');
     Database db = await database;
@@ -841,6 +892,202 @@ class DatabaseService {
       debugPrint('Data import completed successfully!');
     } catch (e) {
       debugPrint('Error during data import: $e');
+      rethrow;
+    }
+  }
+
+  // Import full data from ZIP file (including media files)
+  Future<void> importFullData(String zipFilePath) async {
+    debugPrint('Starting full data import from ZIP...');
+    
+    try {
+      // Read ZIP file
+      final zipFile = File(zipFilePath);
+      if (!await zipFile.exists()) {
+        throw Exception('ZIP file not found: $zipFilePath');
+      }
+      
+      final zipBytes = await zipFile.readAsBytes();
+      
+      // Decode ZIP archive
+      final archive = ZipDecoder().decodeBytes(zipBytes);
+      
+      // Find and read data.json
+      ArchiveFile? dataFile;
+      final List<ArchiveFile> mediaFiles = [];
+      
+      for (var file in archive) {
+        if (file.name == 'data.json') {
+          dataFile = file;
+        } else if (file.name.startsWith('media/')) {
+          mediaFiles.add(file);
+        }
+      }
+      
+      if (dataFile == null) {
+        throw Exception('data.json not found in ZIP archive');
+      }
+      
+      // Parse JSON data
+      final jsonString = utf8.decode(dataFile.content as List<int>);
+      final data = jsonDecode(jsonString) as Map<String, dynamic>;
+      
+      // Get application documents directory for media files
+      final appDir = await getApplicationDocumentsDirectory();
+      final Map<int, String> oldMediaIdToNewPath = {}; // oldMediaId -> newFilePath
+      
+      // Extract and copy media files
+      for (var mediaFile in mediaFiles) {
+        try {
+          // Extract media ID from filename (format: media/{id}_{filename})
+          final fileName = mediaFile.name.replaceFirst('media/', '');
+          final underscoreIndex = fileName.indexOf('_');
+          if (underscoreIndex > 0) {
+            final oldMediaId = int.tryParse(fileName.substring(0, underscoreIndex));
+            final originalFileName = fileName.substring(underscoreIndex + 1);
+            
+            if (oldMediaId != null) {
+              // Create new file path
+              final timestamp = DateTime.now().millisecondsSinceEpoch;
+              final newFileName = 'imported_${timestamp}_$originalFileName';
+              final newFilePath = join(appDir.path, newFileName);
+              
+              // Write media file
+              final file = File(newFilePath);
+              await file.writeAsBytes(mediaFile.content as List<int>);
+              
+              oldMediaIdToNewPath[oldMediaId] = newFilePath;
+              debugPrint('Extracted media file: $originalFileName -> $newFilePath');
+            }
+          }
+        } catch (e) {
+          debugPrint('Error extracting media file ${mediaFile.name}: $e');
+        }
+      }
+      
+      // Create media table entries for extracted files and map old IDs to new IDs
+      final db = await database;
+      final Map<int, int> oldMediaIdToNewMediaId = {}; // oldMediaId -> newMediaId
+      
+      for (var entry in oldMediaIdToNewPath.entries) {
+        final oldMediaId = entry.key;
+        final newFilePath = entry.value;
+        final file = File(newFilePath);
+        
+        if (await file.exists()) {
+          try {
+            final fileName = newFilePath.split('/').last;
+            final fileSize = await file.length();
+            final mimeType = _getMimeType(fileName);
+            
+            final newMediaId = await insertMedia(
+              filePath: newFilePath,
+              fileName: fileName,
+              fileSize: fileSize,
+              mimeType: mimeType,
+              taskId: null, // Will be updated when tasks are imported
+            );
+            
+            oldMediaIdToNewMediaId[oldMediaId] = newMediaId;
+            debugPrint('Created media entry: $oldMediaId -> $newMediaId ($fileName)');
+          } catch (e) {
+            debugPrint('Error creating media entry for $newFilePath: $e');
+          }
+        }
+      }
+      
+      // Update task attachments to use new media IDs
+      if (data['tasks'] != null && oldMediaIdToNewMediaId.isNotEmpty) {
+        final tasksList = data['tasks'] as List;
+        for (var task in tasksList) {
+          final taskMap = task as Map<String, dynamic>;
+          final attachmentsJson = taskMap['attachments'] as String?;
+          
+          if (attachmentsJson != null && attachmentsJson.isNotEmpty) {
+            try {
+              final attachments = json.decode(attachmentsJson) as List;
+              final updatedAttachments = <String>[];
+              
+              for (var attachment in attachments) {
+                final attachmentStr = attachment.toString();
+                // Check if it's a media ID (numeric string)
+                if (RegExp(r'^\d+$').hasMatch(attachmentStr)) {
+                  final oldMediaId = int.parse(attachmentStr);
+                  final newMediaId = oldMediaIdToNewMediaId[oldMediaId];
+                  if (newMediaId != null) {
+                    updatedAttachments.add(newMediaId.toString());
+                  } else {
+                    debugPrint('Media ID $oldMediaId not found in extracted files');
+                  }
+                } else {
+                  // Legacy file path, keep as is
+                  updatedAttachments.add(attachmentStr);
+                }
+              }
+              
+              taskMap['attachments'] = json.encode(updatedAttachments);
+            } catch (e) {
+              debugPrint('Error updating attachments for task: $e');
+            }
+          }
+        }
+      }
+      
+      // Import the data
+      await importData(data);
+      
+      // Update media entries with task IDs after import
+      if (data['tasks'] != null) {
+        final tasksList = data['tasks'] as List;
+        
+        // Update media entries by matching tasks
+        for (var task in tasksList) {
+          final taskMap = task as Map<String, dynamic>;
+          final oldTaskId = taskMap['id'] as int?;
+          final attachmentsJson = taskMap['attachments'] as String?;
+          
+          if (oldTaskId != null && attachmentsJson != null && attachmentsJson.isNotEmpty) {
+            try {
+              final attachments = json.decode(attachmentsJson) as List;
+              // Find the new task ID by matching title, description, and dueDate
+              final title = taskMap['title'] as String? ?? '';
+              final description = taskMap['description'] as String?;
+              final dueDate = taskMap['dueDate'] as String?;
+              
+              final newTask = await db.query(
+                'tasks',
+                where: 'title = ? AND description = ? AND dueDate = ?',
+                whereArgs: [title, description, dueDate],
+                limit: 1,
+              );
+              
+              if (newTask.isNotEmpty) {
+                final newTaskId = newTask.first['id'] as int;
+                
+                // Update media entries with new task ID
+                for (var attachment in attachments) {
+                  final attachmentStr = attachment.toString();
+                  if (RegExp(r'^\d+$').hasMatch(attachmentStr)) {
+                    final mediaId = int.parse(attachmentStr);
+                    await db.update(
+                      'media',
+                      {'taskId': newTaskId},
+                      where: 'id = ?',
+                      whereArgs: [mediaId],
+                    );
+                  }
+                }
+              }
+            } catch (e) {
+              debugPrint('Error updating media task IDs: $e');
+            }
+          }
+        }
+      }
+      
+      debugPrint('Full data import completed successfully!');
+    } catch (e) {
+      debugPrint('Error during full data import: $e');
       rethrow;
     }
   }
