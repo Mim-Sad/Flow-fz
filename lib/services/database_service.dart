@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -21,12 +22,17 @@ class DatabaseService {
 
   Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'flow_database.db');
-    return await openDatabase(
+    final db = await openDatabase(
       path,
-      version: 13,
+      version: 14,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
+    
+    // Migrate old attachments to media table on startup
+    await _migrateOldAttachments(db);
+    
+    return db;
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -116,6 +122,10 @@ class DatabaseService {
         }
       }
     }
+    if (oldVersion < 14) {
+      // Version 14: Create media table for attachments
+      await _createMediaTable(db);
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -141,6 +151,7 @@ class DatabaseService {
       )
     ''');
     await _createCategoriesTable(db);
+    await _createMediaTable(db);
     await db.execute('''
       CREATE TABLE IF NOT EXISTS task_events(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -154,6 +165,20 @@ class DatabaseService {
       CREATE TABLE IF NOT EXISTS settings(
         key TEXT PRIMARY KEY,
         value TEXT
+      )
+    ''');
+  }
+
+  Future<void> _createMediaTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS media(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        filePath TEXT NOT NULL,
+        fileName TEXT NOT NULL,
+        fileSize INTEGER,
+        mimeType TEXT,
+        createdAt TEXT NOT NULL,
+        taskId INTEGER
       )
     ''');
   }
@@ -215,7 +240,47 @@ class DatabaseService {
     final map = task.toMap();
     map['updatedAt'] = now;
 
+    // Convert attachment paths to media IDs
+    final List<int> mediaIds = [];
+    for (var attachment in task.attachments) {
+      // Check if it's already a media ID
+      if (RegExp(r'^\d+$').hasMatch(attachment)) {
+        mediaIds.add(int.parse(attachment));
+      } else {
+        // It's a file path, create media entry
+        final file = File(attachment);
+        if (await file.exists()) {
+          final fileName = attachment.split('/').last;
+          final fileSize = await file.length();
+          final mimeType = _getMimeType(fileName);
+          
+          final mediaId = await insertMedia(
+            filePath: attachment,
+            fileName: fileName,
+            fileSize: fileSize,
+            mimeType: mimeType,
+            taskId: null, // Will be updated after task is created
+          );
+          mediaIds.add(mediaId);
+        }
+      }
+    }
+    
+    // Update attachments with media IDs
+    map['attachments'] = json.encode(mediaIds.map((id) => id.toString()).toList());
+
     final id = await db.insert('tasks', map);
+
+    // Update media entries with taskId
+    if (mediaIds.isNotEmpty) {
+      final placeholders = mediaIds.map((_) => '?').join(',');
+      await db.update(
+        'media',
+        {'taskId': id},
+        where: 'id IN ($placeholders)',
+        whereArgs: mediaIds,
+      );
+    }
 
     await insertTaskEvent(
       taskId: id,
@@ -258,9 +323,53 @@ class DatabaseService {
 
     if (task.id == null) return -1;
 
+    // Get old media IDs
+    final oldTaskMap = (await db.query('tasks', where: 'id = ?', whereArgs: [task.id])).first;
+    final oldAttachmentsJson = oldTaskMap['attachments'] as String?;
+    List<int> oldMediaIds = [];
+    if (oldAttachmentsJson != null && oldAttachmentsJson.isNotEmpty) {
+      try {
+        final oldAttachments = json.decode(oldAttachmentsJson) as List;
+        oldMediaIds = oldAttachments.map((a) => int.parse(a.toString())).toList();
+      } catch (_) {}
+    }
+
+    // Convert new attachment paths to media IDs
+    final List<int> newMediaIds = [];
+    for (var attachment in task.attachments) {
+      // Check if it's already a media ID
+      if (RegExp(r'^\d+$').hasMatch(attachment)) {
+        newMediaIds.add(int.parse(attachment));
+      } else {
+        // It's a file path, create media entry
+        final file = File(attachment);
+        if (await file.exists()) {
+          final fileName = attachment.split('/').last;
+          final fileSize = await file.length();
+          final mimeType = _getMimeType(fileName);
+          
+          final mediaId = await insertMedia(
+            filePath: attachment,
+            fileName: fileName,
+            fileSize: fileSize,
+            mimeType: mimeType,
+            taskId: task.id,
+          );
+          newMediaIds.add(mediaId);
+        }
+      }
+    }
+
+    // Delete media that are no longer referenced
+    final mediaToDelete = oldMediaIds.where((id) => !newMediaIds.contains(id)).toList();
+    for (var mediaId in mediaToDelete) {
+      await deleteMedia(mediaId);
+    }
+
     final map = task.toMap();
     map.remove('id'); // Ensure we don't try to update the primary key column
     map['updatedAt'] = nowStr;
+    map['attachments'] = json.encode(newMediaIds.map((id) => id.toString()).toList());
 
     await db.update(
       'tasks',
@@ -317,6 +426,8 @@ class DatabaseService {
   }
 
   Future<int> deleteTask(int id) async {
+    // Delete associated media files
+    await deleteMediaByTaskId(id);
     return softDeleteTask(id);
   }
 
@@ -748,5 +859,208 @@ class DatabaseService {
     if (value is String) return int.tryParse(value) ?? defaultValue;
     if (value is bool) return value ? 1 : 0;
     return defaultValue;
+  }
+
+  // Media CRUD operations
+  Future<int> insertMedia({
+    required String filePath,
+    required String fileName,
+    int? fileSize,
+    String? mimeType,
+    int? taskId,
+  }) async {
+    Database db = await database;
+    final now = DateTime.now().toIso8601String();
+    
+    return await db.insert('media', {
+      'filePath': filePath,
+      'fileName': fileName,
+      'fileSize': fileSize,
+      'mimeType': mimeType,
+      'createdAt': now,
+      'taskId': taskId,
+    });
+  }
+
+  Future<Map<String, dynamic>?> getMedia(int mediaId) async {
+    Database db = await database;
+    final maps = await db.query(
+      'media',
+      where: 'id = ?',
+      whereArgs: [mediaId],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    return maps.first;
+  }
+
+  Future<List<Map<String, dynamic>>> getMediaByTaskId(int taskId) async {
+    Database db = await database;
+    return await db.query(
+      'media',
+      where: 'taskId = ?',
+      whereArgs: [taskId],
+      orderBy: 'createdAt ASC',
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getMediaByIds(List<int> mediaIds) async {
+    if (mediaIds.isEmpty) return [];
+    Database db = await database;
+    final placeholders = mediaIds.map((_) => '?').join(',');
+    return await db.query(
+      'media',
+      where: 'id IN ($placeholders)',
+      whereArgs: mediaIds,
+      orderBy: 'createdAt ASC',
+    );
+  }
+
+  Future<void> deleteMedia(int mediaId) async {
+    Database db = await database;
+    final media = await getMedia(mediaId);
+    if (media != null) {
+      // Delete the physical file
+      try {
+        final file = File(media['filePath'] as String);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (e) {
+        debugPrint('Error deleting media file: $e');
+      }
+      
+      // Delete from database
+      await db.delete(
+        'media',
+        where: 'id = ?',
+        whereArgs: [mediaId],
+      );
+    }
+  }
+
+  Future<void> deleteMediaByTaskId(int taskId) async {
+    Database db = await database;
+    final mediaList = await getMediaByTaskId(taskId);
+    
+    for (var media in mediaList) {
+      try {
+        final file = File(media['filePath'] as String);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (e) {
+        debugPrint('Error deleting media file: $e');
+      }
+    }
+    
+    await db.delete(
+      'media',
+      where: 'taskId = ?',
+      whereArgs: [taskId],
+    );
+  }
+
+  // Migrate old attachments (file paths) to media table
+  Future<void> _migrateOldAttachments(Database db) async {
+    try {
+      final List<Map<String, dynamic>> tasks = await db.query('tasks');
+      final now = DateTime.now().toIso8601String();
+      
+      for (var taskMap in tasks) {
+        final taskId = taskMap['id'] as int;
+        final attachmentsJson = taskMap['attachments'] as String?;
+        
+        if (attachmentsJson == null || attachmentsJson.isEmpty || attachmentsJson == '[]') {
+          continue;
+        }
+        
+        try {
+          final List<dynamic> attachments = json.decode(attachmentsJson);
+          final List<int> mediaIds = [];
+          
+          for (var attachment in attachments) {
+            final filePath = attachment.toString();
+            
+            // Check if this is already a media ID (numeric string)
+            if (RegExp(r'^\d+$').hasMatch(filePath)) {
+              // Already migrated, just add to list
+              mediaIds.add(int.parse(filePath));
+              continue;
+            }
+            
+            // Check if file exists
+            final file = File(filePath);
+            if (!await file.exists()) {
+              debugPrint('Attachment file not found: $filePath');
+              continue;
+            }
+            
+            // Get file info
+            final fileName = filePath.split('/').last;
+            final fileSize = await file.length();
+            final mimeType = _getMimeType(fileName);
+            
+            // Insert into media table
+            final mediaId = await db.insert('media', {
+              'filePath': filePath,
+              'fileName': fileName,
+              'fileSize': fileSize,
+              'mimeType': mimeType,
+              'createdAt': now,
+              'taskId': taskId,
+            });
+            
+            mediaIds.add(mediaId);
+          }
+          
+          // Update task with media IDs
+          if (mediaIds.isNotEmpty) {
+            await db.update(
+              'tasks',
+              {'attachments': json.encode(mediaIds.map((id) => id.toString()).toList())},
+              where: 'id = ?',
+              whereArgs: [taskId],
+            );
+          }
+        } catch (e) {
+          debugPrint('Error migrating attachments for task $taskId: $e');
+        }
+      }
+      
+      debugPrint('✅ Old attachments migration completed');
+    } catch (e) {
+      debugPrint('❌ Error in attachments migration: $e');
+    }
+  }
+
+  String? _getMimeType(String fileName) {
+    final extension = fileName.split('.').last.toLowerCase();
+    switch (extension) {
+      case 'm4a':
+      case 'mp3':
+      case 'wav':
+      case 'aac':
+        return 'audio/$extension';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      case 'pdf':
+        return 'application/pdf';
+      case 'doc':
+        return 'application/msword';
+      case 'docx':
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      case 'xls':
+        return 'application/vnd.ms-excel';
+      case 'xlsx':
+        return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      default:
+        return 'application/octet-stream';
+    }
   }
 }
