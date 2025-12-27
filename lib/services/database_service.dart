@@ -24,7 +24,7 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'flow_database.db');
     final db = await openDatabase(
       path,
-      version: 14,
+      version: 15,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -125,6 +125,74 @@ class DatabaseService {
     if (oldVersion < 14) {
       // Version 14: Create media table for attachments
       await _createMediaTable(db);
+      
+      // Ensure mimeType column exists (in case table was created without it)
+      try {
+        await db.execute('ALTER TABLE media ADD COLUMN mimeType TEXT');
+      } catch (e) {
+        // Column might already exist, ignore error
+        debugPrint('mimeType column might already exist: $e');
+      }
+    }
+    if (oldVersion < 15) {
+      // Version 15: Fix media table - remove fileType column if it exists
+      // SQLite doesn't support DROP COLUMN directly, so we need to recreate the table
+      try {
+        // Check if media table exists
+        final tableInfo = await db.rawQuery('PRAGMA table_info(media)');
+        final hasFileType = tableInfo.any((column) => column['name'] == 'fileType');
+        
+        if (hasFileType) {
+          debugPrint('fileType column exists, recreating media table...');
+          
+          // Create new table with correct structure
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS media_new(
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              filePath TEXT NOT NULL,
+              fileName TEXT NOT NULL,
+              fileSize INTEGER,
+              mimeType TEXT,
+              createdAt TEXT NOT NULL,
+              taskId INTEGER
+            )
+          ''');
+          
+          // Copy data from old table to new table (excluding fileType)
+          // Use COALESCE to handle NULL values
+          await db.execute('''
+            INSERT INTO media_new (id, filePath, fileName, fileSize, mimeType, createdAt, taskId)
+            SELECT id, filePath, fileName, fileSize, 
+                   COALESCE(mimeType, 'application/octet-stream') as mimeType,
+                   createdAt, taskId
+            FROM media
+          ''');
+          
+          // Drop old table
+          await db.execute('DROP TABLE media');
+          
+          // Rename new table
+          await db.execute('ALTER TABLE media_new RENAME TO media');
+          
+          debugPrint('✅ Media table recreated successfully without fileType');
+        } else {
+          debugPrint('fileType column does not exist, no migration needed');
+        }
+        
+        // Ensure mimeType column exists
+        try {
+          await db.execute('ALTER TABLE media ADD COLUMN mimeType TEXT');
+        } catch (e) {
+          // Column might already exist, ignore error
+          debugPrint('mimeType column might already exist: $e');
+        }
+      } catch (e) {
+        debugPrint('Error in media table migration: $e');
+        // If migration fails, try to ensure mimeType exists
+        try {
+          await db.execute('ALTER TABLE media ADD COLUMN mimeType TEXT');
+        } catch (_) {}
+      }
     }
   }
 
@@ -302,10 +370,64 @@ class DatabaseService {
     
     debugPrint("📥 DB: Fetched ${maps.length} tasks (includeDeleted: $includeDeleted)");
     
+    // Collect all media IDs from all tasks for batch lookup
+    final Map<int, String> mediaIdToFilePath = {};
+    final Set<int> allMediaIds = {};
+    
+    for (var taskMap in maps) {
+      final attachmentsJson = taskMap['attachments'] as String?;
+      if (attachmentsJson != null && attachmentsJson.isNotEmpty) {
+        try {
+          final List<dynamic> attachmentIds = json.decode(attachmentsJson);
+          final List<int> mediaIds = attachmentIds
+              .where((id) => RegExp(r'^\d+$').hasMatch(id.toString()))
+              .map((id) => int.parse(id.toString()))
+              .toList();
+          allMediaIds.addAll(mediaIds);
+        } catch (_) {}
+      }
+    }
+    
+    // Batch fetch all media in one query
+    if (allMediaIds.isNotEmpty) {
+      final mediaList = await getMediaByIds(allMediaIds.toList());
+      for (var media in mediaList) {
+        mediaIdToFilePath[media['id'] as int] = media['filePath'] as String;
+      }
+    }
+    
+    // Convert task maps and resolve media IDs to file paths
     List<Task> tasks = [];
     for (var i = 0; i < maps.length; i++) {
       try {
-        tasks.add(Task.fromMap(maps[i]));
+        final taskMap = Map<String, dynamic>.from(maps[i]);
+        final attachmentsJson = taskMap['attachments'] as String?;
+        if (attachmentsJson != null && attachmentsJson.isNotEmpty) {
+          try {
+            final List<dynamic> attachmentIds = json.decode(attachmentsJson);
+            final List<String> filePaths = [];
+            
+            for (var id in attachmentIds) {
+              if (RegExp(r'^\d+$').hasMatch(id.toString())) {
+                final mediaId = int.parse(id.toString());
+                final filePath = mediaIdToFilePath[mediaId];
+                if (filePath != null) {
+                  filePaths.add(filePath);
+                }
+              } else {
+                // Legacy file path, keep as is
+                filePaths.add(id.toString());
+              }
+            }
+            
+            taskMap['attachments'] = json.encode(filePaths);
+          } catch (e) {
+            debugPrint('Error converting media IDs to file paths for task ${taskMap['id']}: $e');
+            // Keep original attachments on error
+          }
+        }
+        
+        tasks.add(Task.fromMap(taskMap));
       } catch (e) {
         debugPrint("❌ Error parsing task at index $i (ID: ${maps[i]['id']}): $e");
         // debugPrint("   Raw Data: ${maps[i]}");
@@ -330,7 +452,11 @@ class DatabaseService {
     if (oldAttachmentsJson != null && oldAttachmentsJson.isNotEmpty) {
       try {
         final oldAttachments = json.decode(oldAttachmentsJson) as List;
-        oldMediaIds = oldAttachments.map((a) => int.parse(a.toString())).toList();
+        // Only extract numeric IDs (media IDs), ignore file paths (legacy)
+        oldMediaIds = oldAttachments
+            .where((a) => RegExp(r'^\d+$').hasMatch(a.toString()))
+            .map((a) => int.parse(a.toString()))
+            .toList();
       } catch (_) {}
     }
 
