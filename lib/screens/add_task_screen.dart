@@ -1,5 +1,4 @@
 import 'package:lottie/lottie.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -16,6 +15,7 @@ import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
 import '../providers/tag_provider.dart';
 import '../utils/string_utils.dart';
+import '../widgets/audio_waveform_player.dart';
 import 'package:intl/intl.dart' as intl;
 
 class AddTaskScreen extends ConsumerStatefulWidget {
@@ -45,10 +45,6 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   // Audio Recording
   final AudioRecorder _audioRecorder = AudioRecorder();
   bool _isRecording = false;
-
-  final AudioPlayer _audioPlayer = AudioPlayer();
-  String? _playingFilePath;
-  bool _isPlaying = false;
 
   String _toPersianDigit(String input) {
     const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -158,38 +154,6 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     }
   }
 
-  Future<void> _playVoice(String path) async {
-    try {
-      if (_isPlaying && _playingFilePath == path) {
-        await _audioPlayer.stop();
-        setState(() {
-          _isPlaying = false;
-          _playingFilePath = null;
-        });
-      } else {
-        await _audioPlayer.play(DeviceFileSource(path));
-        setState(() {
-          _isPlaying = true;
-          _playingFilePath = path;
-        });
-        
-        _audioPlayer.onPlayerComplete.listen((event) {
-          if (mounted) {
-            setState(() {
-              _isPlaying = false;
-              _playingFilePath = null;
-            });
-          }
-        });
-      }
-    } catch (e) {
-      debugPrint('Error playing audio: $e');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('خطا در پخش صدا')),
-      );
-    }
-  }
 
   Future<void> _openFile(String path) async {
     try {
@@ -212,7 +176,6 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   @override
   void dispose() {
     _audioRecorder.dispose();
-    _audioPlayer.dispose();
     _titleController.dispose();
     _descController.dispose();
     _emojiController.dispose();
@@ -867,37 +830,79 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                               const SizedBox(height: 12),
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                                child: Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  alignment: WrapAlignment.center,
+                                child: Column(
                                   children: _attachments.map((att) {
                                     final name = att.split('/').last;
                                     final isVoice = name.startsWith('voice_') || att.endsWith('.m4a');
-                                    final isPlayingThis = _isPlaying && _playingFilePath == att;
+                                    final isImage = name.toLowerCase().endsWith('.jpg') || 
+                                                   name.toLowerCase().endsWith('.jpeg') || 
+                                                   name.toLowerCase().endsWith('.png') || 
+                                                   name.toLowerCase().endsWith('.gif') || 
+                                                   name.toLowerCase().endsWith('.webp');
                                     
-                                    return InputChip(
-                                      label: Text(name.length > 20 ? '${name.substring(0, 20)}...' : name),
-                                      avatar: isVoice 
-                                          ? (isPlayingThis 
-                                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) 
-                                              : const HugeIcon(icon: HugeIcons.strokeRoundedPlay, size: 18))
-                                          : const HugeIcon(icon: HugeIcons.strokeRoundedFile01, size: 16),
-                                      onPressed: () => isVoice ? _playVoice(att) : _openFile(att),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                      onDeleted: () {
-                                        if (isPlayingThis) {
-                                          _audioPlayer.stop();
-                                          setState(() {
-                                            _isPlaying = false;
-                                            _playingFilePath = null;
-                                          });
-                                        }
-                                        setState(() {
-                                          _attachments.remove(att);
-                                        });
-                                      },
-                                    );
+                                    if (isVoice) {
+                                      return Padding(
+                                        padding: const EdgeInsets.only(bottom: 8),
+                                        child: AudioWaveformPlayer(
+                                          audioPath: att,
+                                          onDelete: () {
+                                            setState(() {
+                                              _attachments.remove(att);
+                                            });
+                                          },
+                                        ),
+                                      );
+                                    } else {
+                                      return Padding(
+                                        padding: const EdgeInsets.only(bottom: 8),
+                                        child: InkWell(
+                                          onTap: () => _openFile(att),
+                                          borderRadius: BorderRadius.circular(12),
+                                          child: Container(
+                                            height: 48, // Same height as audio player
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                                              ),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                HugeIcon(
+                                                  icon: isImage 
+                                                      ? HugeIcons.strokeRoundedImage01 
+                                                      : HugeIcons.strokeRoundedFile01, 
+                                                  size: 18,
+                                                  color: Theme.of(context).colorScheme.primary,
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: Text(
+                                                    name.length > 30 ? '${name.substring(0, 30)}...' : name,
+                                                    style: const TextStyle(fontSize: 12),
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                GestureDetector(
+                                                  onTap: () {
+                                                    setState(() {
+                                                      _attachments.remove(att);
+                                                    });
+                                                  },
+                                                  child: HugeIcon(
+                                                    icon: HugeIcons.strokeRoundedCancel01,
+                                                    size: 18,
+                                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }
                                   }).toList(),
                                 ),
                               ),

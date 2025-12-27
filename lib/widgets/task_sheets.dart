@@ -11,6 +11,7 @@ import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
 import '../screens/add_task_screen.dart';
 import 'postpone_dialog.dart';
+import 'audio_waveform_player.dart';
 
 class TaskStatusPickerSheet extends ConsumerWidget {
   final Task task;
@@ -739,31 +740,58 @@ class TaskOptionsSheet extends ConsumerWidget {
                           const SizedBox(height: 16),
                           const Divider(height: 1, thickness: 0.5),
                           const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              textDirection: TextDirection.rtl,
-                              children: task.attachments.map((att) {
-                                final name = att.split('/').last;
-                                final isVoice = name.startsWith('voice_') || att.endsWith('.m4a');
-                                return ActionChip(
-                                  avatar: HugeIcon(
-                                    icon: isVoice ? HugeIcons.strokeRoundedPlay : HugeIcons.strokeRoundedFile01,
-                                    size: 16,
-                                    color: Theme.of(context).colorScheme.primary,
-                                  ),
-                                  label: Text(
-                                    name.length > 15 ? '${name.substring(0, 15)}...' : name,
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                  onPressed: () => OpenFilex.open(att),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                                );
-                              }).toList(),
-                            ),
+                          Column(
+                            children: task.attachments.map((att) {
+                              final name = att.split('/').last;
+                              final isVoice = name.startsWith('voice_') || att.endsWith('.m4a');
+                              final isImage = name.toLowerCase().endsWith('.jpg') || 
+                                           name.toLowerCase().endsWith('.jpeg') || 
+                                           name.toLowerCase().endsWith('.png') || 
+                                           name.toLowerCase().endsWith('.gif') || 
+                                           name.toLowerCase().endsWith('.webp');
+                              
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: isVoice
+                                    ? AudioWaveformPlayer(
+                                        audioPath: att,
+                                      )
+                                    : Container(
+                                        height: 48,
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                                          ),
+                                        ),
+                                        child: InkWell(
+                                          onTap: () => OpenFilex.open(att),
+                                          borderRadius: BorderRadius.circular(12),
+                                          child: Row(
+                                            children: [
+                                              HugeIcon(
+                                                icon: isImage 
+                                                    ? HugeIcons.strokeRoundedImage01 
+                                                    : HugeIcons.strokeRoundedFile01, 
+                                                size: 18,
+                                                color: Theme.of(context).colorScheme.primary,
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Text(
+                                                  name.length > 30 ? '${name.substring(0, 30)}...' : name,
+                                                  style: const TextStyle(fontSize: 12),
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                              );
+                            }).toList(),
                           ),
                         ],
                       ],
