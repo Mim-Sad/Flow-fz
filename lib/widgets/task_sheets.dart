@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:lottie/lottie.dart';
+import 'lottie_category_icon.dart';
 import 'package:shamsi_date/shamsi_date.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:file_picker/file_picker.dart';
@@ -688,7 +688,7 @@ class TaskOptionsSheet extends ConsumerWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   textDirection: TextDirection.rtl,
                                   children: [
-                                    Lottie.asset(catData.emoji, width: 22, height: 22, repeat: false),
+                                    LottieCategoryIcon(assetPath: catData.emoji, width: 22, height: 22, repeat: false),
                                     const SizedBox(width: 8),
                                     Text(
                                       catData.label,

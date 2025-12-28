@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:lottie/lottie.dart';
 import 'package:uuid/uuid.dart';
 import '../models/category_data.dart';
 import '../providers/category_provider.dart';
 import '../constants/duck_emojis.dart';
+import '../widgets/lottie_category_icon.dart';
 
 class CategoriesScreen extends ConsumerStatefulWidget {
   const CategoriesScreen({super.key});
@@ -179,8 +179,8 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                                         ),
                                       ),
                                       padding: const EdgeInsets.all(6),
-                                      child: Lottie.asset(
-                                        emojiPath,
+                                      child: LottieCategoryIcon(
+                                        assetPath: emojiPath,
                                         fit: BoxFit.contain,
                                         repeat: false,
                                       ),
@@ -397,8 +397,8 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                       ),
                     ),
                     alignment: Alignment.center,
-                    child: Lottie.asset(
-                      category.emoji,
+                    child: LottieCategoryIcon(
+                      assetPath: category.emoji,
                       width: 32,
                       height: 32,
                       repeat: false,

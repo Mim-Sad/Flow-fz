@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:lottie/lottie.dart';
 import '../constants/duck_emojis.dart';
+import '../widgets/lottie_category_icon.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import 'package:text_scroll/text_scroll.dart';
 import '../providers/task_provider.dart';
@@ -846,7 +847,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             child: Row(
               textDirection: TextDirection.rtl,
               children: [
-                Lottie.asset(emoji, width: 24, height: 24, repeat: false),
+                LottieCategoryIcon(assetPath: emoji, width: 24, height: 24, repeat: false),
                 const SizedBox(width: 6),
                 Expanded(
                   child: TextScroll(
@@ -999,7 +1000,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             child: Row(
               textDirection: TextDirection.rtl,
               children: [
-                Lottie.asset(emoji, width: 24, height: 24, repeat: false),
+                LottieCategoryIcon(assetPath: emoji, width: 24, height: 24, repeat: false),
                 const SizedBox(width: 6),
                 Expanded(
                   child: TextScroll(
@@ -1454,7 +1455,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             child: Row(
               textDirection: TextDirection.rtl,
               children: [
-                Lottie.asset(emoji, width: 24, height: 24, repeat: false),
+                LottieCategoryIcon(assetPath: emoji, width: 24, height: 24, repeat: false),
                 const SizedBox(width: 6),
                 Expanded(
                   child: TextScroll(

@@ -1,4 +1,4 @@
-import 'package:lottie/lottie.dart';
+import '../widgets/lottie_category_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -467,7 +467,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Lottie.asset(cat.emoji, width: 22, height: 22, repeat: false),
+                                          LottieCategoryIcon(assetPath: cat.emoji, width: 22, height: 22, repeat: false),
                                           const SizedBox(width: 8),
                                           Text(
                                             cat.label,

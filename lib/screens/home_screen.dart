@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:lottie/lottie.dart';
+import '../widgets/lottie_category_icon.dart';
 import 'package:text_scroll/text_scroll.dart';
 import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
@@ -710,7 +711,7 @@ class TaskListTile extends ConsumerWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Lottie.asset(catData.emoji, width: 14, height: 14, repeat: false),
+              LottieCategoryIcon(assetPath: catData.emoji, width: 14, height: 14, repeat: false),
               const SizedBox(width: 4),
               Text(
                 _toPersianDigit(catData.label),
