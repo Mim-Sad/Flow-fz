@@ -224,11 +224,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    _buildLegendItem(context, 'کل تسک‌ها', Theme.of(context).colorScheme.primary, filteredTasks.length),
                     _buildLegendItem(context, 'موفق', Colors.greenAccent, successCount),
                     _buildLegendItem(context, 'ناموفق', Colors.redAccent, failedCount),
                     _buildLegendItem(context, 'لغو شده', Colors.grey, cancelledCount),
-                    _buildLegendItem( context, 'در جریان', Theme.of(context).colorScheme.surfaceContainerHigh, pendingCount,),
                     _buildLegendItem(context, 'تعویق', Colors.orangeAccent, deferredCount),
+                    _buildLegendItem( context, 'در جریان', Theme.of(context).colorScheme.surfaceContainerHigh, pendingCount,),
                   ],
                 ),
               ),
