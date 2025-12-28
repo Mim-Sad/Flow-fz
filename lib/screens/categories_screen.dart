@@ -112,7 +112,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                             controller: nameController,
                             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                             decoration: InputDecoration(
-                              hintText: 'نام دسته‌بندی...',
+                              hintText: 'نام دسته‌بندی',
                               hintStyle: const TextStyle(fontSize: 14),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(18),
