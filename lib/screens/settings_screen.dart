@@ -386,7 +386,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 20),
 
                 // Color Selection
                 FadeInOnce(
@@ -473,7 +473,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
       
                 // Mode Selection
                 FadeInOnce(
@@ -529,7 +529,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
+
+                // Power Saving Mode
+                FadeInOnce(
+                  delay: 300.ms,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: onCardColor.withValues(alpha: 0.1), width: 1),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      title: const Text('حالت ذخیره نیرو', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      subtitle: const Text('غیر فعال کردن برخی انیمیشن‌ها', style: TextStyle(fontSize: 12)),
+                      leading: HugeIcon(icon: HugeIcons.strokeRoundedFlash, color: Theme.of(context).colorScheme.primary),
+                      trailing: Switch(
+                        value: themeState.powerSavingMode,
+                        onChanged: (value) {
+                          themeNotifier.setPowerSavingMode(value);
+                        },
+                      ),
+                      onTap: () {
+                        themeNotifier.setPowerSavingMode(!themeState.powerSavingMode);
+                      },
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const SizedBox(height: 20),
             ],
           ),
     );

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/theme_provider.dart';
 
-class FadeInOnce extends StatefulWidget {
+class FadeInOnce extends ConsumerStatefulWidget {
   final Widget child;
   final Duration delay;
   final bool animate;
   final bool useScale; // Added useScale option
+  final bool isFeedAnimation; // Indicates if this is a feed animation (should remain even in power saving mode)
 
   const FadeInOnce({
     super.key,
@@ -13,13 +16,14 @@ class FadeInOnce extends StatefulWidget {
     this.delay = Duration.zero,
     this.animate = true,
     this.useScale = false, // Default to false
+    this.isFeedAnimation = false, // Default to false
   });
 
   @override
-  State<FadeInOnce> createState() => _FadeInOnceState();
+  ConsumerState<FadeInOnce> createState() => _FadeInOnceState();
 }
 
-class _FadeInOnceState extends State<FadeInOnce> {
+class _FadeInOnceState extends ConsumerState<FadeInOnce> {
   // Static set to track animated widgets globally by their keys
   // This ensures animations only play once even if widgets are recreated during scrolling
   static final Set<Object?> _animatedKeys = <Object?>{};
@@ -40,6 +44,9 @@ class _FadeInOnceState extends State<FadeInOnce> {
 
   @override
   Widget build(BuildContext context) {
+    // Check power saving mode from theme provider
+    final powerSavingMode = ref.watch(themeProvider).powerSavingMode;
+    
     // Check again in build in case key changed
     final currentKey = widget.key is ValueKey 
         ? (widget.key as ValueKey).value 
@@ -59,7 +66,7 @@ class _FadeInOnceState extends State<FadeInOnce> {
     _animatedKeys.add(_widgetKey);
     _hasAnimated = true;
 
-    // Optimized animation wrapped in RepaintBoundary
+    // Start with fadeIn animation (always applied)
     var animation = widget.child
         .animate(
           onComplete: (controller) {
@@ -73,21 +80,27 @@ class _FadeInOnceState extends State<FadeInOnce> {
           duration: 250.ms,
           delay: cappedDelay,
           curve: Curves.easeOut,
-        )
-        .slideY(
-          begin: 0.08,
-          end: 0,
-          duration: 300.ms,
-          delay: cappedDelay,
-          curve: Curves.easeOutCubic,
-        )
-        .blur(
-          begin: const Offset(2, 2),
-          end: Offset.zero,
-          duration: 300.ms,
-          delay: cappedDelay,
-          curve: Curves.easeOut,
         );
+
+    // Only add slide and blur if NOT in power saving mode
+    // In power saving mode, only fadeIn animation remains (no slide/blur)
+    if (!powerSavingMode) {
+      animation = animation
+          .slideY(
+            begin: 0.08,
+            end: 0,
+            duration: 300.ms,
+            delay: cappedDelay,
+            curve: Curves.easeOutCubic,
+          )
+          .blur(
+            begin: const Offset(2, 2),
+            end: Offset.zero,
+            duration: 300.ms,
+            delay: cappedDelay,
+            curve: Curves.easeOut,
+          );
+    }
 
     // Add scale effect if requested
     if (widget.useScale) {

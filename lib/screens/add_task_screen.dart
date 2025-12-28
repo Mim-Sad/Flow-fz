@@ -8,6 +8,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'dart:async';
 
 import '../models/task.dart';
 import '../models/category_data.dart';
@@ -15,6 +16,7 @@ import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
 import '../providers/tag_provider.dart';
 import '../utils/string_utils.dart';
+import '../utils/emoji_suggester.dart';
 import '../widgets/audio_waveform_player.dart';
 import 'package:intl/intl.dart' as intl;
 
@@ -45,6 +47,10 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   // Audio Recording
   final AudioRecorder _audioRecorder = AudioRecorder();
   bool _isRecording = false;
+  
+  // Emoji Suggestion
+  Timer? _emojiSuggestionTimer;
+  String? _lastTitleForEmoji; // آخرین عنوانی که برای آن ایموجی پیشنهاد شده
 
   String _toPersianDigit(String input) {
     const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -152,6 +158,72 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
       );
       _selectedDate = originalTask?.dueDate ?? widget.task!.dueDate;
     }
+    
+    // Add listener for automatic emoji suggestion
+    _titleController.addListener(_onTitleChanged);
+  }
+  
+  void _onTitleChanged() {
+    final title = _titleController.text.trim();
+    
+    // اگر عنوان خالی است، ایموجی را پاک کن (فقط اگر توسط سیستم پیشنهاد شده بود)
+    if (title.isEmpty) {
+      _emojiSuggestionTimer?.cancel();
+      if (_selectedEmoji != null && _lastTitleForEmoji != null) {
+        // فقط اگر ایموجی توسط سیستم پیشنهاد شده بود، آن را پاک کن
+        setState(() {
+          _emojiController.clear();
+          _selectedEmoji = null;
+          _lastTitleForEmoji = null;
+        });
+      }
+      return;
+    }
+    
+    // بررسی اینکه آیا باید پیشنهاد جدید بدهیم:
+    // 1. اگر ایموجی خالی باشد
+    // 2. یا اگر ایموجی توسط سیستم پیشنهاد شده بود (_lastTitleForEmoji != null) و عنوان تغییر کرده
+    bool shouldSuggest = false;
+    
+    if (_selectedEmoji == null || _selectedEmoji!.isEmpty) {
+      // ایموجی خالی است، باید پیشنهاد بدهیم
+      shouldSuggest = true;
+    } else if (_lastTitleForEmoji != null && _lastTitleForEmoji != title) {
+      // ایموجی توسط سیستم پیشنهاد شده بود و عنوان تغییر کرده
+      // باید پیشنهاد جدید بدهیم
+      shouldSuggest = true;
+    }
+    // اگر _lastTitleForEmoji == null باشد، یعنی کاربر به صورت دستی ایموجی را انتخاب کرده
+    // پس نباید پیشنهاد جدید بدهیم
+    
+    if (shouldSuggest) {
+      // Cancel timer قبلی
+      _emojiSuggestionTimer?.cancel();
+      
+      // ایجاد timer جدید با debounce
+      _emojiSuggestionTimer = Timer(const Duration(milliseconds: 600), () {
+        final currentTitle = _titleController.text.trim();
+        if (currentTitle.isNotEmpty && mounted) {
+          final suggestedEmoji = EmojiSuggester.suggestEmoji(currentTitle);
+          if (suggestedEmoji != null) {
+            setState(() {
+              _emojiController.text = suggestedEmoji;
+              _selectedEmoji = suggestedEmoji;
+              _lastTitleForEmoji = currentTitle; // ذخیره عنوان برای بررسی بعدی
+            });
+          } else {
+            // اگر پیشنهادی پیدا نشد و ایموجی قبلی توسط سیستم پیشنهاد شده بود، آن را پاک کن
+            if (_lastTitleForEmoji != null) {
+              setState(() {
+                _emojiController.clear();
+                _selectedEmoji = null;
+                _lastTitleForEmoji = null;
+              });
+            }
+          }
+        }
+      });
+    }
   }
 
 
@@ -175,6 +247,8 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
 
   @override
   void dispose() {
+    _emojiSuggestionTimer?.cancel();
+    _titleController.removeListener(_onTitleChanged);
     _audioRecorder.dispose();
     _titleController.dispose();
     _descController.dispose();
@@ -315,8 +389,13 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                       TextPosition(offset: _emojiController.text.length),
                                     );
                                     _selectedEmoji = char;
+                                    // اگر کاربر به صورت دستی ایموجی را تغییر داد،
+                                    // _lastTitleForEmoji را null می‌کنیم تا نشان دهیم
+                                    // این انتخاب دستی است و نباید با تغییر عنوان تغییر کند
+                                    _lastTitleForEmoji = null;
                                   } else {
                                     _selectedEmoji = null;
+                                    _lastTitleForEmoji = null;
                                   }
                                 });
                               },
