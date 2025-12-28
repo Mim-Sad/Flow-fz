@@ -5,47 +5,71 @@ class FadeInOnce extends StatefulWidget {
   final Widget child;
   final Duration delay;
   final bool animate;
+  final bool useScale; // Added useScale option
 
   const FadeInOnce({
     super.key,
     required this.child,
     this.delay = Duration.zero,
     this.animate = true,
+    this.useScale = false, // Default to false
   });
 
   @override
   State<FadeInOnce> createState() => _FadeInOnceState();
 }
 
-class _FadeInOnceState extends State<FadeInOnce> with AutomaticKeepAliveClientMixin {
+class _FadeInOnceState extends State<FadeInOnce> {
   bool _hasAnimated = false;
 
   @override
-  bool get wantKeepAlive => true;
-
-  @override
   Widget build(BuildContext context) {
-    super.build(context);
+    // If already animated or animation disabled, return child directly without wrapper
     if (_hasAnimated || !widget.animate) return widget.child;
 
-    // Cap the delay to 300ms to ensure a snappy feel even for items further down the list
-    // This solves the issue where items scrolled into view had long delays
-    final cappedDelay = widget.delay > 300.ms ? 300.ms : widget.delay;
+    // Cap the delay to 200ms for better scroll performance
+    final cappedDelay = widget.delay > 200.ms ? 200.ms : widget.delay;
 
-    return widget.child
-        .animate(onComplete: (controller) => _hasAnimated = true)
+    // Optimized animation wrapped in RepaintBoundary
+    var animation = widget.child
+        .animate(
+          onComplete: (controller) {
+            if (mounted) {
+              setState(() => _hasAnimated = true);
+            }
+          },
+        )
         .fadeIn(
-          duration: 300.ms, 
+          duration: 250.ms,
           delay: cappedDelay,
           curve: Curves.easeOut,
         )
         .slideY(
-          begin: 0.1, 
-          end: 0, 
-          duration: 400.ms,
+          begin: 0.08,
+          end: 0,
+          duration: 300.ms,
           delay: cappedDelay,
-          curve: Curves.easeOutBack, // Adds a nice little "pop" effect
+          curve: Curves.easeOutCubic,
+        )
+        .blur(
+          begin: const Offset(2, 2),
+          end: Offset.zero,
+          duration: 300.ms,
+          delay: cappedDelay,
+          curve: Curves.easeOut,
         );
-        // Removed blur for better performance on low-end devices during scroll
+
+    // Add scale effect if requested
+    if (widget.useScale) {
+      animation = animation.scale(
+        begin: const Offset(0.8, 0.8),
+        end: const Offset(1, 1),
+        duration: 500.ms,
+        delay: cappedDelay,
+        curve: Curves.easeOutBack,
+      );
+    }
+
+    return RepaintBoundary(child: animation);
   }
 }

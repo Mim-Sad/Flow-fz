@@ -8,6 +8,7 @@ import 'package:intl/intl.dart' as intl;
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import '../providers/task_provider.dart';
 import '../models/task.dart';
+import '../widgets/animations.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
@@ -108,6 +109,182 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     }
   }
 
+  /// Helper method to wrap widgets with FadeInOnce animation with sequential delays
+  List<Widget> _buildAnimatedChildren({
+    required List<Widget> children,
+    int startDelay = 0,
+    int delayStep = 100,
+    List<bool>? useScaleList,
+  }) {
+    return children.asMap().entries.map((entry) {
+      final index = entry.key;
+      final child = entry.value;
+      final delay = (startDelay + (index * delayStep)).ms;
+      final useScale = useScaleList != null && index < useScaleList.length && useScaleList[index];
+      
+      return FadeInOnce(
+        delay: delay,
+        useScale: useScale,
+        child: child,
+      );
+    }).toList();
+  }
+
+  /// Build report content widgets list
+  List<Widget> _buildReportContent(
+    BuildContext context,
+    List<Task> filteredTasks,
+    int successCount,
+    int failedCount,
+    int cancelledCount,
+    int pendingCount,
+    int deferredCount,
+    int relevantTasksLength,
+  ) {
+    final List<Widget> content = [
+      _buildStatSummary(
+        context,
+        successCount,
+        failedCount,
+        relevantTasksLength,
+      ),
+      const SizedBox(height: 32),
+      Center(
+        child: Text(
+          'وضعیت کلی تسک‌ها',
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
+        ),
+      ),
+      const SizedBox(height: 18),
+    ];
+
+    if (filteredTasks.isNotEmpty) {
+      content.add(
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 5,
+                child: SizedBox(
+                  height: 180,
+                  child: PieChart(
+                    PieChartData(
+                      sectionsSpace: 4,
+                      centerSpaceRadius: 40,
+                      sections: [
+                        if (successCount > 0)
+                          PieChartSectionData(
+                            value: successCount.toDouble(),
+                            title: '',
+                            color: Colors.greenAccent,
+                            radius: 35,
+                          ),
+                        if (failedCount > 0)
+                          PieChartSectionData(
+                            value: failedCount.toDouble(),
+                            title: '',
+                            color: Colors.redAccent,
+                            radius: 35,
+                          ),
+                        if (cancelledCount > 0)
+                          PieChartSectionData(
+                            value: cancelledCount.toDouble(),
+                            title: '',
+                            color: Colors.grey,
+                            radius: 35,
+                          ),
+                        if (pendingCount > 0)
+                          PieChartSectionData(
+                            value: pendingCount.toDouble(),
+                            title: '',
+                            color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                            radius: 35,
+                          ),
+                        if (deferredCount > 0)
+                          PieChartSectionData(
+                            value: deferredCount.toDouble(),
+                            title: '',
+                            color: Colors.orangeAccent,
+                            radius: 35,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                flex: 5,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildLegendItem(context, 'موفق', Colors.greenAccent, successCount),
+                    _buildLegendItem(context, 'ناموفق', Colors.redAccent, failedCount),
+                    _buildLegendItem(context, 'لغو شده', Colors.grey, cancelledCount),
+                    _buildLegendItem( context, 'در جریان', Theme.of(context).colorScheme.surfaceContainerHigh, pendingCount,),
+                    _buildLegendItem(context, 'تعویق', Colors.orangeAccent, deferredCount),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      if (_viewMode != 0) {
+        content.addAll([
+          const SizedBox(height: 32),
+          Center(
+            child: Text(
+              'روند موفقیت',
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: SizedBox(
+              height: 200,
+              child: _buildSuccessRateChart(filteredTasks),
+            ),
+          ),
+        ]);
+      }
+    } else {
+      content.add(
+        Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 40),
+              Lottie.asset(
+                'assets/images/TheSoul/24 news b.json',
+                height: 120,
+                repeat: true,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'تسکی برای این بازه پیدا نکردم!',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return content;
+  }
+
   @override
   Widget build(BuildContext context) {
     DateTimeRange range;
@@ -168,189 +345,21 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildStatSummary(
+                    children: _buildAnimatedChildren(
+                      children: _buildReportContent(
                         context,
+                        filteredTasks,
                         successCount,
                         failedCount,
-                        relevantTasks
-                            .length, // Total relevant tasks (excluding cancelled/deferred)
+                        cancelledCount,
+                        pendingCount,
+                        deferredCount,
+                        relevantTasks.length,
                       ),
-                      const SizedBox(height: 32),
-                      Center(
-                        child: Text(
-                          'وضعیت کلی تسک‌ها',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                      ).animate().fadeIn(delay: 200.ms),
-                      const SizedBox(height: 18),
-                      if (filteredTasks.isNotEmpty)
-                        Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                              decoration: BoxDecoration(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.surfaceContainerLow,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    flex: 5,
-                                    child: SizedBox(
-                                      height: 180,
-                                      child:
-                                          PieChart(
-                                            PieChartData(
-                                              sectionsSpace: 4,
-                                              centerSpaceRadius: 40,
-                                              sections: [
-                                                if (successCount > 0)
-                                                  PieChartSectionData(
-                                                    value: successCount
-                                                        .toDouble(),
-                                                    title: '',
-                                                    color: Colors.greenAccent,
-                                                    radius: 35,
-                                                  ),
-                                                if (failedCount > 0)
-                                                  PieChartSectionData(
-                                                    value: failedCount
-                                                        .toDouble(),
-                                                    title: '',
-                                                    color: Colors.redAccent,
-                                                    radius: 35,
-                                                  ),
-                                                if (cancelledCount > 0)
-                                                  PieChartSectionData(
-                                                    value: cancelledCount
-                                                        .toDouble(),
-                                                    title: '',
-                                                    color: Colors.grey,
-                                                    radius: 35,
-                                                  ),
-                                                if (pendingCount > 0)
-                                                  PieChartSectionData(
-                                                    value: pendingCount
-                                                        .toDouble(),
-                                                    title: '',
-                                                    color: Theme.of(
-                                                      context,
-                                                    ).colorScheme.surfaceContainerHigh,
-                                                    radius: 35,
-                                                  ),
-                                                if (deferredCount > 0)
-                                                  PieChartSectionData(
-                                                    value: deferredCount
-                                                        .toDouble(),
-                                                    title: '',
-                                                    color: Colors.orangeAccent,
-                                                    radius: 35,
-                                                  ),
-                                              ],
-                                            ),
-                                          ).animate().scale(
-                                            duration: 500.ms,
-                                            curve: Curves.easeOutBack,
-                                          ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 24),
-                                  Expanded(
-                                    flex: 5,
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        _buildLegendItem(
-                                          context,
-                                          'موفق',
-                                          Colors.greenAccent,
-                                          successCount,
-                                        ),
-                                        _buildLegendItem(
-                                          context,
-                                          'ناموفق',
-                                          Colors.redAccent,
-                                          failedCount,
-                                        ),
-                                        _buildLegendItem(
-                                          context,
-                                          'لغو شده',
-                                          Colors.grey,
-                                          cancelledCount,
-                                        ),
-                                        _buildLegendItem(
-                                          context,
-                                          'در جریان',
-                                          Theme.of(context).colorScheme.primary,
-                                          pendingCount,
-                                        ),
-                                        _buildLegendItem(
-                                          context,
-                                          'تعویق',
-                                          Colors.orangeAccent,
-                                          deferredCount,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (_viewMode != 0) ...[
-                              const SizedBox(height: 32),
-                              Center(
-                                child: Text(
-                                  'روند موفقیت',
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(fontWeight: FontWeight.bold),
-                                ),
-                              ).animate().fadeIn(delay: 400.ms),
-                              const SizedBox(height: 18),
-                              Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                    ),
-                                    child: SizedBox(
-                                      height: 200,
-                                      child: _buildSuccessRateChart(
-                                        filteredTasks,
-                                      ),
-                                    ),
-                                  )
-                                  .animate()
-                                  .fadeIn(delay: 500.ms)
-                                  .slideY(begin: 0.1),
-                            ],
-                          ],
-                        )
-                      else
-                        Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const SizedBox(height: 40),
-                              Lottie.asset(
-                                'assets/images/TheSoul/24 news b.json',
-                                height: 120,
-                                repeat: true,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'تسکی برای این بازه پیدا نکردم!',
-                                style: TextStyle(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
+                      useScaleList: filteredTasks.isNotEmpty
+                          ? [false, false, false, true] // Scale effect for pie chart (index 3)
+                          : null,
+                    ),
                   ),
                 ),
               ),
@@ -567,51 +576,47 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final theme = Theme.of(context);
 
     return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'بهره‌وری شما',
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    percentage < 0
-                        ? 'داده‌ای نداریم'
-                        : '${_toPersianDigit(percentage.toStringAsFixed(1))}%',
-                    style: TextStyle(
-                      color: _getSpectrumColor(percentage),
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      height: 1,
-                    ),
-                  ),
-                ],
+              Text(
+                'بهره‌وری شما',
+                style: TextStyle(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-              Icon(
-                Icons.insights_rounded,
-                color: _getSpectrumColor(percentage),
-                size: 40,
+              const SizedBox(height: 10),
+              Text(
+                percentage < 0
+                    ? 'داده‌ای نداریم'
+                    : '${_toPersianDigit(percentage.toStringAsFixed(1))}%',
+                style: TextStyle(
+                  color: _getSpectrumColor(percentage),
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  height: 1,
+                ),
               ),
             ],
           ),
-        )
-        .animate()
-        .fadeIn(duration: 400.ms)
-        .slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic)
-        .blur(begin: const Offset(4, 4), end: Offset.zero);
+          Icon(
+            Icons.insights_rounded,
+            color: _getSpectrumColor(percentage),
+            size: 40,
+          ),
+        ],
+      ),
+    );
   }
 
   Color _getSpectrumColor(double percentage) {

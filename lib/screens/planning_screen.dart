@@ -594,6 +594,10 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       return _buildEmptyState('برای این روز برنامه‌ای نداری!');
     }
 
+    final groups = _getGroupedAndSortedTasks(dailyTasks, statusDateOverride: _selectedDate)
+        .entries
+        .toList();
+
     return ListView(
       padding: EdgeInsets.only(
         top: MediaQuery.of(context).padding.top + 80,
@@ -603,12 +607,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       ),
       children: [
         // Task Groups
-        ..._getGroupedAndSortedTasks(dailyTasks, statusDateOverride: _selectedDate)
-            .entries
-            .toList()
-            .asMap()
-            .entries
-            .map((entry) {
+        ...groups.asMap().entries.map((entry) {
              final index = entry.key;
              final group = entry.value;
              final key = 'daily_group_${group.key}_${_selectedDate.toIso8601String()}';
@@ -617,7 +616,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
              return FadeInOnce(
                key: ValueKey(key),
-               delay: (200 + (index * 50)).ms,
+               delay: (index * 100).ms, // sequential delay based on index
                animate: shouldAnimate,
                child: _buildTaskGroup(
                  group.key,
@@ -1171,6 +1170,10 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       return _buildEmptyState('برای این هفته برنامه‌ای نداری!');
     }
 
+    final groups = _getGroupedAndSortedTasks(tasksForWeek)
+        .entries
+        .toList();
+
     return ListView(
       padding: EdgeInsets.only(
         top: MediaQuery.of(context).padding.top + 80,
@@ -1179,12 +1182,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         bottom: 110,
       ),
       children: [
-        ..._getGroupedAndSortedTasks(tasksForWeek)
-            .entries
-            .toList()
-            .asMap()
-            .entries
-            .map((entry) {
+        ...groups.asMap().entries.map((entry) {
               final index = entry.key;
               final group = entry.value;
               final key = 'weekly_group_${group.key}_${startOfWeek.toIso8601String()}';
@@ -1192,7 +1190,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
               if (shouldAnimate) _animatedKeys.add(key);
               return FadeInOnce(
                 key: ValueKey(key),
-                delay: (200 + (index * 50)).ms,
+                delay: (index * 100).ms, // sequential delay based on index
                 animate: shouldAnimate,
                 child: _buildWeeklyTaskGroup(group.key, group.value, categories, startOfWeek),
               );
@@ -1279,6 +1277,10 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         return _buildEmptyState('برای این ماه برنامه‌ای نداری!');
       }
 
+      final groups = _getGroupedAndSortedTasks(tasksForMonth)
+          .entries
+          .toList();
+
       return ListView(
         padding: EdgeInsets.only(
           top: MediaQuery.of(context).padding.top + 80,
@@ -1287,12 +1289,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           bottom: 110,
         ),
         children: [
-          ..._getGroupedAndSortedTasks(tasksForMonth)
-              .entries
-              .toList()
-              .asMap()
-              .entries
-              .map((entry) {
+          ...groups.asMap().entries.map((entry) {
                 final index = entry.key;
                 final group = entry.value;
                 final key = 'monthly_group_${group.key}_${jalaliDate.year}_${jalaliDate.month}';
@@ -1301,7 +1298,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
                 return FadeInOnce(
                   key: ValueKey(key),
-                  delay: (200 + (index * 50)).ms,
+                  delay: (index * 100).ms, // sequential delay based on index
                   animate: shouldAnimate,
                   child: _buildMonthlyTaskGroup(group.key, group.value, categories, weeks, jalaliDate.month),
                 );
