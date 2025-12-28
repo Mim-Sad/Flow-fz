@@ -9,7 +9,8 @@ class CategoryNotifier extends AsyncNotifier<List<CategoryData>> {
   }
 
   Future<List<CategoryData>> _loadCategories() async {
-    final categories = await DatabaseService().getAllCategories();
+    // Load all categories including deleted ones for task display
+    final categories = await DatabaseService().getAllCategories(includeDeleted: true);
     if (categories.isEmpty) {
       // If DB is empty, it might be first run or cleared. 
       // The DatabaseService._createCategoriesTable handles defaults on creation.
@@ -21,10 +22,20 @@ class CategoryNotifier extends AsyncNotifier<List<CategoryData>> {
     }
     return categories;
   }
+  
+  // Get only active (non-deleted) categories for the categories screen
+  List<CategoryData> getActiveCategories() {
+    return state.valueOrNull?.where((c) => !c.isDeleted).toList() ?? [];
+  }
 
   Future<void> addCategory(CategoryData category) async {
-    await DatabaseService().insertCategory(category);
-    state = AsyncValue.data(await _loadCategories());
+    try {
+      await DatabaseService().insertCategory(category);
+      state = AsyncValue.data(await _loadCategories());
+    } catch (e) {
+      // Re-throw to let UI handle the error
+      rethrow;
+    }
   }
 
   Future<void> updateCategory(CategoryData category) async {

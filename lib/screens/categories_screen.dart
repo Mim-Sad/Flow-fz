@@ -263,21 +263,37 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                       width: double.infinity,
                       height: 56,
                       child: FilledButton.icon(
-                        onPressed: () {
+                        onPressed: () async {
                           if (nameController.text.isNotEmpty) {
-                            final newCategory = CategoryData(
-                              id: isEditing ? category.id : const Uuid().v4(),
-                              label: nameController.text,
-                              emoji: selectedEmoji,
-                              color: selectedColor,
-                            );
-                            
-                            if (isEditing) {
-                              ref.read(categoryProvider.notifier).updateCategory(newCategory);
-                            } else {
-                              ref.read(categoryProvider.notifier).addCategory(newCategory);
+                            try {
+                              final newCategory = CategoryData(
+                                id: isEditing ? category.id : const Uuid().v4(),
+                                label: nameController.text.trim(),
+                                emoji: selectedEmoji,
+                                color: selectedColor,
+                              );
+                              
+                              if (isEditing) {
+                                await ref.read(categoryProvider.notifier).updateCategory(newCategory);
+                              } else {
+                                await ref.read(categoryProvider.notifier).addCategory(newCategory);
+                              }
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                final errorMessage = e.toString().contains('دسته‌بندی با این نام')
+                                    ? 'دسته‌بندی با این نام از قبل وجود دارد'
+                                    : 'خطا: ${e.toString()}';
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(errorMessage),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
                             }
-                            Navigator.pop(context);
                           }
                         },
                         icon: HugeIcon(
@@ -347,11 +363,13 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
       ),
       body: categoriesAsync.when(
         data: (categories) {
-          if (categories.isEmpty) {
+          // Filter out deleted categories for display in categories screen
+          final activeCategories = categories.where((c) => !c.isDeleted).toList();
+          if (activeCategories.isEmpty) {
             return const Center(child: Text('هیچ دسته‌بندی وجود ندارد'));
           }
           // Sort explicitly just in case, though provider returns sorted list from DB
-          final sortedCategories = List<CategoryData>.from(categories)
+          final sortedCategories = List<CategoryData>.from(activeCategories)
             ..sort((a, b) => a.position.compareTo(b.position));
 
           return ReorderableListView.builder(

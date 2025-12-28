@@ -4,11 +4,12 @@ class DuckEmojis {
   static const String work = '${basePath}86_WORK_OUT.json';
   static const String personal = '${basePath}101_HOME_OUT.json';
   static const String sport = '${basePath}99_SPORT_OUT.json';
-  static const String study = '${basePath}96_EDU_OUT.json';
+  static const String study = '${basePath}74_BOTAN_OUT.json';
   static const String shopping = '${basePath}100_SHOP_OUT.json';
   static const String health = '${basePath}81_VIRUS_OUT.json';
   static const String finance = '${basePath}71_MONEY_OUT.json';
   static const String travel = '${basePath}103_PLANE_OUT.json';
+  static const String academic = '${basePath}96_EDU_OUT.json';
   static const String fire = '${basePath}65_FIRE_OUT.json';
   static const String hypn = '${basePath}29_HYPN_OUT.json';
   static const String other = '${basePath}28_BRRR_OUT.json'; 

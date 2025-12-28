@@ -697,28 +697,35 @@ class TaskListTile extends ConsumerWidget {
         final index = entry.key;
         final catId = entry.value;
         final catData = getCategoryById(catId, allCategories);
+        final isDeleted = catData.isDeleted;
+        final displayColor = isDeleted ? Colors.grey : catData.color;
         
         return Container(
           margin: EdgeInsetsDirectional.only(start: index == 0 ? 0 : 6),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color: catData.color.withValues(alpha: 0.1),
+            color: displayColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: catData.color.withValues(alpha: 0.3),
+              color: displayColor.withValues(alpha: 0.3),
             ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              LottieCategoryIcon(assetPath: catData.emoji, width: 14, height: 14, repeat: false),
+              Opacity(
+                opacity: isDeleted ? 0.5 : 1.0,
+                child: LottieCategoryIcon(assetPath: catData.emoji, width: 14, height: 14, repeat: false),
+              ),
               const SizedBox(width: 4),
               Text(
                 _toPersianDigit(catData.label),
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: catData.color,
+                  color: displayColor,
+                  decoration: isDeleted ? TextDecoration.lineThrough : null,
+                  decorationColor: Colors.grey,
                 ),
               ),
             ],

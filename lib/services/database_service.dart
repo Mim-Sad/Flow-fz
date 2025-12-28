@@ -8,6 +8,7 @@ import 'package:archive/archive.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/task.dart';
 import '../models/category_data.dart';
+import '../constants/duck_emojis.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -27,7 +28,7 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'flow_database.db');
     final db = await openDatabase(
       path,
-      version: 15,
+      version: 16,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -197,6 +198,137 @@ class DatabaseService {
         } catch (_) {}
       }
     }
+    if (oldVersion < 16) {
+      // Version 16: Add deletedAt column to categories table for soft delete
+      try {
+        await db.execute('ALTER TABLE categories ADD COLUMN deletedAt TEXT');
+        debugPrint('✅ Added deletedAt column to categories table');
+      } catch (e) {
+        debugPrint('Error adding deletedAt column: $e');
+        // Column might already exist, ignore error
+      }
+      
+      // Merge duplicate categories by name (case-insensitive) and update tasks
+      try {
+        final allCategories = await db.query('categories', orderBy: 'position ASC');
+        final Map<String, List<Map<String, dynamic>>> categoriesByName = {};
+        
+        // Group categories by lowercase label
+        for (var cat in allCategories) {
+          final labelLower = (cat['label'] as String? ?? '').toLowerCase();
+          if (!categoriesByName.containsKey(labelLower)) {
+            categoriesByName[labelLower] = [];
+          }
+          categoriesByName[labelLower]!.add(cat);
+        }
+        
+        // For each group with duplicates, keep the oldest one and merge others
+        for (var entry in categoriesByName.entries) {
+          final duplicates = entry.value;
+          if (duplicates.length > 1) {
+            // Sort by position (lower position = older)
+            duplicates.sort((a, b) => (a['position'] as int? ?? 0).compareTo(b['position'] as int? ?? 0));
+            final keepCategory = duplicates.first;
+            final keepId = keepCategory['id'] as String;
+            
+            debugPrint('Merging duplicate categories for "${entry.key}": keeping ${keepId}');
+            
+            // Update all tasks that reference duplicate categories to use the kept one
+            for (var duplicate in duplicates.skip(1)) {
+              final duplicateId = duplicate['id'] as String;
+              
+              // Find all tasks with this category
+              final tasks = await db.query('tasks', where: 'categories LIKE ?', whereArgs: ['%$duplicateId%']);
+              
+              for (var task in tasks) {
+                try {
+                  final categoriesJson = task['categories'] as String? ?? '[]';
+                  final categories = List<String>.from(json.decode(categoriesJson));
+                  
+                  if (categories.contains(duplicateId)) {
+                    // Replace duplicate ID with kept ID
+                    categories.remove(duplicateId);
+                    if (!categories.contains(keepId)) {
+                      categories.add(keepId);
+                    }
+                    
+                    await db.update(
+                      'tasks',
+                      {'categories': json.encode(categories)},
+                      where: 'id = ?',
+                      whereArgs: [task['id']],
+                    );
+                  }
+                } catch (e) {
+                  debugPrint('Error updating task categories: $e');
+                }
+              }
+              
+              // Soft delete the duplicate category
+              await db.update(
+                'categories',
+                {'deletedAt': DateTime.now().toIso8601String()},
+                where: 'id = ?',
+                whereArgs: [duplicateId],
+              );
+            }
+          }
+        }
+        
+        // Update study category emoji to 74_BOTAN_OUT
+        final studyCategory = allCategories.firstWhere(
+          (c) => (c['id'] as String? ?? '').toLowerCase() == 'study',
+          orElse: () => {},
+        );
+        
+        if (studyCategory.isNotEmpty) {
+          await db.update(
+            'categories',
+            {'emoji': DuckEmojis.academic},
+            where: 'id = ?',
+            whereArgs: [studyCategory['id']],
+          );
+        }
+        
+        // Check if "تحصیلی" category exists, if not add it, if yes ensure it uses correct emoji
+        final academicExists = allCategories.any((c) => 
+          (c['label'] as String? ?? '').toLowerCase() == 'تحصیلی' ||
+          (c['id'] as String? ?? '').toLowerCase() == 'academic'
+        );
+        
+        if (!academicExists) {
+          // Add new academic category
+          final maxPosition = allCategories.isEmpty ? 0 : 
+            (allCategories.map((c) => c['position'] as int? ?? 0).reduce((a, b) => a > b ? a : b) + 1);
+          
+          await db.insert('categories', {
+            'id': 'academic',
+            'label': 'تحصیلی',
+            'emoji': DuckEmojis.academic,
+            'color': 0xFF9C27B0,
+            'position': maxPosition,
+          });
+        } else {
+          // Update existing academic category to use correct emoji
+          final academicCategory = allCategories.firstWhere(
+            (c) => (c['label'] as String? ?? '').toLowerCase() == 'تحصیلی' ||
+                   (c['id'] as String? ?? '').toLowerCase() == 'academic',
+            orElse: () => {},
+          );
+          
+          if (academicCategory.isNotEmpty && academicCategory['emoji'] != DuckEmojis.academic) {
+            await db.update(
+              'categories',
+              {'emoji': DuckEmojis.academic},
+              where: 'id = ?',
+              whereArgs: [academicCategory['id']],
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Error in category migration: $e');
+      }
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -261,7 +393,8 @@ class DatabaseService {
         label TEXT NOT NULL,
         emoji TEXT NOT NULL,
         color INTEGER NOT NULL,
-        position INTEGER NOT NULL DEFAULT 0
+        position INTEGER NOT NULL DEFAULT 0,
+        deletedAt TEXT
       )
     ''');
     
@@ -274,20 +407,66 @@ class DatabaseService {
   }
 
   // Categories CRUD
-  Future<List<CategoryData>> getAllCategories() async {
+  Future<List<CategoryData>> getAllCategories({bool includeDeleted = false}) async {
     Database db = await database;
-    List<Map<String, dynamic>> maps = await db.query('categories', orderBy: 'position ASC');
+    List<Map<String, dynamic>> maps;
+    if (includeDeleted) {
+      maps = await db.query('categories', orderBy: 'position ASC');
+    } else {
+      maps = await db.query(
+        'categories',
+        where: 'deletedAt IS NULL',
+        orderBy: 'position ASC',
+      );
+    }
     if (maps.isEmpty) return [];
     return List.generate(maps.length, (i) => CategoryData.fromMap(maps[i]));
+  }
+  
+  // Get category by ID (including deleted ones for task display)
+  Future<CategoryData?> getCategoryById(String id) async {
+    Database db = await database;
+    final maps = await db.query(
+      'categories',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    return CategoryData.fromMap(maps.first);
   }
 
   Future<int> insertCategory(CategoryData category) async {
     Database db = await database;
+    
+    // Check for duplicate name (case-insensitive)
+    final existing = await db.query(
+      'categories',
+      where: 'LOWER(label) = ? AND deletedAt IS NULL',
+      whereArgs: [category.label.toLowerCase()],
+    );
+    
+    if (existing.isNotEmpty) {
+      throw Exception('دسته‌بندی با این نام از قبل وجود دارد');
+    }
+    
     return await db.insert('categories', category.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<int> updateCategory(CategoryData category) async {
     Database db = await database;
+    
+    // Check for duplicate name (case-insensitive), excluding current category
+    final existing = await db.query(
+      'categories',
+      where: 'LOWER(label) = ? AND id != ? AND deletedAt IS NULL',
+      whereArgs: [category.label.toLowerCase(), category.id],
+    );
+    
+    if (existing.isNotEmpty) {
+      throw Exception('دسته‌بندی با این نام از قبل وجود دارد');
+    }
+    
     return await db.update(
       'categories',
       category.toMap(),
@@ -298,8 +477,11 @@ class DatabaseService {
 
   Future<int> deleteCategory(String id) async {
     Database db = await database;
-    return await db.delete(
+    // Soft delete: mark as deleted instead of removing
+    final now = DateTime.now().toIso8601String();
+    return await db.update(
       'categories',
+      {'deletedAt': now},
       where: 'id = ?',
       whereArgs: [id],
     );
@@ -675,44 +857,142 @@ class DatabaseService {
           final categoriesList = (data['categories'] as List).cast<Map<String, dynamic>>();
           debugPrint('Importing ${categoriesList.length} categories...');
           
-          final existingCategories = await txn.query('categories');
+          // Get existing categories (including deleted ones for merging)
+          final existingCategories = await txn.query('categories', orderBy: 'position ASC');
           
+          // First, check for duplicates within imported categories and merge them
+          final Map<String, List<Map<String, dynamic>>> importedByName = {};
           for (var catMap in categoriesList) {
+            final importLabel = (catMap['label']?.toString() ?? '').toLowerCase();
+            if (!importedByName.containsKey(importLabel)) {
+              importedByName[importLabel] = [];
+            }
+            importedByName[importLabel]!.add(catMap);
+          }
+          
+          // Merge duplicates within imported data (keep the first one)
+          final List<Map<String, dynamic>> deduplicatedImports = [];
+          for (var entry in importedByName.entries) {
+            final duplicates = entry.value;
+            if (duplicates.length > 1) {
+              // Sort by position if available, otherwise keep first
+              duplicates.sort((a, b) {
+                final posA = a['position'] as int? ?? 999;
+                final posB = b['position'] as int? ?? 999;
+                return posA.compareTo(posB);
+              });
+              debugPrint('Merging duplicate imported categories for "${entry.key}": keeping first');
+            }
+            deduplicatedImports.add(duplicates.first);
+          }
+          
+          // Now process deduplicated imports against existing categories
+          for (var catMap in deduplicatedImports) {
             final importId = catMap['id']?.toString() ?? '';
             final importLabel = catMap['label']?.toString() ?? '';
             
-            // Check if category with same ID or label exists (case-insensitive)
+            // Check if category with same ID or label exists (case-insensitive, excluding deleted)
             final existing = existingCategories.firstWhere(
               (c) {
                 final dbId = c['id']?.toString().toLowerCase();
                 final dbLabel = c['label']?.toString().toLowerCase();
                 final impIdLower = importId.toLowerCase();
                 final impLabelLower = importLabel.toLowerCase();
-                return dbId == impIdLower || dbLabel == impLabelLower;
+                final isDeleted = c['deletedAt'] != null;
+                return !isDeleted && (dbId == impIdLower || dbLabel == impLabelLower);
               },
               orElse: () => {},
             );
             
             if (existing.isNotEmpty) {
               final existingId = existing['id'] as String;
-              categoryIdMap[importId] = existingId;
+              final existingPosition = existing['position'] as int? ?? 999;
+              final importPosition = catMap['position'] as int? ?? 999;
               
-              // Update emoji or color if they changed
-              final updates = <String, dynamic>{};
-              if (catMap['emoji'] != null && catMap['emoji'] != existing['emoji']) {
-                updates['emoji'] = catMap['emoji'];
-              }
-              if (catMap['color'] != null && catMap['color'] != existing['color']) {
-                updates['color'] = catMap['color'];
-              }
-              
-              if (updates.isNotEmpty) {
+              // Keep the older category (lower position)
+              if (importPosition < existingPosition) {
+                // Imported is older, update existing with imported data
+                categoryIdMap[importId] = existingId;
+                final updates = <String, dynamic>{
+                  'position': importPosition,
+                };
+                if (catMap['emoji'] != null) {
+                  updates['emoji'] = catMap['emoji'];
+                }
+                if (catMap['color'] != null) {
+                  updates['color'] = catMap['color'];
+                }
                 await txn.update('categories', updates, where: 'id = ?', whereArgs: [existingId]);
+              } else {
+                // Existing is older, just map import ID to existing
+                categoryIdMap[importId] = existingId;
+                
+                // Update emoji or color if they changed (but keep existing position)
+                final updates = <String, dynamic>{};
+                if (catMap['emoji'] != null && catMap['emoji'] != existing['emoji']) {
+                  updates['emoji'] = catMap['emoji'];
+                }
+                if (catMap['color'] != null && catMap['color'] != existing['color']) {
+                  updates['color'] = catMap['color'];
+                }
+                
+                if (updates.isNotEmpty) {
+                  await txn.update('categories', updates, where: 'id = ?', whereArgs: [existingId]);
+                }
               }
             } else {
-              // New category
-              await txn.insert('categories', catMap, conflictAlgorithm: ConflictAlgorithm.replace);
-              categoryIdMap[importId] = importId;
+              // Check if there's a deleted category with same name to restore
+              final deleted = existingCategories.firstWhere(
+                (c) {
+                  final dbId = c['id']?.toString().toLowerCase();
+                  final dbLabel = c['label']?.toString().toLowerCase();
+                  final impIdLower = importId.toLowerCase();
+                  final impLabelLower = importLabel.toLowerCase();
+                  final isDeleted = c['deletedAt'] != null;
+                  return isDeleted && (dbId == impIdLower || dbLabel == impLabelLower);
+                },
+                orElse: () => {},
+              );
+              
+              if (deleted.isNotEmpty) {
+                // Restore deleted category
+                final deletedId = deleted['id'] as String;
+                categoryIdMap[importId] = deletedId;
+                final updates = <String, dynamic>{
+                  'deletedAt': null,
+                };
+                if (catMap['emoji'] != null) {
+                  updates['emoji'] = catMap['emoji'];
+                }
+                if (catMap['color'] != null) {
+                  updates['color'] = catMap['color'];
+                }
+                if (catMap['position'] != null) {
+                  updates['position'] = catMap['position'];
+                }
+                await txn.update('categories', updates, where: 'id = ?', whereArgs: [deletedId]);
+              } else {
+                // New category - check for duplicate name in existing (case-insensitive)
+                final duplicateName = existingCategories.firstWhere(
+                  (c) {
+                    final dbLabel = (c['label']?.toString() ?? '').toLowerCase();
+                    final impLabelLower = importLabel.toLowerCase();
+                    return dbLabel == impLabelLower;
+                  },
+                  orElse: () => {},
+                );
+                
+                if (duplicateName.isNotEmpty) {
+                  // Merge into existing category with same name
+                  final duplicateId = duplicateName['id'] as String;
+                  categoryIdMap[importId] = duplicateId;
+                  debugPrint('Merging imported category "$importLabel" into existing "$duplicateId"');
+                } else {
+                  // Truly new category
+                  await txn.insert('categories', catMap, conflictAlgorithm: ConflictAlgorithm.replace);
+                  categoryIdMap[importId] = importId;
+                }
+              }
             }
           }
         }

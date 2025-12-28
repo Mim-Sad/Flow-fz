@@ -7,6 +7,7 @@ class CategoryData {
   final String emoji;
   final Color color;
   final int position;
+  final DateTime? deletedAt;
 
   const CategoryData({
     required this.id,
@@ -14,7 +15,10 @@ class CategoryData {
     required this.emoji,
     required this.color,
     this.position = 0,
+    this.deletedAt,
   });
+
+  bool get isDeleted => deletedAt != null;
 
   CategoryData copyWith({
     String? id,
@@ -22,6 +26,7 @@ class CategoryData {
     String? emoji,
     Color? color,
     int? position,
+    DateTime? deletedAt,
   }) {
     return CategoryData(
       id: id ?? this.id,
@@ -29,6 +34,7 @@ class CategoryData {
       emoji: emoji ?? this.emoji,
       color: color ?? this.color,
       position: position ?? this.position,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 
@@ -39,6 +45,7 @@ class CategoryData {
       'emoji': emoji,
       'color': color.toARGB32(),
       'position': position,
+      'deletedAt': deletedAt?.toIso8601String(),
     };
   }
 
@@ -65,6 +72,7 @@ class CategoryData {
       emoji: emoji,
       color: Color(map['color']),
       position: map['position'] ?? 0,
+      deletedAt: map['deletedAt'] != null ? DateTime.parse(map['deletedAt']) : null,
     );
   }
 }
@@ -78,6 +86,7 @@ const List<CategoryData> defaultCategories = [
   CategoryData(id: 'health', label: 'سلامت', emoji: DuckEmojis.health, color: Color(0xFF00BCD4), position: 5),
   CategoryData(id: 'finance', label: 'مالی', emoji: DuckEmojis.finance, color: Color(0xFFFFC107), position: 6),
   CategoryData(id: 'travel', label: 'سفر', emoji: DuckEmojis.travel, color: Color(0xFF3F51B5), position: 7),
+  CategoryData(id: 'academic', label: 'تحصیلی', emoji: DuckEmojis.academic, color: Color(0xFF9C27B0), position: 8),
 ];
 
 // Helper to get category by ID (will be replaced by provider logic later)
@@ -86,9 +95,16 @@ CategoryData getCategoryById(String id, [List<CategoryData>? categories]) {
   return list.firstWhere(
     (c) => c.id == id || c.label == id,
     orElse: () {
-      // Prevent showing long UUIDs as labels while categories are loading
+      // For deleted categories, return a special placeholder that shows the category was deleted
+      // This allows tasks to still display the category info
       final fallbackLabel = id.length > 20 ? '...' : id;
-      return CategoryData(id: 'other', label: fallbackLabel, emoji: DuckEmojis.other, color: Colors.grey);
+      return CategoryData(
+        id: id,
+        label: fallbackLabel,
+        emoji: DuckEmojis.other,
+        color: Colors.grey,
+        deletedAt: DateTime.now(), // Mark as deleted so UI can show special appearance
+      );
     },
   );
 }

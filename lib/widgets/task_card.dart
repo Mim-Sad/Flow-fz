@@ -231,25 +231,38 @@ class TaskCard extends ConsumerWidget {
         final index = entry.key;
         final catId = entry.value;
         final catData = getCategoryById(catId, allCategories);
+        final isDeleted = catData.isDeleted;
+        
         return Container(
           margin: EdgeInsetsDirectional.only(start: index == 0 ? 0 : 6),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color: onCardColor.withValues(alpha: 0.1),
+            color: isDeleted 
+                ? Colors.grey.withValues(alpha: 0.1)
+                : onCardColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: onCardColor.withValues(alpha: 0.1)),
+            border: Border.all(
+              color: isDeleted 
+                  ? Colors.grey.withValues(alpha: 0.3)
+                  : onCardColor.withValues(alpha: 0.1),
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              LottieCategoryIcon(assetPath: catData.emoji, width: 14, height: 14, repeat: false),
+              Opacity(
+                opacity: isDeleted ? 0.5 : 1.0,
+                child: LottieCategoryIcon(assetPath: catData.emoji, width: 14, height: 14, repeat: false),
+              ),
               const SizedBox(width: 4),
               Text(
                 catData.label,
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: onCardColor,
+                  color: isDeleted ? Colors.grey : onCardColor,
+                  decoration: isDeleted ? TextDecoration.lineThrough : null,
+                  decorationColor: Colors.grey,
                 ),
               ),
             ],
