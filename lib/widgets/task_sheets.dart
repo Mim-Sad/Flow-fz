@@ -998,7 +998,13 @@ class TaskOptionsSheet extends ConsumerWidget {
     String typeText = '';
     switch (recurrence.type) {
       case RecurrenceType.hourly: typeText = 'ساعتی'; break;
-      case RecurrenceType.daily: typeText = 'روزانه'; break;
+      case RecurrenceType.daily: 
+        if (recurrence.interval != null && recurrence.interval! > 1) {
+          typeText = 'هر ${recurrence.interval} روز';
+        } else {
+          typeText = 'روزانه';
+        }
+        break;
       case RecurrenceType.weekly: typeText = 'هفتگی'; break;
       case RecurrenceType.monthly: typeText = 'ماهانه'; break;
       case RecurrenceType.yearly: typeText = 'سالانه'; break;

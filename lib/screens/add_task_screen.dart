@@ -978,7 +978,13 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     String typeText = '';
     switch (_recurrence!.type) {
       case RecurrenceType.hourly: typeText = 'ساعتی'; break;
-      case RecurrenceType.daily: typeText = 'روزانه'; break;
+      case RecurrenceType.daily: 
+        if (_recurrence!.interval != null && _recurrence!.interval! > 1) {
+          typeText = 'هر ${_recurrence!.interval} روز';
+        } else {
+          typeText = 'روزانه';
+        }
+        break;
       case RecurrenceType.weekly: typeText = 'هفتگی'; break;
       case RecurrenceType.monthly: typeText = 'ماهانه'; break;
       case RecurrenceType.yearly: typeText = 'سالانه'; break;
