@@ -10,6 +10,8 @@ import 'screens/reports_screen.dart';
 import 'screens/settings_screen.dart';
 import 'widgets/navigation_wrapper.dart';
 import 'providers/theme_provider.dart';
+import 'providers/task_provider.dart';
+import 'services/midnight_task_updater.dart';
 import 'utils/app_theme.dart';
 
 Future<void> main() async {
@@ -67,11 +69,47 @@ final _router = GoRouter(
   ],
 );
 
-class FlowApp extends ConsumerWidget {
+class FlowApp extends ConsumerStatefulWidget {
   const FlowApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FlowApp> createState() => _FlowAppState();
+}
+
+class _FlowAppState extends ConsumerState<FlowApp> {
+  @override
+  void initState() {
+    super.initState();
+    // راه‌اندازی سرویس به‌روزرسانی نیمه‌شب
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeMidnightUpdater();
+    });
+  }
+
+  Future<void> _initializeMidnightUpdater() async {
+    try {
+      final dbService = ref.read(databaseServiceProvider);
+      await MidnightTaskUpdater().initialize(
+        dbService,
+        onUpdate: () {
+          // به‌روزرسانی providers برای نمایش تغییرات در UI
+          ref.invalidate(tasksProvider);
+          ref.invalidate(allTasksIncludingDeletedProvider);
+        },
+      );
+    } catch (e) {
+      debugPrint('❌ خطا در راه‌اندازی MidnightTaskUpdater: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    MidnightTaskUpdater().dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final themeState = ref.watch(themeProvider);
     
     // With synchronous initialization, isInitialized should be true immediately.
