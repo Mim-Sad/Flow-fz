@@ -8,6 +8,7 @@ import 'screens/home_screen.dart';
 import 'screens/planning_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/search_screen.dart';
 import 'widgets/navigation_wrapper.dart';
 import 'providers/theme_provider.dart';
 import 'providers/task_provider.dart';
@@ -55,6 +56,15 @@ final _router = GoRouter(
           pageBuilder: (context, state) => NoTransitionPage(
             key: state.pageKey,
             child: const ReportsScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/search',
+          pageBuilder: (context, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: SearchScreen(
+              initialParams: state.uri.queryParameters,
+            ),
           ),
         ),
       ],

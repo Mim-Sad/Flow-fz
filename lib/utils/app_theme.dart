@@ -69,6 +69,11 @@ class AppTheme {
             FontFeature.enable('ss01'),
           ],
         ),
+        bodySmall: TextStyle(
+          fontWeight: FontWeight.w400,
+          fontSize: 12,
+          fontFeatures: [FontFeature.enable('ss01')],
+        ),
         labelLarge: TextStyle(
           fontWeight: FontWeight.w500,
           fontSize: 14,

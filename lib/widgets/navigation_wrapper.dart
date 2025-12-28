@@ -76,9 +76,22 @@ class NavigationWrapper extends StatelessWidget {
           ),
         ),
         actions: [
+          if (location.startsWith('/search'))
+            IconButton(
+              icon: const HugeIcon(icon: HugeIcons.strokeRoundedHome01, color: Colors.grey),
+              onPressed: () => context.go('/'),
+              tooltip: 'خانه',
+            )
+          else
+            IconButton(
+              icon: const HugeIcon(icon: HugeIcons.strokeRoundedSearch01, color: Colors.grey),
+              onPressed: () => context.push('/search'),
+              tooltip: 'جستجو',
+            ),
           IconButton(
             icon: const HugeIcon(icon: HugeIcons.strokeRoundedSettings03, color: Colors.grey),
             onPressed: () => context.push('/settings'),
+            tooltip: 'تنظیمات',
           ),
           const SizedBox(width: 8),
         ],
