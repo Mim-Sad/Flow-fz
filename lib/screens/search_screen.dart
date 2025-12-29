@@ -5,6 +5,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import 'package:text_scroll/text_scroll.dart';
+import 'package:lottie/lottie.dart';
+
 import '../models/task.dart';
 import '../models/category_data.dart';
 import '../providers/search_provider.dart';
@@ -214,6 +216,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       ),
                       const SizedBox(width: 6),
                     ],
+                    if (task.recurrence != null &&
+                        task.recurrence!.type != RecurrenceType.none) ...[
+                      _buildDateBadge(task.dueDate),
+                      const SizedBox(width: 6),
+                    ],
                     Expanded(
                       child: TextScroll(
                         task.title,
@@ -321,6 +328,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
+                            // Sort Option Capsule
+                            if (searchState.sortOption !=
+                                SortOption.createdAtDesc)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 6),
+                                child: _buildHeaderFilterChip(
+                                  label: _getSortLabel(searchState.sortOption),
+                                  avatar: HugeIcon(
+                                    icon: _getSortIcon(searchState.sortOption),
+                                    size: 14,
+                                  ),
+                                  onDeleted: () {
+                                    ref
+                                        .read(searchProvider.notifier)
+                                        .setSortOption(
+                                          SortOption.createdAtDesc,
+                                        );
+                                  },
+                                  onSelected: (_) => _showSortSheet(),
+                                ),
+                              ),
                             if (searchState.filters.isRecurring != null)
                               Padding(
                                 padding: const EdgeInsets.only(left: 6),
@@ -328,6 +356,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                   label: searchState.filters.isRecurring!
                                       ? 'تکرار شونده'
                                       : 'غیر تکرار شونده',
+                                  avatar: const HugeIcon(
+                                    icon: HugeIcons.strokeRoundedRepeat,
+                                    size: 14,
+                                  ),
                                   onDeleted: () {
                                     ref
                                         .read(searchProvider.notifier)
@@ -343,6 +375,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 child: _buildHeaderFilterChip(
                                   label: _formatDate(
                                     searchState.filters.specificDate!,
+                                  ),
+                                  avatar: const HugeIcon(
+                                    icon: HugeIcons.strokeRoundedCalendar03,
+                                    size: 14,
                                   ),
                                   onDeleted: () {
                                     ref
@@ -361,6 +397,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     searchState.filters.dateFrom,
                                     searchState.filters.dateTo,
                                   ),
+                                  avatar: const HugeIcon(
+                                    icon: HugeIcons.strokeRoundedCalendar03,
+                                    size: 14,
+                                  ),
                                   onDeleted: () {
                                     ref
                                         .read(searchProvider.notifier)
@@ -376,6 +416,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                   padding: const EdgeInsets.only(left: 6),
                                   child: _buildHeaderFilterChip(
                                     label: _getStatusLabel(status),
+                                    avatar: HugeIcon(
+                                      icon: _getStatusIcon(status),
+                                      size: 14,
+                                    ),
                                     onDeleted: () {
                                       ref
                                           .read(searchProvider.notifier)
@@ -393,6 +437,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                   label: _getPriorityLabel(
                                     searchState.filters.priority!,
                                   ),
+                                  avatar: HugeIcon(
+                                    icon: _getPriorityIcon(
+                                      searchState.filters.priority!,
+                                    ),
+                                    size: 14,
+                                  ),
                                   onDeleted: () {
                                     ref
                                         .read(searchProvider.notifier)
@@ -409,6 +459,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                   padding: const EdgeInsets.only(left: 6),
                                   child: _buildHeaderFilterChip(
                                     label: tag,
+                                    avatar: const HugeIcon(
+                                      icon: HugeIcons.strokeRoundedTag01,
+                                      size: 14,
+                                    ),
                                     onDeleted: () {
                                       final newTags = List<String>.from(
                                         searchState.filters.tags ?? [],
@@ -471,22 +525,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               // Results
               if (results.isEmpty)
                 SliverFillRemaining(
+                  hasScrollBody: false,
                   child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        HugeIcon(
-                          icon: HugeIcons.strokeRoundedSearch01,
-                          size: 64,
-                          color: theme.colorScheme.onSurfaceVariant,
+                        Lottie.asset(
+                          'assets/images/TheSoul/18 rock F.json',
+                          width: 140,
+                          height: 140,
+                          fit: BoxFit.contain,
                         ),
                         const SizedBox(height: 16),
                         Text(
                           searchState.filters.hasFilters ||
                                   searchState.query.isNotEmpty
-                              ? 'نتیجه‌ای یافت نشد'
+                              ? 'نتیجه‌ای یافت نشد!'
                               : 'جستجو کنید...',
-                          style: theme.textTheme.bodyLarge,
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
@@ -527,6 +586,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                   isSelectionMode: false,
                                   isSelected: false,
                                   showDecoration: false,
+                                  titlePrefix:
+                                      (task.recurrence != null &&
+                                          task.recurrence!.type !=
+                                              RecurrenceType.none)
+                                      ? _buildDateBadge(task.dueDate)
+                                      : null,
                                 ),
                               )
                             : TaskListTile(
@@ -547,6 +612,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 isSelectionMode: false,
                                 isSelected: false,
                                 showDecoration: false,
+                                titlePrefix:
+                                    (task.recurrence != null &&
+                                        task.recurrence!.type !=
+                                            RecurrenceType.none)
+                                    ? _buildDateBadge(task.dueDate)
+                                    : null,
                               ),
                       );
                     }, childCount: results.length),
@@ -738,31 +809,114 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     required Function(bool) onSelected,
     Widget? avatar,
   }) {
+    final theme = Theme.of(context);
     return FilterChip(
       label: Text(
         label,
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w600,
+          color: theme.colorScheme.onSurface,
+        ),
       ),
-      avatar: avatar,
-      deleteIcon: const HugeIcon(
-        icon: HugeIcons.strokeRoundedCancel01,
+      avatar: avatar != null
+          ? IconTheme.merge(
+              data: IconThemeData(
+                color: theme.colorScheme.primary.withValues(alpha: 0.8),
+              ),
+              child: avatar,
+            )
+          : null,
+      deleteIcon: Icon(
+        Icons.close_rounded,
         size: 12,
+        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
       ),
       onDeleted: onDeleted,
       onSelected: onSelected,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-      labelPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
-      visualDensity: const VisualDensity(horizontal: -4, vertical: -2),
-      shape: StadiumBorder(
-        side: BorderSide(
-          color: Theme.of(
-            context,
-          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
-          width: 0.8,
+      labelPadding: const EdgeInsets.fromLTRB(-4, 2, -4, 2),
+      visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
+      side: BorderSide(
+        color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+        width: 0.8,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+
+  Widget _buildDateBadge(DateTime date) {
+    final j = Jalali.fromDateTime(date);
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        _toPersianDigit('${j.day} ${j.formatter.mN}'),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: theme.colorScheme.secondary,
         ),
       ),
     );
+  }
+
+  String _getSortLabel(SortOption option) {
+    switch (option) {
+      case SortOption.dateAsc:
+        return 'تاریخ ↑';
+      case SortOption.dateDesc:
+        return 'تاریخ ↓';
+      case SortOption.priorityAsc:
+        return 'اولویت ↑';
+      case SortOption.priorityDesc:
+        return 'اولویت ↓';
+      case SortOption.createdAtAsc:
+        return 'قدیمی‌ترین';
+      case SortOption.createdAtDesc:
+        return 'جدیدترین';
+      case SortOption.titleAsc:
+        return 'الفبا (آ-ی)';
+      case SortOption.titleDesc:
+        return 'الفبا (ی-آ)';
+      case SortOption.manual:
+        return 'دستی';
+    }
+  }
+
+  dynamic _getSortIcon(SortOption option) {
+    return HugeIcons.strokeRoundedSorting19;
+  }
+
+  dynamic _getStatusIcon(TaskStatus status) {
+    switch (status) {
+      case TaskStatus.pending:
+        return HugeIcons.strokeRoundedCircle;
+      case TaskStatus.success:
+        return HugeIcons.strokeRoundedCheckmarkCircle03;
+      case TaskStatus.failed:
+        return HugeIcons.strokeRoundedCancelCircle;
+      case TaskStatus.cancelled:
+        return HugeIcons.strokeRoundedMinusSignCircle;
+      case TaskStatus.deferred:
+        return HugeIcons.strokeRoundedClock01;
+    }
+  }
+
+  dynamic _getPriorityIcon(TaskPriority priority) {
+    switch (priority) {
+      case TaskPriority.low:
+        return HugeIcons.strokeRoundedArrowDown01;
+      case TaskPriority.medium:
+        return HugeIcons.strokeRoundedMinusSign;
+      case TaskPriority.high:
+        return HugeIcons.strokeRoundedAlertCircle;
+    }
   }
 
   String _getPriorityLabel(TaskPriority priority) {
@@ -791,22 +945,34 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
   }
 
+  String _toPersianDigit(String input) {
+    const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    String result = input;
+    for (int i = 0; i < englishDigits.length; i++) {
+      result = result.replaceAll(englishDigits[i], persianDigits[i]);
+    }
+    return result;
+  }
+
   String _formatDate(DateTime date) {
     final j = Jalali.fromDateTime(date);
-    return '${j.year}/${j.month}/${j.day}';
+    return _toPersianDigit('${j.day} ${j.formatter.mN}');
   }
 
   String _formatDateRange(DateTime? from, DateTime? to) {
     if (from != null && to != null) {
       final jFrom = Jalali.fromDateTime(from);
       final jTo = Jalali.fromDateTime(to);
-      return '${jFrom.year}/${jFrom.month}/${jFrom.day} - ${jTo.year}/${jTo.month}/${jTo.day}';
+      return _toPersianDigit(
+        '${jFrom.day} ${jFrom.formatter.mN} - ${jTo.day} ${jTo.formatter.mN}',
+      );
     } else if (from != null) {
       final jFrom = Jalali.fromDateTime(from);
-      return 'از ${jFrom.year}/${jFrom.month}/${jFrom.day}';
+      return _toPersianDigit('از ${jFrom.day} ${jFrom.formatter.mN}');
     } else if (to != null) {
       final jTo = Jalali.fromDateTime(to);
-      return 'تا ${jTo.year}/${jTo.month}/${jTo.day}';
+      return _toPersianDigit('تا ${jTo.day} ${jTo.formatter.mN}');
     }
     return '';
   }
@@ -1401,6 +1567,10 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                         emptySelectionAllowed: true,
                         style: SegmentedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 10),
+                          textStyle: const TextStyle(
+                            fontSize: 12,
+                            fontFamily: 'IRANSansX',
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
@@ -1597,6 +1767,10 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                           vertical: 14,
                           horizontal: 12,
                         ),
+                        textStyle: const TextStyle(
+                          fontSize: 12,
+                          fontFamily: 'IRANSansX',
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -1637,14 +1811,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                 height: 56,
                 child: FilledButton.icon(
                   onPressed: () {
-                    final notifier = ref.read(searchProvider.notifier);
-                    notifier.setCategories(_filters.categories);
-                    notifier.setTags(_filters.tags);
-                    notifier.setDateRange(_filters.dateFrom, _filters.dateTo);
-                    notifier.setSpecificDate(_filters.specificDate);
-                    notifier.setPriority(_filters.priority);
-                    notifier.setStatuses(_filters.statuses);
-                    notifier.setRecurring(_filters.isRecurring);
+                    ref.read(searchProvider.notifier).setFilters(_filters);
                     Navigator.pop(context);
                   },
                   icon: HugeIcon(

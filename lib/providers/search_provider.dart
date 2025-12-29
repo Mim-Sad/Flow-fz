@@ -107,6 +107,10 @@ class SearchNotifier extends StateNotifier<SearchState> {
     );
   }
 
+  void setFilters(SearchFilters filters) {
+    state = state.copyWith(filters: filters);
+  }
+
   void setSortOption(SortOption sortOption) {
     state = state.copyWith(sortOption: sortOption);
   }

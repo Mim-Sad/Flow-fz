@@ -537,6 +537,7 @@ class TaskListTile extends ConsumerWidget {
   final VoidCallback? onSelect;
   final VoidCallback? onEnterSelectionMode;
   final bool showDecoration;
+  final Widget? titlePrefix;
 
   const TaskListTile({
     super.key,
@@ -549,6 +550,7 @@ class TaskListTile extends ConsumerWidget {
     this.onSelect,
     this.onEnterSelectionMode,
     this.showDecoration = true,
+    this.titlePrefix,
   });
 
   @override
@@ -608,6 +610,10 @@ class TaskListTile extends ConsumerWidget {
                             task.taskEmoji!,
                             style: const TextStyle(fontSize: 16),
                           ),
+                          const SizedBox(width: 6),
+                        ],
+                        if (titlePrefix != null) ...[
+                          titlePrefix!,
                           const SizedBox(width: 6),
                         ],
                         Expanded(

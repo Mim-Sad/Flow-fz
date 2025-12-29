@@ -123,62 +123,10 @@ class SearchService {
       }).toList();
     }
 
-    // Apply date filter (specific date takes priority over range)
-    if (filters.specificDate != null) {
-      final specificDateOnly = DateTime(
-        filters.specificDate!.year,
-        filters.specificDate!.month,
-        filters.specificDate!.day,
-      );
-      results = results.where((task) {
-        final taskDate = DateTime(
-          task.dueDate.year,
-          task.dueDate.month,
-          task.dueDate.day,
-        );
-        return taskDate.isAtSameMomentAs(specificDateOnly);
-      }).toList();
-    } else if (filters.dateFrom != null || filters.dateTo != null) {
-      results = results.where((task) {
-        final taskDate = DateTime(
-          task.dueDate.year,
-          task.dueDate.month,
-          task.dueDate.day,
-        );
-
-        if (filters.dateFrom != null) {
-          final fromDate = DateTime(
-            filters.dateFrom!.year,
-            filters.dateFrom!.month,
-            filters.dateFrom!.day,
-          );
-          if (taskDate.isBefore(fromDate)) return false;
-        }
-
-        if (filters.dateTo != null) {
-          final toDate = DateTime(
-            filters.dateTo!.year,
-            filters.dateTo!.month,
-            filters.dateTo!.day,
-          );
-          if (taskDate.isAfter(toDate)) return false;
-        }
-
-        return true;
-      }).toList();
-    }
-
     // Apply priority filter
     if (filters.priority != null) {
       results = results
           .where((task) => task.priority == filters.priority)
-          .toList();
-    }
-
-    // Apply status filter (multiple statuses)
-    if (filters.statuses != null && filters.statuses!.isNotEmpty) {
-      results = results
-          .where((task) => filters.statuses!.contains(task.status))
           .toList();
     }
 
@@ -190,6 +138,49 @@ class SearchService {
             task.recurrence!.type != RecurrenceType.none;
         return isRecurring == filters.isRecurring;
       }).toList();
+    }
+
+    // Apply date filter - EXPAND RECURRING TASKS
+    // This MUST happen before status filtering because status depends on the specific date
+    if (filters.specificDate != null ||
+        filters.dateFrom != null ||
+        filters.dateTo != null) {
+      final List<Task> expandedResults = [];
+      final startDate =
+          filters.specificDate ??
+          filters.dateFrom ??
+          DateTime(2000); // Fallback start
+      final endDate =
+          filters.specificDate ??
+          filters.dateTo ??
+          DateTime.now().add(const Duration(days: 365)); // Fallback end
+
+      final rangeDays = (endDate.difference(startDate).inHours / 24).round();
+      final effectiveEnd = rangeDays > 365
+          ? startDate.add(const Duration(days: 365))
+          : endDate;
+
+      for (final task in results) {
+        for (
+          int i = 0;
+          i <= (effectiveEnd.difference(startDate).inHours / 24).round();
+          i++
+        ) {
+          final currentDate = startDate.add(Duration(days: i));
+          if (task.isActiveOnDate(currentDate)) {
+            expandedResults.add(task.copyWith(dueDate: currentDate));
+          }
+        }
+      }
+      results = expandedResults;
+    }
+
+    // Apply status filter (multiple statuses)
+    // This now correctly filters based on the occurrence date's status
+    if (filters.statuses != null && filters.statuses!.isNotEmpty) {
+      results = results
+          .where((task) => filters.statuses!.contains(task.status))
+          .toList();
     }
 
     // Apply sorting
