@@ -142,6 +142,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     int pendingCount,
     int deferredCount,
     int relevantTasksLength,
+    double prevPercentage,
+    double avgPercentage,
   ) {
     final List<Widget> content = [
       _buildStatSummary(
@@ -149,34 +151,39 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         successCount,
         failedCount,
         relevantTasksLength,
+        prevPercentage,
+        avgPercentage,
       ),
-      const SizedBox(height: 32),
-      Center(
-        child: InkWell(
-          onTap: () {
-            context.push(
-              SearchRouteBuilder.buildSearchUrl(
-                dateFrom: range.start,
-                dateTo: range.end,
-              ),
-            );
-          },
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: Text(
-              'وضعیت کلی تسک‌ها',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-      ),
-      const SizedBox(height: 18),
     ];
 
     if (filteredTasks.isNotEmpty) {
+      content.addAll([
+        const SizedBox(height: 32),
+        Center(
+          child: InkWell(
+            onTap: () {
+              context.push(
+                SearchRouteBuilder.buildSearchUrl(
+                  dateFrom: range.start,
+                  dateTo: range.end,
+                ),
+              );
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: Text(
+                'وضعیت کلی تسک‌ها',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+      ]);
+
       content.add(
         Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
@@ -409,6 +416,74 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         .where((t) => t.status == TaskStatus.deferred)
         .length;
 
+    // --- Start: Calculate Stats for Comparison ---
+
+    // 1. Previous Range Calculation
+    DateTimeRange prevRange;
+    if (_viewMode == 0) {
+      final prevDay = _selectedDate.subtract(const Duration(days: 1));
+      prevRange = DateTimeRange(start: prevDay, end: prevDay);
+    } else if (_viewMode == 1) {
+      final startOfWeek = _selectedDate.subtract(
+        Duration(days: (_selectedDate.weekday + 1) % 7),
+      );
+      final prevStartOfWeek = startOfWeek.subtract(const Duration(days: 7));
+      final prevEndOfWeek = prevStartOfWeek.add(const Duration(days: 6));
+      prevRange = DateTimeRange(start: prevStartOfWeek, end: prevEndOfWeek);
+    } else {
+      final jSelected = Jalali.fromDateTime(_selectedDate);
+      final jPrev = jSelected.addMonths(-1);
+      final jStart = jPrev.copy(day: 1);
+      final jEnd = jPrev.copy(day: jPrev.monthLength);
+      prevRange = DateTimeRange(
+        start: jStart.toDateTime(),
+        end: jEnd.toDateTime(),
+      );
+    }
+
+    final prevFilteredTasks = ref.watch(tasksForRangeProvider(prevRange));
+    final prevRelevantTasks = prevFilteredTasks
+        .where(
+          (t) =>
+              t.status == TaskStatus.success || t.status == TaskStatus.failed,
+        )
+        .toList();
+
+    double prevPercentage = 0.0;
+    if (prevRelevantTasks.isNotEmpty) {
+      final prevSuccess = prevRelevantTasks
+          .where((t) => t.status == TaskStatus.success)
+          .length;
+      prevPercentage = (prevSuccess / prevRelevantTasks.length) * 100;
+    }
+
+    // 2. Average (All-time) Calculation
+    final allTasksAsync = ref.watch(allTasksIncludingDeletedProvider);
+    final allTasks = allTasksAsync.valueOrNull ?? [];
+
+    int allTimeSuccess = 0;
+    int allTimeFailed = 0;
+
+    for (final task in allTasks) {
+      if (task.isDeleted) continue;
+
+      // Iterate through history to find all success/failed occurrences
+      for (final statusIndex in task.statusHistory.values) {
+        if (statusIndex == TaskStatus.success.index) {
+          allTimeSuccess++;
+        } else if (statusIndex == TaskStatus.failed.index) {
+          allTimeFailed++;
+        }
+      }
+    }
+
+    final allTimeTotal = allTimeSuccess + allTimeFailed;
+    double avgPercentage = 0.0;
+    if (allTimeTotal > 0) {
+      avgPercentage = (allTimeSuccess / allTimeTotal) * 100;
+    }
+    // --- End: Calculate Stats for Comparison ---
+
     return Scaffold(
       body: Stack(
         children: [
@@ -435,6 +510,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         pendingCount,
                         deferredCount,
                         relevantTasks.length,
+                        prevPercentage,
+                        avgPercentage,
                       ),
                       useScaleList: filteredTasks.isNotEmpty
                           ? [
@@ -650,11 +727,65 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     int success,
     int failed,
     int total,
+    double prevPercentage,
+    double avgPercentage,
   ) {
     // Productivity formula: success / total relevant tasks (success + failed)
-    double percentage = total == 0 ? -1.0 : (success / total) * 100;
+    // If total (relevant tasks) is 0, we treat it as no data.
+    double percentage = total == 0 ? 0.0 : (success / total) * 100;
+    bool hasData = total > 0;
 
     final theme = Theme.of(context);
+
+    // Calculate changes
+    // If no data for current period, the change is meaningless -> 0 or we handle display separately.
+    double changeFromPrev = hasData ? (percentage - prevPercentage) : 0;
+    double changeFromAvg = hasData ? (percentage - avgPercentage) : 0;
+
+    // Helper to format change text
+    String formatChange(double change) {
+      final sign = change >= 0 ? '+' : '';
+      return '$sign${_toPersianDigit(change.toStringAsFixed(1))}%';
+    }
+
+    // Helper to get color for change
+    Color getChangeColor(double change) {
+      if (change > 0) return Colors.greenAccent;
+      if (change < 0) return Colors.redAccent;
+      return theme.colorScheme.onSurfaceVariant;
+    }
+
+    // Helper to get icon for change
+    Widget getChangeIcon(double change) {
+      if (change > 0) {
+        return const Icon(
+          Icons.arrow_drop_up_rounded,
+          color: Colors.greenAccent,
+          size: 24,
+        );
+      }
+      if (change < 0) {
+        return const Icon(
+          Icons.arrow_drop_down_rounded,
+          color: Colors.redAccent,
+          size: 24,
+        );
+      }
+      return Icon(
+        Icons.remove_rounded,
+        color: theme.colorScheme.onSurfaceVariant,
+        size: 16,
+      );
+    }
+
+    String periodLabel = _viewMode == 0
+        ? 'روز گذشته'
+        : (_viewMode == 1 ? 'هفته گذشته' : 'ماه گذشته');
+
+    // Use primary color (or neutral) regarding the "No Data" text color, distinct from "red"
+    final statColor = hasData
+        ? _getSpectrumColor(percentage)
+        : theme.colorScheme.primary;
 
     return InkWell(
       onTap: () {
@@ -674,38 +805,142 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           color: Theme.of(context).colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'بهره‌وری شما',
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'بهره‌وری شما',
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      !hasData
+                          ? 'داده‌ای نداریم'
+                          : '${_toPersianDigit(percentage.toStringAsFixed(1))}%',
+                      style: TextStyle(
+                        color: statColor,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        height: 1,
+                      ),
+                    ),
+                  ],
+                ),
+                Icon(Icons.insights_rounded, color: statColor, size: 40),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Divider(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: !hasData
+                        ? [
+                            Padding(
+                              padding: EdgeInsets.symmetric(vertical: 10),
+                              child: Text(
+                                'داده‌ای نداریم',
+                                style: TextStyle(
+                                  color: theme.colorScheme.onSurfaceVariant
+                                      .withValues(alpha: 0.7),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ]
+                        : [
+                            getChangeIcon(changeFromPrev),
+                            const SizedBox(width: 4),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  formatChange(changeFromPrev),
+                                  style: TextStyle(
+                                    color: getChangeColor(changeFromPrev),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  'نسبت به $periodLabel',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                   ),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  percentage < 0
-                      ? 'داده‌ای نداریم'
-                      : '${_toPersianDigit(percentage.toStringAsFixed(1))}%',
-                  style: TextStyle(
-                    color: _getSpectrumColor(percentage),
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    height: 1,
+                Container(
+                  width: 1,
+                  height: 30,
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.5,
+                  ),
+                ),
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: !hasData
+                        ? [
+                            Padding(
+                              padding: EdgeInsets.symmetric(vertical: 10),
+                              child: Text(
+                                'داده‌ای نداریم',
+                                style: TextStyle(
+                                  color: theme.colorScheme.onSurfaceVariant
+                                      .withValues(alpha: 0.7),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ]
+                        : [
+                            getChangeIcon(changeFromAvg),
+                            const SizedBox(width: 4),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  formatChange(changeFromAvg),
+                                  style: TextStyle(
+                                    color: getChangeColor(changeFromAvg),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  'نسبت به میانگین کل',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                   ),
                 ),
               ],
-            ),
-            Icon(
-              Icons.insights_rounded,
-              color: _getSpectrumColor(percentage),
-              size: 40,
             ),
           ],
         ),
