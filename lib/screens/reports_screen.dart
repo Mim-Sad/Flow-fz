@@ -787,175 +787,160 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         ? _getSpectrumColor(percentage)
         : theme.colorScheme.primary;
 
-    return InkWell(
-      onTap: () {
-        final range = _getRange();
-        context.push(
-          SearchRouteBuilder.buildSearchUrl(
-            dateFrom: range.start,
-            dateTo: range.end,
-            statuses: [TaskStatus.success, TaskStatus.failed],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'بهره‌وری شما',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    !hasData
+                        ? 'داده‌ای نداریم'
+                        : '${_toPersianDigit(percentage.toStringAsFixed(1))}%',
+                    style: TextStyle(
+                      color: statColor,
+                      fontSize: !hasData ? 18 : 22,
+                      fontWeight: FontWeight.bold,
+                      height: !hasData ? 1.2 : 1,
+                    ),
+                  ),
+                ],
+              ),
+              Icon(Icons.insights_rounded, color: statColor, size: 40),
+            ],
           ),
-        );
-      },
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'بهره‌وری شما',
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      !hasData
-                          ? 'داده‌ای نداریم'
-                          : '${_toPersianDigit(percentage.toStringAsFixed(1))}%',
-                      style: TextStyle(
-                        color: statColor,
-                        fontSize: !hasData ? 18 : 22,
-                        fontWeight: FontWeight.bold,
-                        height: !hasData ? 1.2 : 1,
-                      ),
-                    ),
-                  ],
-                ),
-                Icon(Icons.insights_rounded, color: statColor, size: 40),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Divider(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 45,
-                    alignment: Alignment.center,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: !hasData
-                          ? [
-                              Text(
-                                'داده‌ای نداریم',
-                                style: TextStyle(
-                                  color: theme.colorScheme.onSurfaceVariant
-                                      .withValues(alpha: 0.7),
-                                  fontSize: 12,
-                                  height: 1.2,
+          const SizedBox(height: 6),
+          Divider(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 45,
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: !hasData
+                        ? [
+                            Text(
+                              'داده‌ای نداریم',
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.7),
+                                fontSize: 12,
+                                height: 1.2,
+                              ),
+                            ),
+                          ]
+                        : [
+                            getChangeIcon(changeFromPrev),
+                            const SizedBox(width: 4),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  formatChange(changeFromPrev),
+                                  style: TextStyle(
+                                    color: getChangeColor(changeFromPrev),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    height: 1.2,
+                                  ),
                                 ),
-                              ),
-                            ]
-                          : [
-                              getChangeIcon(changeFromPrev),
-                              const SizedBox(width: 4),
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    formatChange(changeFromPrev),
-                                    style: TextStyle(
-                                      color: getChangeColor(changeFromPrev),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      height: 1.2,
-                                    ),
+                                Text(
+                                  'نسبت به $periodLabel',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    fontSize: 10,
+                                    height: 1.2,
                                   ),
-                                  Text(
-                                    'نسبت به $periodLabel',
-                                    style: TextStyle(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                      fontSize: 10,
-                                      height: 1.2,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                    ),
-                  ),
-                ),
-                Container(
-                  width: 1,
-                  height: 30,
-                  color: theme.colorScheme.outlineVariant.withValues(
-                    alpha: 0.5,
-                  ),
-                ),
-                Expanded(
-                  child: Container(
-                    height: 45,
-                    alignment: Alignment.center,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: !hasData
-                          ? [
-                              Text(
-                                'داده‌ای نداریم',
-                                style: TextStyle(
-                                  color: theme.colorScheme.onSurfaceVariant
-                                      .withValues(alpha: 0.7),
-                                  fontSize: 12,
-                                  height: 1.2,
                                 ),
-                              ),
-                            ]
-                          : [
-                              getChangeIcon(changeFromAvg),
-                              const SizedBox(width: 4),
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    formatChange(changeFromAvg),
-                                    style: TextStyle(
-                                      color: getChangeColor(changeFromAvg),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      height: 1.2,
-                                    ),
-                                  ),
-                                  Text(
-                                    'نسبت به میانگین کل',
-                                    style: TextStyle(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                      fontSize: 10,
-                                      height: 1.2,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                    ),
+                              ],
+                            ),
+                          ],
                   ),
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+              Container(
+                width: 1,
+                height: 30,
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+              ),
+              Expanded(
+                child: Container(
+                  height: 45,
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: !hasData
+                        ? [
+                            Text(
+                              'داده‌ای نداریم',
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.7),
+                                fontSize: 12,
+                                height: 1.2,
+                              ),
+                            ),
+                          ]
+                        : [
+                            getChangeIcon(changeFromAvg),
+                            const SizedBox(width: 4),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  formatChange(changeFromAvg),
+                                  style: TextStyle(
+                                    color: getChangeColor(changeFromAvg),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    height: 1.2,
+                                  ),
+                                ),
+                                Text(
+                                  'نسبت به میانگین کل',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    fontSize: 10,
+                                    height: 1.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -1300,22 +1285,5 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         ),
       ),
     );
-  }
-
-  DateTimeRange _getRange() {
-    if (_viewMode == 0) {
-      return DateTimeRange(start: _selectedDate, end: _selectedDate);
-    } else if (_viewMode == 1) {
-      final startOfWeek = _selectedDate.subtract(
-        Duration(days: (_selectedDate.weekday + 1) % 7),
-      );
-      final endOfWeek = startOfWeek.add(const Duration(days: 6));
-      return DateTimeRange(start: startOfWeek, end: endOfWeek);
-    } else {
-      final jSelected = Jalali.fromDateTime(_selectedDate);
-      final jStart = jSelected.copy(day: 1);
-      final jEnd = jSelected.copy(day: jSelected.monthLength);
-      return DateTimeRange(start: jStart.toDateTime(), end: jEnd.toDateTime());
-    }
   }
 }
