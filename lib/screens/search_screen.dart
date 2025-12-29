@@ -303,7 +303,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               // Spacer for sticky header
               SliverToBoxAdapter(
                 child: SizedBox(
-                  height: 72, // SafeArea top + padding + height
+                  height: 80, // SafeArea top + padding + height
                 ),
               ),
               // Filter Chips
@@ -463,18 +463,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
                 ),
               // Results Count
-              if (results.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                    child: Center(
-                      child: Text(
-                        '${results.length} نتیجه یافتم!',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ),
-                  ),
-                ),
+
               // Results
               if (results.isEmpty)
                 SliverFillRemaining(
@@ -596,7 +585,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               child: SafeArea(
                 bottom: false,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+                  padding: const EdgeInsets.fromLTRB(10, 12, 10, 20),
                   child: SizedBox(
                     height: 48,
                     child: Row(
@@ -606,49 +595,88 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         const SizedBox(width: 8),
                         // Search Box
                         Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            onChanged: (value) {
-                              ref.read(searchProvider.notifier).setQuery(value);
-                            },
-                            style: const TextStyle(fontSize: 14),
-                            decoration: InputDecoration(
-                              hintText: 'جستجو...',
-                              hintStyle: const TextStyle(fontSize: 14),
-                              prefixIcon: const Padding(
-                                padding: EdgeInsets.all(12),
-                                child: HugeIcon(
-                                  icon: HugeIcons.strokeRoundedSearch01,
-                                  size: 18,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              TextField(
+                                controller: _searchController,
+                                onChanged: (value) {
+                                  ref
+                                      .read(searchProvider.notifier)
+                                      .setQuery(value);
+                                },
+                                style: const TextStyle(fontSize: 14),
+                                decoration: InputDecoration(
+                                  hintText: 'جستجو...',
+                                  hintStyle: const TextStyle(fontSize: 14),
+                                  prefixIcon: const Padding(
+                                    padding: EdgeInsets.all(12),
+                                    child: HugeIcon(
+                                      icon: HugeIcons.strokeRoundedSearch01,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  suffixIcon: _searchController.text.isNotEmpty
+                                      ? IconButton(
+                                          icon: const HugeIcon(
+                                            icon:
+                                                HugeIcons.strokeRoundedCancel01,
+                                            size: 18,
+                                          ),
+                                          onPressed: () {
+                                            _searchController.clear();
+                                            ref
+                                                .read(searchProvider.notifier)
+                                                .setQuery('');
+                                          },
+                                        )
+                                      : null,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  filled: true,
+                                  fillColor: theme.colorScheme.surfaceContainer
+                                      .withValues(alpha: 0.7),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 10,
+                                  ),
+                                  isDense: true,
                                 ),
                               ),
-                              suffixIcon: _searchController.text.isNotEmpty
-                                  ? IconButton(
-                                      icon: const HugeIcon(
-                                        icon: HugeIcons.strokeRoundedCancel01,
-                                        size: 18,
+                              if (results.isNotEmpty)
+                                Positioned(
+                                  bottom: -6,
+                                  left: -4,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.primary,
+                                      borderRadius: BorderRadius.circular(10),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: theme.colorScheme.primary
+                                              .withValues(alpha: 0.3),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Text(
+                                      '${results.length}',
+                                      style: TextStyle(
+                                        color: theme.colorScheme.onPrimary,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
                                       ),
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        ref
-                                            .read(searchProvider.notifier)
-                                            .setQuery('');
-                                      },
-                                    )
-                                  : null,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide.none,
-                              ),
-                              filled: true,
-                              fillColor: theme.colorScheme.surfaceContainer
-                                  .withValues(alpha: 0.7),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              isDense: true,
-                            ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                         const SizedBox(width: 4),
@@ -707,23 +735,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     Widget? avatar,
   }) {
     return FilterChip(
-      label: Text(label, style: const TextStyle(fontSize: 12, height: 1.1)),
+      label: Text(
+        label,
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+      ),
       avatar: avatar,
       deleteIcon: const HugeIcon(
         icon: HugeIcons.strokeRoundedCancel01,
-        size: 14,
+        size: 12,
       ),
       onDeleted: onDeleted,
       onSelected: onSelected,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-      labelPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-      visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      visualDensity: const VisualDensity(horizontal: -4, vertical: -2),
       shape: StadiumBorder(
         side: BorderSide(
           color: Theme.of(
             context,
-          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+          width: 0.8,
         ),
       ),
     );
