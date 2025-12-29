@@ -188,6 +188,53 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _deleteMediaData() async {
+    try {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('حذف فایل‌های مدیا'),
+          content: const Text(
+            'آیا از حذف امن فایل‌های مدیا (تصاویر و فایل‌های پیوست شده) اطمینان دارید؟ اطلاعات متنی تسک‌ها باقی خواهند ماند.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('لغو'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: TextButton.styleFrom(foregroundColor: Colors.orange),
+              child: const Text('حذف مدیا'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm == true) {
+        await DatabaseService().deleteAllMedia();
+
+        // Reload tasks to recognize attachment removal
+        await ref.read(tasksProvider.notifier).reloadTasks();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('فایل‌های مدیا با موفقیت حذف شدند')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطا در حذف فایل‌های مدیا: $e'),
+            backgroundColor: Colors.red.shade800,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _deleteAllData() async {
     try {
       final confirm = await showDialog<bool>(
@@ -394,115 +441,140 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 onTap: () {
                   showModalBottomSheet(
                     context: context,
+                    isScrollControlled: true,
                     shape: const RoundedRectangleBorder(
                       borderRadius: BorderRadius.vertical(
                         top: Radius.circular(20),
                       ),
                     ),
-                    builder: (context) => Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'پشتیبان‌گیری و بازگردانی',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          ListTile(
-                            leading: _buildIconWithBackground(
-                              context,
-                              HugeIcons.strokeRoundedUpload01,
-                              color: Colors.blue,
-                            ),
-                            title: const Text(
-                              'خروجی گرفتن از اطلاعات',
+                    builder: (context) => SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'پشتیبان‌گیری و بازگردانی',
                               style: TextStyle(
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 14,
                               ),
                             ),
-                            subtitle: const Text(
-                              'ذخیره تمام اطلاعات در یک فایل JSON',
-                              style: TextStyle(fontSize: 10),
-                            ),
-                            onTap: () {
-                              Navigator.pop(context);
-                              _exportData();
-                            },
-                          ),
-                          ListTile(
-                            leading: _buildIconWithBackground(
-                              context,
-                              HugeIcons.strokeRoundedUpload01,
-                              color: Colors.purple,
-                            ),
-                            title: const Text(
-                              'پشتیبان‌گیری کامل',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                            const SizedBox(height: 24),
+                            ListTile(
+                              leading: _buildIconWithBackground(
+                                context,
+                                HugeIcons.strokeRoundedUpload01,
+                                color: Colors.blue,
                               ),
-                            ),
-                            subtitle: const Text(
-                              'ذخیره اطلاعات و فایل‌های مدیا در فایل ZIP',
-                              style: TextStyle(fontSize: 10),
-                            ),
-                            onTap: () {
-                              Navigator.pop(context);
-                              _exportFullData();
-                            },
-                          ),
-                          ListTile(
-                            leading: _buildIconWithBackground(
-                              context,
-                              HugeIcons.strokeRoundedDownload01,
-                              color: Colors.green,
-                            ),
-                            title: const Text(
-                              'وارد کردن اطلاعات',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                              title: const Text(
+                                'خروجی گرفتن از اطلاعات',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
                               ),
+                              subtitle: const Text(
+                                'ذخیره تمام اطلاعات در یک فایل JSON',
+                                style: TextStyle(fontSize: 10),
+                              ),
+                              onTap: () {
+                                Navigator.pop(context);
+                                _exportData();
+                              },
                             ),
-                            subtitle: const Text(
-                              'بازگردانی اطلاعات از فایل JSON یا ZIP',
-                              style: TextStyle(fontSize: 10),
+                            ListTile(
+                              leading: _buildIconWithBackground(
+                                context,
+                                HugeIcons.strokeRoundedUpload01,
+                                color: Colors.purple,
+                              ),
+                              title: const Text(
+                                'پشتیبان‌گیری کامل',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              subtitle: const Text(
+                                'ذخیره اطلاعات و فایل‌های مدیا در فایل ZIP',
+                                style: TextStyle(fontSize: 10),
+                              ),
+                              onTap: () {
+                                Navigator.pop(context);
+                                _exportFullData();
+                              },
                             ),
-                            onTap: () {
-                              Navigator.pop(context);
-                              _importData();
-                            },
-                          ),
+                            ListTile(
+                              leading: _buildIconWithBackground(
+                                context,
+                                HugeIcons.strokeRoundedDownload01,
+                                color: Colors.green,
+                              ),
+                              title: const Text(
+                                'وارد کردن اطلاعات',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              subtitle: const Text(
+                                'بازگردانی اطلاعات از فایل JSON یا ZIP',
+                                style: TextStyle(fontSize: 10),
+                              ),
+                              onTap: () {
+                                Navigator.pop(context);
+                                _importData();
+                              },
+                            ),
 
-                          ListTile(
-                            leading: _buildIconWithBackground(
-                              context,
-                              HugeIcons.strokeRoundedDelete02,
-                              color: Colors.red,
-                            ),
-                            title: const Text(
-                              'حذف کامل داده‌های اپ',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                            ListTile(
+                              leading: _buildIconWithBackground(
+                                context,
+                                HugeIcons.strokeRoundedDelete01,
+                                color: Colors.orange,
                               ),
+                              title: const Text(
+                                'حذف فایل‌های مدیا',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              subtitle: const Text(
+                                'پاکسازی تصاویر و فایل‌های ضمیمه شده برای آزادسازی فضا',
+                                style: TextStyle(fontSize: 10),
+                              ),
+                              onTap: () {
+                                Navigator.pop(context);
+                                _deleteMediaData();
+                              },
                             ),
-                            subtitle: const Text(
-                              'پاکسازی تمامی تسک‌ها، دسته‌بندی‌ها و تنظیمات',
-                              style: TextStyle(fontSize: 10),
+                            ListTile(
+                              leading: _buildIconWithBackground(
+                                context,
+                                HugeIcons.strokeRoundedDelete02,
+                                color: Colors.red,
+                              ),
+                              title: const Text(
+                                'حذف کامل داده‌های اپ',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              subtitle: const Text(
+                                'پاکسازی تمامی تسک‌ها، دسته‌بندی‌ها و تنظیمات',
+                                style: TextStyle(fontSize: 10),
+                              ),
+                              onTap: () {
+                                Navigator.pop(context);
+                                _deleteAllData();
+                              },
                             ),
-                            onTap: () {
-                              Navigator.pop(context);
-                              _deleteAllData();
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                        ],
+                            const SizedBox(height: 16),
+                          ],
+                        ),
                       ),
                     ),
                   );

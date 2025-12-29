@@ -1652,6 +1652,10 @@ class DatabaseService {
 
   Future<void> deleteAllData() async {
     Database db = await database;
+
+    // Also delete all media files before clearing database
+    await deleteAllMedia();
+
     await db.transaction((txn) async {
       await txn.delete('tasks');
       await txn.delete('task_events');
@@ -1663,6 +1667,54 @@ class DatabaseService {
         await txn.insert('categories', cat.toMap());
       }
     });
+  }
+
+  Future<void> deleteAllMedia() async {
+    Database db = await database;
+    final allMedia = await db.query('media');
+
+    // Delete physical files
+    for (var media in allMedia) {
+      try {
+        final filePath = media['filePath'] as String;
+        final file = File(filePath);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (e) {
+        debugPrint('Error deleting media file: $e');
+      }
+    }
+
+    // Delete all rows from media table
+    await db.delete('media');
+
+    // Update tasks to remove references to media IDs
+    // We do this to avoid tasks pointing to non-existent media
+    final tasks = await db.query('tasks');
+    for (var task in tasks) {
+      final attachmentsJson = task['attachments'] as String?;
+      if (attachmentsJson != null &&
+          attachmentsJson.isNotEmpty &&
+          attachmentsJson != '[]') {
+        try {
+          final List<dynamic> attachments = json.decode(attachmentsJson);
+          // Keep only non-numeric attachments (legacy paths)
+          final keptAttachments = attachments
+              .where((a) => !RegExp(r'^\d+$').hasMatch(a.toString()))
+              .toList();
+
+          if (keptAttachments.length != attachments.length) {
+            await db.update(
+              'tasks',
+              {'attachments': json.encode(keptAttachments)},
+              where: 'id = ?',
+              whereArgs: [task['id']],
+            );
+          }
+        } catch (_) {}
+      }
+    }
   }
 
   int _toInt(dynamic value, int defaultValue) {
