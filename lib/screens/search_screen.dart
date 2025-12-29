@@ -189,6 +189,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 1.5),
                 child: InkWell(
+                  borderRadius: BorderRadius.circular(50),
                   onTap: () {
                     HapticFeedback.lightImpact();
                     ref

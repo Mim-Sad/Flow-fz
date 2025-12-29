@@ -936,9 +936,7 @@ class TaskListTile extends ConsumerWidget {
 
     return InkWell(
       onTap: onToggle,
-      hoverColor: Colors.transparent,
-      splashColor: Colors.transparent,
-      highlightColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(50),
       onLongPress: () {
         HapticFeedback.heavyImpact();
         showModalBottomSheet(
