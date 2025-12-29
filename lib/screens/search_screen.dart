@@ -313,7 +313,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        padding: const EdgeInsets.only(
+                          left: 12,
+                          right: 12,
+                          bottom: 12,
+                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -747,8 +751,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       onDeleted: onDeleted,
       onSelected: onSelected,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
-      labelPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
       visualDensity: const VisualDensity(horizontal: -4, vertical: -2),
       shape: StadiumBorder(
         side: BorderSide(
