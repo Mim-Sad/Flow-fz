@@ -161,10 +161,29 @@ class MidnightTaskUpdater {
 
         // اگر وضعیت pending است، آن را به failed تبدیل می‌کنیم
         if (status == TaskStatus.pending) {
+          // به‌روزرسانی متادیتا برای ثبت لاگ تغییر وضعیت خودکار
+          final Map<String, dynamic> newMetadata = Map<String, dynamic>.from(
+            task.metadata,
+          );
+          List<dynamic> logs = [];
+          if (newMetadata['autoFailedLog'] != null &&
+              newMetadata['autoFailedLog'] is List) {
+            logs = List.from(newMetadata['autoFailedLog']);
+          }
+
+          logs.add({
+            'targetDate': dateKey,
+            'failedAt': DateTime.now().toIso8601String(),
+            'reason': 'midnight_update',
+          });
+
+          newMetadata['autoFailedLog'] = logs;
+
           await _dbService!.updateTaskStatus(
             task.id!,
             TaskStatus.failed,
             dateKey: dateKey,
+            metadata: newMetadata,
           );
           updatedCount++;
 

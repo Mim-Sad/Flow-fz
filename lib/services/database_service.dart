@@ -1517,6 +1517,7 @@ class DatabaseService {
     int taskId,
     TaskStatus status, {
     String? dateKey,
+    Map<String, dynamic>? metadata,
   }) async {
     Database db = await database;
     final taskMap = (await db.query(
@@ -1538,12 +1539,13 @@ class DatabaseService {
         dateKey ?? taskMap['dueDate'].toString().split('T')[0];
     history[effectiveDateKey] = status.index;
 
-    await db.update(
-      'tasks',
-      {'statusHistory': json.encode(history)},
-      where: 'id = ?',
-      whereArgs: [taskId],
-    );
+    final updateData = <String, dynamic>{'statusHistory': json.encode(history)};
+
+    if (metadata != null) {
+      updateData['metadata'] = json.encode(metadata);
+    }
+
+    await db.update('tasks', updateData, where: 'id = ?', whereArgs: [taskId]);
 
     await insertTaskEvent(
       taskId: taskId,
