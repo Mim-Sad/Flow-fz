@@ -1396,118 +1396,53 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                   ),
                   const SizedBox(height: 12),
                   if (_filters.specificDate != null)
-                    // Show specific date with close button
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _selectSpecificDate,
-                            icon: const HugeIcon(
-                              icon: HugeIcons.strokeRoundedCalendar03,
-                              size: 18,
-                            ),
-                            label: Text(
-                              _formatDate(_filters.specificDate!),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _filters = _filters.copyWith(specificDate: null);
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .errorContainer
-                                  .withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: HugeIcon(
-                              icon: HugeIcons.strokeRoundedCancel01,
-                              size: 18,
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                          ),
-                        ),
-                      ],
+                    _buildDateCapsule(
+                      onTap: _selectSpecificDate,
+                      label: _formatDate(_filters.specificDate!),
+                      icon: HugeIcons.strokeRoundedCalendar03,
+                      isSelected: true,
+                      onClear: () {
+                        setState(() {
+                          _filters = _filters.copyWith(specificDate: null);
+                        });
+                      },
                     )
                   else if (_filters.dateFrom != null || _filters.dateTo != null)
-                    // Show date range with close button
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _selectDateRange,
-                            icon: const HugeIcon(
-                              icon: HugeIcons.strokeRoundedCalendar02,
-                              size: 18,
-                            ),
-                            label: Text(
-                              _formatDateRange(
-                                _filters.dateFrom,
-                                _filters.dateTo,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _filters = _filters.copyWith(
-                                dateFrom: null,
-                                dateTo: null,
-                              );
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .errorContainer
-                                  .withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: HugeIcon(
-                              icon: HugeIcons.strokeRoundedCancel01,
-                              size: 18,
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                          ),
-                        ),
-                      ],
+                    _buildDateCapsule(
+                      onTap: _selectDateRange,
+                      label: _formatDateRange(
+                        _filters.dateFrom,
+                        _filters.dateTo,
+                      ),
+                      icon: HugeIcons.strokeRoundedCalendar02,
+                      isSelected: true,
+                      onClear: () {
+                        setState(() {
+                          _filters = _filters.copyWith(
+                            dateFrom: null,
+                            dateTo: null,
+                          );
+                        });
+                      },
                     )
                   else
-                    // Show both buttons when nothing is selected
                     Row(
                       children: [
                         Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _selectSpecificDate,
-                            icon: const HugeIcon(
-                              icon: HugeIcons.strokeRoundedCalendar03,
-                              size: 18,
-                            ),
-                            label: const Text('تاریخ مشخص'),
+                          child: _buildDateCapsule(
+                            onTap: _selectSpecificDate,
+                            label: 'تاریخ مشخص',
+                            icon: HugeIcons.strokeRoundedCalendar03,
+                            isSelected: false,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _selectDateRange,
-                            icon: const HugeIcon(
-                              icon: HugeIcons.strokeRoundedCalendar02,
-                              size: 18,
-                            ),
-                            label: const Text('بازه تاریخی'),
+                          child: _buildDateCapsule(
+                            onTap: _selectDateRange,
+                            label: 'بازه تاریخی',
+                            icon: HugeIcons.strokeRoundedCalendar02,
+                            isSelected: false,
                           ),
                         ),
                       ],
@@ -1638,6 +1573,91 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDateCapsule({
+    required VoidCallback onTap,
+    required String label,
+    required dynamic icon,
+    required bool isSelected,
+    VoidCallback? onClear,
+  }) {
+    final color = Theme.of(context).colorScheme.primary;
+    return Row(
+      children: [
+        Expanded(
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(15),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? color.withValues(alpha: 0.1)
+                    : Colors.transparent,
+                border: Border.all(
+                  color: isSelected
+                      ? color
+                      : Theme.of(
+                          context,
+                        ).colorScheme.outline.withValues(alpha: 0.2),
+                  width: isSelected ? 1.5 : 1,
+                ),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  HugeIcon(
+                    icon: icon,
+                    size: 20,
+                    color: isSelected
+                        ? color
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isSelected
+                            ? color
+                            : Theme.of(context).colorScheme.onSurface,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (onClear != null && isSelected) ...[
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: onClear,
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.errorContainer.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: HugeIcon(
+                icon: HugeIcons.strokeRoundedCancel01,
+                size: 20,
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 
