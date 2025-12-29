@@ -131,7 +131,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         .read(tasksProvider.notifier)
         .getStatusForDate(task.id!, task.dueDate);
     final isCancelled = status == TaskStatus.cancelled;
-    final isSuccess = status == TaskStatus.success;
 
     dynamic icon;
     Color color;
@@ -227,13 +226,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         textAlign: TextAlign.right,
                         style: TextStyle(
                           fontSize: 13,
-                          decoration: isSuccess
-                              ? TextDecoration.lineThrough
-                              : null,
-                          color: isSuccess
-                              ? Theme.of(context).colorScheme.onSurfaceVariant
-                                    .withValues(alpha: 0.5)
-                              : Theme.of(context).colorScheme.onSurface,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     ),
@@ -544,6 +537,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                   isReorderEnabled: false,
                                   isSelectionMode: false,
                                   isSelected: false,
+                                  showDecoration: false,
                                 ),
                               )
                             : TaskListTile(
@@ -563,6 +557,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 isReorderEnabled: false,
                                 isSelectionMode: false,
                                 isSelected: false,
+                                showDecoration: false,
                               ),
                       );
                     }, childCount: results.length),

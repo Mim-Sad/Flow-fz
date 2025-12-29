@@ -14,7 +14,7 @@ class SearchState {
   SearchState({
     this.query = '',
     SearchFilters? filters,
-    this.sortOption = SortOption.dateDesc,
+    this.sortOption = SortOption.createdAtDesc,
     this.viewStyle = ViewStyle.list,
   }) : filters = filters ?? SearchFilters();
 
@@ -80,9 +80,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
   }
 
   void setPriority(TaskPriority? priority) {
-    state = state.copyWith(
-      filters: state.filters.copyWith(priority: priority),
-    );
+    state = state.copyWith(filters: state.filters.copyWith(priority: priority));
   }
 
   void setStatuses(List<TaskStatus>? statuses) {
@@ -130,7 +128,9 @@ class SearchNotifier extends StateNotifier<SearchState> {
   }
 }
 
-final searchProvider = StateNotifierProvider<SearchNotifier, SearchState>((ref) {
+final searchProvider = StateNotifierProvider<SearchNotifier, SearchState>((
+  ref,
+) {
   return SearchNotifier(ref);
 });
 
@@ -145,4 +145,3 @@ final searchResultsProvider = Provider<List<Task>>((ref) {
     searchState.sortOption,
   );
 });
-

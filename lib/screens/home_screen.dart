@@ -26,7 +26,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   SortMode _sortMode = SortMode.manual;
-  
+
   // Selection Mode State
   bool _isSelectionMode = false;
   final Set<int> _selectedTaskIds = {};
@@ -71,12 +71,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   void _deleteSelected(List<Task> allTasks) {
     if (_selectedTaskIds.isEmpty) return;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('حذف تسک‌ها', textAlign: TextAlign.right),
-        content: Text('آیا مطمئن هستید که می‌خواهید ${_selectedTaskIds.length} تسک را حذف کنید؟', textAlign: TextAlign.right),
+        content: Text(
+          'آیا مطمئن هستید که می‌خواهید ${_selectedTaskIds.length} تسک را حذف کنید؟',
+          textAlign: TextAlign.right,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -96,10 +99,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
-  
+
   void _changeStatusSelected(DateTime today) async {
     if (_selectedTaskIds.isEmpty) return;
-    
+
     await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -116,7 +119,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final today = DateTime.now();
     final todayTasks = [...ref.watch(activeTasksProvider(today))];
     final isLoading = ref.watch(tasksLoadingProvider);
-    
+
     // Apply Sorting
     if (_sortMode == SortMode.manual) {
       todayTasks.sort((a, b) => a.position.compareTo(b.position));
@@ -130,10 +133,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           TaskStatus.failed: 3,
           TaskStatus.cancelled: 4,
         };
-        
+
         final statusA = statusOrder[a.status] ?? 99;
         final statusB = statusOrder[b.status] ?? 99;
-        
+
         if (statusA != statusB) {
           return statusA.compareTo(statusB);
         }
@@ -146,7 +149,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         final catA = a.categories.isNotEmpty ? a.categories.first : '';
         final catB = b.categories.isNotEmpty ? b.categories.first : '';
         if (catA != catB) {
-            return catA.compareTo(catB);
+          return catA.compareTo(catB);
         }
         // 4. Then by creation date (old to new)
         return a.createdAt.compareTo(b.createdAt);
@@ -162,203 +165,258 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         }
       },
       child: Scaffold(
-      body: Stack(
-        children: [
-          CustomScrollView(
-            slivers: [
-              const SliverPadding(padding: EdgeInsets.only(top: 80)),
-              SliverPadding(
-                padding: const EdgeInsets.only(left: 12, right: 12, bottom: 80),
-                sliver: isLoading 
-                  ? SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                               width: 72,
-                               height: 72,
-                               child: CircularProgressIndicator(
-                                 strokeWidth: 8,
-                                 strokeCap: StrokeCap.round,
-                                 backgroundColor: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.2),
-                               ),
-                             )
-                             .animate(onPlay: (controller) => controller.repeat())
-                             .scale(
-                               begin: const Offset(0.7, 0.7),
-                               end: const Offset(1.0, 1.0),
-                               duration: 800.ms,
-                               curve: Curves.elasticOut,
-                             )
-                             .rotate(
-                               begin: 0,
-                               end: 0.1,
-                               duration: 800.ms,
-                               curve: Curves.easeInOut,
-                             )
-                             .then()
-                             .scale(
-                               begin: const Offset(1.0, 1.0),
-                               end: const Offset(0.7, 0.7),
-                               duration: 800.ms,
-                               curve: Curves.easeInOut,
-                             )
-                             .rotate(
-                               begin: 0.1,
-                               end: 0,
-                               duration: 800.ms,
-                               curve: Curves.easeInOut,
-                             )
-                            
-                            .animate(onPlay: (controller) => controller.repeat())
-                            .shimmer(duration: 2000.ms, color: Theme.of(context).colorScheme.primaryContainer)
-                            .then()
-                            .shake(hz: 1),
-                          ],
-                        ),
-                      ),
-                    )
-                  : todayTasks.isEmpty 
-                    ? SliverToBoxAdapter(
-                        child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 40),
-                          Lottie.asset(
-                            'assets/images/TheSoul/20 glasses.json',
-                            width: 120,
-                            height: 120,
-                            fit: BoxFit.contain,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'برای امروز برنامه‌ای نداری!',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+        body: Stack(
+          children: [
+            CustomScrollView(
+              slivers: [
+                const SliverPadding(padding: EdgeInsets.only(top: 80)),
+                SliverPadding(
+                  padding: const EdgeInsets.only(
+                    left: 12,
+                    right: 12,
+                    bottom: 80,
+                  ),
+                  sliver: isLoading
+                      ? SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                      width: 72,
+                                      height: 72,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 8,
+                                        strokeCap: StrokeCap.round,
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .primaryContainer
+                                            .withValues(alpha: 0.2),
+                                      ),
+                                    )
+                                    .animate(
+                                      onPlay: (controller) =>
+                                          controller.repeat(),
+                                    )
+                                    .scale(
+                                      begin: const Offset(0.7, 0.7),
+                                      end: const Offset(1.0, 1.0),
+                                      duration: 800.ms,
+                                      curve: Curves.elasticOut,
+                                    )
+                                    .rotate(
+                                      begin: 0,
+                                      end: 0.1,
+                                      duration: 800.ms,
+                                      curve: Curves.easeInOut,
+                                    )
+                                    .then()
+                                    .scale(
+                                      begin: const Offset(1.0, 1.0),
+                                      end: const Offset(0.7, 0.7),
+                                      duration: 800.ms,
+                                      curve: Curves.easeInOut,
+                                    )
+                                    .rotate(
+                                      begin: 0.1,
+                                      end: 0,
+                                      duration: 800.ms,
+                                      curve: Curves.easeInOut,
+                                    )
+                                    .animate(
+                                      onPlay: (controller) =>
+                                          controller.repeat(),
+                                    )
+                                    .shimmer(
+                                      duration: 2000.ms,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primaryContainer,
+                                    )
+                                    .then()
+                                    .shake(hz: 1),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                    )
-                  : SliverReorderableList(
-                  itemBuilder: (context, index) {
-                    final task = todayTasks[index];
-                    bool shouldAnimate = !_animatedTaskIds.contains(task.id);
-                    if (shouldAnimate) {
-                      _animatedTaskIds.add(task.id!);
-                    }
+                        )
+                      : todayTasks.isEmpty
+                      ? SliverToBoxAdapter(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(height: 40),
+                              Lottie.asset(
+                                'assets/images/TheSoul/20 glasses.json',
+                                width: 120,
+                                height: 120,
+                                fit: BoxFit.contain,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'برای امروز برنامه‌ای نداری!',
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : SliverReorderableList(
+                          itemBuilder: (context, index) {
+                            final task = todayTasks[index];
+                            bool shouldAnimate = !_animatedTaskIds.contains(
+                              task.id,
+                            );
+                            if (shouldAnimate) {
+                              _animatedTaskIds.add(task.id!);
+                            }
 
-                    return Padding(
-                      key: ValueKey(task.id),
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: shouldAnimate 
-                        ? FadeInOnce(
-                            delay: (index * 50).ms,
-                            child: TaskListTile(
-                              task: task, 
-                              index: index,
-                              onStatusToggle: () => _handleStatusToggle(task),
-                              isReorderEnabled: _sortMode == SortMode.manual,
-                              isSelectionMode: _isSelectionMode,
-                              isSelected: _selectedTaskIds.contains(task.id),
-                              onSelect: () => _toggleTaskSelection(task.id!),
-                              onEnterSelectionMode: () {
-                                if (!_isSelectionMode) {
-                                  _toggleSelectionMode(true);
-                                }
-                                _toggleTaskSelection(task.id!); // Always select the task
-                              },
-                            ),
+                            return Padding(
+                              key: ValueKey(task.id),
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: shouldAnimate
+                                  ? FadeInOnce(
+                                      delay: (index * 50).ms,
+                                      child: TaskListTile(
+                                        task: task,
+                                        index: index,
+                                        onStatusToggle: () =>
+                                            _handleStatusToggle(task),
+                                        isReorderEnabled:
+                                            _sortMode == SortMode.manual,
+                                        isSelectionMode: _isSelectionMode,
+                                        isSelected: _selectedTaskIds.contains(
+                                          task.id,
+                                        ),
+                                        onSelect: () =>
+                                            _toggleTaskSelection(task.id!),
+                                        onEnterSelectionMode: () {
+                                          if (!_isSelectionMode) {
+                                            _toggleSelectionMode(true);
+                                          }
+                                          _toggleTaskSelection(
+                                            task.id!,
+                                          ); // Always select the task
+                                        },
+                                      ),
+                                    )
+                                  : TaskListTile(
+                                      task: task,
+                                      index: index,
+                                      onStatusToggle: () =>
+                                          _handleStatusToggle(task),
+                                      isReorderEnabled:
+                                          _sortMode == SortMode.manual,
+                                      isSelectionMode: _isSelectionMode,
+                                      isSelected: _selectedTaskIds.contains(
+                                        task.id,
+                                      ),
+                                      onSelect: () =>
+                                          _toggleTaskSelection(task.id!),
+                                      onEnterSelectionMode: () {
+                                        if (!_isSelectionMode) {
+                                          _toggleSelectionMode(true);
+                                        }
+                                        _toggleTaskSelection(
+                                          task.id!,
+                                        ); // Always select the task
+                                      },
+                                    ),
+                            );
+                          },
+                          itemCount: todayTasks.length,
+                          onReorder: (oldIndex, newIndex) {
+                            // Allow reorder if manual sort OR selection mode is active
+                            if (_sortMode != SortMode.manual &&
+                                !_isSelectionMode)
+                              return;
+
+                            if (newIndex > oldIndex) newIndex -= 1;
+                            final items = [...todayTasks];
+                            final item = items.removeAt(oldIndex);
+                            items.insert(newIndex, item);
+
+                            ref
+                                .read(tasksProvider.notifier)
+                                .reorderTasks(items);
+                            HapticFeedback.mediumImpact();
+                          },
+                        ),
+                ),
+              ],
+            ),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Theme.of(context).colorScheme.surface,
+                      Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: 0.8),
+                      Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: 0),
+                    ],
+                    stops: const [0, 0.6, 1.0],
+                  ),
+                ),
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                    child: _isSelectionMode
+                        ? SizedBox(
+                            height: 48,
+                            child: _buildSelectionHeader(todayTasks, today),
                           )
-                        : TaskListTile(
-                              task: task, 
-                              index: index,
-                              onStatusToggle: () => _handleStatusToggle(task),
-                              isReorderEnabled: _sortMode == SortMode.manual,
-                              isSelectionMode: _isSelectionMode,
-                              isSelected: _selectedTaskIds.contains(task.id),
-                              onSelect: () => _toggleTaskSelection(task.id!),
-                              onEnterSelectionMode: () {
-                                if (!_isSelectionMode) {
-                                  _toggleSelectionMode(true);
-                                }
-                                _toggleTaskSelection(task.id!); // Always select the task
-                              },
+                        : SizedBox(
+                            height: 48,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'تسک‌های امروز',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                                _buildSortToggle(),
+                              ],
                             ),
-                    );
-                  },
-                  itemCount: todayTasks.length,
-                  onReorder: (oldIndex, newIndex) {
-                    // Allow reorder if manual sort OR selection mode is active
-                    if (_sortMode != SortMode.manual && !_isSelectionMode) return;
-                    
-                    if (newIndex > oldIndex) newIndex -= 1;
-                    final items = [...todayTasks];
-                    final item = items.removeAt(oldIndex);
-                    items.insert(newIndex, item);
-                    
-                    ref.read(tasksProvider.notifier).reorderTasks(items);
-                    HapticFeedback.mediumImpact();
-                  },
-                ),
-              ),
-            ],
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Theme.of(context).colorScheme.surface,
-                    Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
-                    Theme.of(context).colorScheme.surface.withValues(alpha: 0),
-                  ],
-                  stops: const [0, 0.6, 1.0],
-                ),
-              ),
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                  child: _isSelectionMode 
-                      ? SizedBox(height: 48, child: _buildSelectionHeader(todayTasks, today))
-                      : SizedBox(height: 48, child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'تسک‌های امروز',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                            ),
-                            _buildSortToggle(),
-                          ],
-                        )),
+                          ),
+                  ),
                 ),
               ),
             ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              useSafeArea: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => const AddTaskScreen(),
+            );
+          },
+          icon: const HugeIcon(icon: HugeIcons.strokeRoundedAdd01, size: 24),
+          label: const Text(
+            'تسک جدید',
+            style: TextStyle(fontWeight: FontWeight.w700),
           ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          HapticFeedback.lightImpact();
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            useSafeArea: true,
-            backgroundColor: Colors.transparent,
-            builder: (context) => const AddTaskScreen(),
-          );
-        },
-        icon: const HugeIcon(icon: HugeIcons.strokeRoundedAdd01, size: 24),
-        label: const Text('تسک جدید', style: TextStyle(fontWeight: FontWeight.w700)),
-      ),
+        ),
       ),
     );
   }
@@ -368,23 +426,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       children: [
         IconButton(
           onPressed: () => _toggleSelectionMode(false),
-          icon: HugeIcon(icon: HugeIcons.strokeRoundedCancel01, size: 24, color: Theme.of(context).colorScheme.primary),
+          icon: HugeIcon(
+            icon: HugeIcons.strokeRoundedCancel01,
+            size: 24,
+            color: Theme.of(context).colorScheme.primary,
+          ),
           tooltip: 'لغو',
         ),
         const Spacer(),
         IconButton(
           onPressed: () => _selectAll(allTasks),
-          icon: const HugeIcon(icon: HugeIcons.strokeRoundedFullScreen, size: 24, color: Colors.grey),
+          icon: const HugeIcon(
+            icon: HugeIcons.strokeRoundedFullScreen,
+            size: 24,
+            color: Colors.grey,
+          ),
           tooltip: 'انتخاب همه',
         ),
         IconButton(
           onPressed: () => _changeStatusSelected(today),
-          icon: const HugeIcon(icon: HugeIcons.strokeRoundedEdit02, size: 24, color: Colors.grey),
+          icon: const HugeIcon(
+            icon: HugeIcons.strokeRoundedEdit02,
+            size: 24,
+            color: Colors.grey,
+          ),
           tooltip: 'تغییر وضعیت گروهی',
         ),
         IconButton(
           onPressed: () => _deleteSelected(allTasks),
-          icon: const HugeIcon(icon: HugeIcons.strokeRoundedDelete02, size: 24, color: Colors.grey),
+          icon: const HugeIcon(
+            icon: HugeIcons.strokeRoundedDelete02,
+            size: 24,
+            color: Colors.grey,
+          ),
           tooltip: 'حذف گروهی',
         ),
       ],
@@ -394,14 +468,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildSortToggle() {
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildSortOption(SortMode.manual, HugeIcons.strokeRoundedSorting05),
-          _buildSortOption(SortMode.defaultSort, HugeIcons.strokeRoundedSorting19),
+          _buildSortOption(
+            SortMode.defaultSort,
+            HugeIcons.strokeRoundedSorting19,
+          ),
         ],
       ),
     );
@@ -414,13 +493,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
         child: HugeIcon(
           icon: icon,
           size: 18,
-          color: isSelected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurfaceVariant,
+          color: isSelected
+              ? Theme.of(context).colorScheme.onPrimary
+              : Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
     );
@@ -431,11 +514,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _toggleTaskSelection(task.id!);
     } else {
       HapticFeedback.lightImpact();
-      ref.read(tasksProvider.notifier).updateStatus(
-        task.id!,
-        task.status == TaskStatus.success ? TaskStatus.pending : TaskStatus.success,
-        date: task.dueDate,
-      );
+      ref
+          .read(tasksProvider.notifier)
+          .updateStatus(
+            task.id!,
+            task.status == TaskStatus.success
+                ? TaskStatus.pending
+                : TaskStatus.success,
+            date: task.dueDate,
+          );
     }
   }
 }
@@ -449,17 +536,19 @@ class TaskListTile extends ConsumerWidget {
   final bool isSelected;
   final VoidCallback? onSelect;
   final VoidCallback? onEnterSelectionMode;
+  final bool showDecoration;
 
   const TaskListTile({
-    super.key, 
-    required this.task, 
-    required this.index, 
-    required this.onStatusToggle, 
+    super.key,
+    required this.task,
+    required this.index,
+    required this.onStatusToggle,
     this.isReorderEnabled = true,
     this.isSelectionMode = false,
     this.isSelected = false,
     this.onSelect,
     this.onEnterSelectionMode,
+    this.showDecoration = true,
   });
 
   @override
@@ -471,30 +560,41 @@ class TaskListTile extends ConsumerWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(
-          color: isSelected 
-              ? Theme.of(context).colorScheme.primary 
-              : Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(
+                  context,
+                ).colorScheme.outlineVariant.withValues(alpha: 0.5),
           width: isSelected ? 2 : 1,
         ),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: isSelectionMode ? onSelect : onStatusToggle, 
+        onTap: isSelectionMode ? onSelect : onStatusToggle,
         onLongPress: isSelectionMode ? onSelect : onEnterSelectionMode,
         child: Padding(
-          padding: const EdgeInsets.only(left: 6, right: 12, top: 12, bottom: 12),
+          padding: const EdgeInsets.only(
+            left: 6,
+            right: 12,
+            top: 12,
+            bottom: 12,
+          ),
           child: Row(
             children: [
-              isSelectionMode 
-                ? Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: HugeIcon(
-                      icon: isSelected ? HugeIcons.strokeRoundedCheckmarkSquare02 : HugeIcons.strokeRoundedSquare,
-                      size: 28,
-                      color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  )
-                : _getStatusIconForTile(task, context, ref, onStatusToggle),
+              isSelectionMode
+                  ? Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: HugeIcon(
+                        icon: isSelected
+                            ? HugeIcons.strokeRoundedCheckmarkSquare02
+                            : HugeIcons.strokeRoundedSquare,
+                        size: 28,
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    )
+                  : _getStatusIconForTile(task, context, ref, onStatusToggle),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -504,14 +604,19 @@ class TaskListTile extends ConsumerWidget {
                     Row(
                       children: [
                         if (task.taskEmoji != null) ...[
-                          Text(task.taskEmoji!, style: const TextStyle(fontSize: 16)),
+                          Text(
+                            task.taskEmoji!,
+                            style: const TextStyle(fontSize: 16),
+                          ),
                           const SizedBox(width: 6),
                         ],
                         Expanded(
                           child: TextScroll(
                             task.title,
                             mode: TextScrollMode.endless,
-                            velocity: const Velocity(pixelsPerSecond: Offset(30, 0)),
+                            velocity: const Velocity(
+                              pixelsPerSecond: Offset(30, 0),
+                            ),
                             delayBefore: const Duration(seconds: 2),
                             pauseBetween: const Duration(seconds: 2),
                             textDirection: TextDirection.rtl,
@@ -519,41 +624,59 @@ class TaskListTile extends ConsumerWidget {
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 15,
-                              decoration: task.status == TaskStatus.success ? TextDecoration.lineThrough : null,
-                              color: task.status == TaskStatus.success
-                                  ? Theme.of(context).colorScheme.onSurfaceVariant
+                              decoration:
+                                  (showDecoration &&
+                                      task.status == TaskStatus.success)
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                              color:
+                                  (showDecoration &&
+                                      task.status == TaskStatus.success)
+                                  ? Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant
                                   : Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ),
                       ],
                     ),
-                    if (task.priority != TaskPriority.medium || 
-                        task.categories.isNotEmpty || 
-                        (task.recurrence != null && task.recurrence!.type != RecurrenceType.none)) ...[
+                    if (task.priority != TaskPriority.medium ||
+                        task.categories.isNotEmpty ||
+                        (task.recurrence != null &&
+                            task.recurrence!.type != RecurrenceType.none)) ...[
                       const SizedBox(height: 4),
                       SizedBox(
                         height: 24,
                         child: _AutoScrollCapsules(
                           children: [
                             _buildPriorityCapsule(context),
-                            if (task.priority != TaskPriority.medium && task.categories.isNotEmpty)
+                            if (task.priority != TaskPriority.medium &&
+                                task.categories.isNotEmpty)
                               const SizedBox(width: 6),
                             _buildCategoryCapsules(context, ref),
-                            if (task.recurrence != null && task.recurrence!.type != RecurrenceType.none) ...[
-                              if (task.priority != TaskPriority.medium || task.categories.isNotEmpty)
+                            if (task.recurrence != null &&
+                                task.recurrence!.type !=
+                                    RecurrenceType.none) ...[
+                              if (task.priority != TaskPriority.medium ||
+                                  task.categories.isNotEmpty)
                                 const SizedBox(width: 6),
                               Container(
                                 padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withValues(alpha: 0.1),
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
+                                  border: Border.all(
+                                    color: Theme.of(context).colorScheme.primary
+                                        .withValues(alpha: 0.2),
+                                  ),
                                 ),
                                 child: HugeIcon(
-                                  icon: HugeIcons.strokeRoundedRepeat, 
-                                  size: 12, 
-                                  color: Theme.of(context).colorScheme.primary
+                                  icon: HugeIcons.strokeRoundedRepeat,
+                                  size: 12,
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
                             ],
@@ -565,22 +688,30 @@ class TaskListTile extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              isSelectionMode 
-                ? ReorderableDragStartListener(
-                    index: index,
-                    child: IconButton(
-                      icon: const HugeIcon(icon: HugeIcons.strokeRoundedMove, size: 24, color: Colors.grey),
+              isSelectionMode
+                  ? ReorderableDragStartListener(
+                      index: index,
+                      child: IconButton(
+                        icon: const HugeIcon(
+                          icon: HugeIcons.strokeRoundedMove,
+                          size: 24,
+                          color: Colors.grey,
+                        ),
+                        padding: const EdgeInsets.all(10),
+                        constraints: const BoxConstraints(),
+                        onPressed: null, // Drag handle, not clickable
+                      ),
+                    )
+                  : IconButton(
+                      icon: const HugeIcon(
+                        icon: HugeIcons.strokeRoundedMoreVertical,
+                        size: 22,
+                        color: Colors.grey,
+                      ),
                       padding: const EdgeInsets.all(10),
                       constraints: const BoxConstraints(),
-                      onPressed: null, // Drag handle, not clickable
+                      onPressed: () => _showTaskOptions(context, ref, task),
                     ),
-                  )
-                : IconButton(
-                    icon: const HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical, size: 22, color: Colors.grey),
-                    padding: const EdgeInsets.all(10),
-                    constraints: const BoxConstraints(),
-                    onPressed: () => _showTaskOptions(context, ref, task),
-                  ),
             ],
           ),
         ),
@@ -601,7 +732,9 @@ class TaskListTile extends ConsumerWidget {
           } else {
             // Swipe Left: Done
             HapticFeedback.mediumImpact();
-            ref.read(tasksProvider.notifier).updateStatus(task.id!, TaskStatus.success, date: task.dueDate);
+            ref
+                .read(tasksProvider.notifier)
+                .updateStatus(task.id!, TaskStatus.success, date: task.dueDate);
             return false;
           }
         },
@@ -611,7 +744,11 @@ class TaskListTile extends ConsumerWidget {
             alignment: Alignment.centerLeft,
             padding: const EdgeInsets.only(left: 20),
             decoration: BoxDecoration(color: Colors.green.shade400),
-            child: const HugeIcon(icon: HugeIcons.strokeRoundedCheckmarkCircle03, size: 24, color: Colors.white),
+            child: const HugeIcon(
+              icon: HugeIcons.strokeRoundedCheckmarkCircle03,
+              size: 24,
+              color: Colors.white,
+            ),
           ),
         ),
         background: ClipRRect(
@@ -620,7 +757,11 @@ class TaskListTile extends ConsumerWidget {
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.only(right: 20),
             decoration: BoxDecoration(color: Colors.orange.shade400),
-            child: const HugeIcon(icon: HugeIcons.strokeRoundedClock01, size: 24, color: Colors.white),
+            child: const HugeIcon(
+              icon: HugeIcons.strokeRoundedClock01,
+              size: 24,
+              color: Colors.white,
+            ),
           ),
         ),
         child: cardContent,
@@ -667,7 +808,11 @@ class TaskListTile extends ConsumerWidget {
           const SizedBox(width: 4),
           Text(
             _toPersianDigit(label),
-            style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 10,
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -686,10 +831,11 @@ class TaskListTile extends ConsumerWidget {
 
   Widget _buildCategoryCapsules(BuildContext context, WidgetRef ref) {
     if (task.categories.isEmpty) return const SizedBox.shrink();
-    
+
     final categories = task.categories;
-    
-    final allCategories = ref.watch(categoryProvider).valueOrNull ?? defaultCategories;
+
+    final allCategories =
+        ref.watch(categoryProvider).valueOrNull ?? defaultCategories;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -699,23 +845,26 @@ class TaskListTile extends ConsumerWidget {
         final catData = getCategoryById(catId, allCategories);
         final isDeleted = catData.isDeleted;
         final displayColor = isDeleted ? Colors.grey : catData.color;
-        
+
         return Container(
           margin: EdgeInsetsDirectional.only(start: index == 0 ? 0 : 6),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
             color: displayColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: displayColor.withValues(alpha: 0.3),
-            ),
+            border: Border.all(color: displayColor.withValues(alpha: 0.3)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Opacity(
                 opacity: isDeleted ? 0.5 : 1.0,
-                child: LottieCategoryIcon(assetPath: catData.emoji, width: 14, height: 14, repeat: false),
+                child: LottieCategoryIcon(
+                  assetPath: catData.emoji,
+                  width: 14,
+                  height: 14,
+                  repeat: false,
+                ),
               ),
               const SizedBox(width: 4),
               Text(
@@ -742,23 +891,41 @@ class TaskListTile extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => TaskOptionsSheet(
-        task: task,
-        date: task.dueDate,
-      ),
+      builder: (context) => TaskOptionsSheet(task: task, date: task.dueDate),
     );
   }
 
-  Widget _getStatusIconForTile(Task task, BuildContext context, WidgetRef ref, VoidCallback onToggle) {
+  Widget _getStatusIconForTile(
+    Task task,
+    BuildContext context,
+    WidgetRef ref,
+    VoidCallback onToggle,
+  ) {
     dynamic icon;
     Color color;
 
     switch (task.status) {
-      case TaskStatus.success: icon = HugeIcons.strokeRoundedCheckmarkCircle03; color = Colors.green; break;
-      case TaskStatus.failed: icon = HugeIcons.strokeRoundedCancelCircle; color = Colors.red; break;
-      case TaskStatus.cancelled: icon = HugeIcons.strokeRoundedMinusSignCircle; color = Colors.grey; break;
-      case TaskStatus.deferred: icon = HugeIcons.strokeRoundedClock01; color = Colors.orange; break;
-      case TaskStatus.pending: icon = Theme.of(context).colorScheme.outline; icon = HugeIcons.strokeRoundedCircle; color = Theme.of(context).colorScheme.outline; break;
+      case TaskStatus.success:
+        icon = HugeIcons.strokeRoundedCheckmarkCircle03;
+        color = Colors.green;
+        break;
+      case TaskStatus.failed:
+        icon = HugeIcons.strokeRoundedCancelCircle;
+        color = Colors.red;
+        break;
+      case TaskStatus.cancelled:
+        icon = HugeIcons.strokeRoundedMinusSignCircle;
+        color = Colors.grey;
+        break;
+      case TaskStatus.deferred:
+        icon = HugeIcons.strokeRoundedClock01;
+        color = Colors.orange;
+        break;
+      case TaskStatus.pending:
+        icon = Theme.of(context).colorScheme.outline;
+        icon = HugeIcons.strokeRoundedCircle;
+        color = Theme.of(context).colorScheme.outline;
+        break;
     }
 
     return InkWell(
@@ -767,8 +934,8 @@ class TaskListTile extends ConsumerWidget {
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
       onLongPress: () {
-         HapticFeedback.heavyImpact();
-         showModalBottomSheet(
+        HapticFeedback.heavyImpact();
+        showModalBottomSheet(
           context: context,
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
@@ -809,7 +976,7 @@ class _AutoScrollCapsulesState extends State<_AutoScrollCapsules> {
 
   void _startScrolling() async {
     if (!_scrollController.hasClients) return;
-    
+
     // Wait for the next frame to ensure maxScrollExtent is calculated
     await Future.delayed(const Duration(milliseconds: 100));
     if (!_scrollController.hasClients) return;
@@ -825,16 +992,16 @@ class _AutoScrollCapsulesState extends State<_AutoScrollCapsules> {
     while (_scrollController.hasClients && _shouldScroll) {
       await Future.delayed(const Duration(seconds: 2));
       if (!_scrollController.hasClients) break;
-      
+
       await _scrollController.animateTo(
         maxScroll,
         duration: Duration(milliseconds: (maxScroll * 40).toInt()),
         curve: Curves.linear,
       );
-      
+
       await Future.delayed(const Duration(seconds: 2));
       if (!_scrollController.hasClients) break;
-      
+
       await _scrollController.animateTo(
         0,
         duration: Duration(milliseconds: (maxScroll * 40).toInt()),
@@ -848,11 +1015,10 @@ class _AutoScrollCapsulesState extends State<_AutoScrollCapsules> {
     return SingleChildScrollView(
       controller: _scrollController,
       scrollDirection: Axis.horizontal,
-      physics: _shouldScroll ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: widget.children,
-      ),
+      physics: _shouldScroll
+          ? const NeverScrollableScrollPhysics()
+          : const BouncingScrollPhysics(),
+      child: Row(mainAxisSize: MainAxisSize.min, children: widget.children),
     );
   }
 }
