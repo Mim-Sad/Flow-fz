@@ -21,15 +21,15 @@ class SearchRouteBuilder {
     final params = <String, String>{};
 
     if (query != null && query.isNotEmpty) {
-      params['q'] = Uri.encodeComponent(query);
+      params['q'] = query;
     }
 
     if (categories != null && categories.isNotEmpty) {
-      params['cat'] = categories.map((c) => Uri.encodeComponent(c)).join(',');
+      params['cat'] = categories.join(',');
     }
 
     if (tags != null && tags.isNotEmpty) {
-      params['tag'] = tags.map((t) => Uri.encodeComponent(t)).join(',');
+      params['tag'] = tags.join(',');
     }
 
     if (specificDate != null) {
@@ -67,15 +67,12 @@ class SearchRouteBuilder {
       params['view'] = viewStyle == ViewStyle.list ? 'list' : 'compact';
     }
 
-    if (params.isEmpty) {
-      return '/search';
+    if (viewStyle != null) {
+      params['view'] = viewStyle == ViewStyle.list ? 'list' : 'compact';
     }
 
-    final queryString = params.entries
-        .map((e) => '${e.key}=${e.value}')
-        .join('&');
-
-    return '/search?$queryString';
+    final uri = Uri(path: '/search', queryParameters: params);
+    return uri.toString();
   }
 
   /// Parses search parameters from URL query string
@@ -96,23 +93,36 @@ class SearchRouteBuilder {
     }
 
     return SearchParams(
-      query: queryParams['q'] != null ? Uri.decodeComponent(queryParams['q']!) : null,
-      categories: queryParams['cat']?.split(',').map((c) => Uri.decodeComponent(c)).toList(),
-      tags: queryParams['tag']?.split(',').map((t) => Uri.decodeComponent(t)).toList(),
-      dateFrom: queryParams['specificDate'] == null && queryParams['dateFrom'] != null
+      query: queryParams['q'],
+      categories: queryParams['cat']
+          ?.split(',')
+          .where((s) => s.isNotEmpty)
+          .toList(),
+      tags: queryParams['tag']?.split(',').where((s) => s.isNotEmpty).toList(),
+      dateFrom:
+          queryParams['specificDate'] == null && queryParams['dateFrom'] != null
           ? _parseDate(queryParams['dateFrom']!)
           : null,
-      dateTo: queryParams['specificDate'] == null && queryParams['dateTo'] != null
+      dateTo:
+          queryParams['specificDate'] == null && queryParams['dateTo'] != null
           ? _parseDate(queryParams['dateTo']!)
           : null,
       specificDate: queryParams['specificDate'] != null
           ? _parseDate(queryParams['specificDate']!)
           : null,
-      priority: queryParams['priority'] != null ? _stringToPriority(queryParams['priority']!) : null,
+      priority: queryParams['priority'] != null
+          ? _stringToPriority(queryParams['priority']!)
+          : null,
       statuses: statuses,
-      status: statuses?.isNotEmpty == true ? statuses!.first : null, // Legacy support
-      isRecurring: queryParams['recurring'] != null ? queryParams['recurring'] == 'true' : null,
-      sortOption: queryParams['sort'] != null ? _stringToSortOption(queryParams['sort']!) : null,
+      status: statuses?.isNotEmpty == true
+          ? statuses!.first
+          : null, // Legacy support
+      isRecurring: queryParams['recurring'] != null
+          ? queryParams['recurring'] == 'true'
+          : null,
+      sortOption: queryParams['sort'] != null
+          ? _stringToSortOption(queryParams['sort']!)
+          : null,
       viewStyle: queryParams['view'] != null
           ? (queryParams['view'] == 'list' ? ViewStyle.list : ViewStyle.compact)
           : null,
@@ -271,4 +281,3 @@ class SearchParams {
     this.viewStyle,
   });
 }
-

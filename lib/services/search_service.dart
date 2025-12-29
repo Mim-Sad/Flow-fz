@@ -1,4 +1,5 @@
 import '../models/task.dart';
+import '../utils/string_utils.dart';
 
 enum SortOption {
   dateAsc,
@@ -94,16 +95,22 @@ class SearchService {
 
     // Apply text search
     if (filters.query != null && filters.query!.isNotEmpty) {
-      final query = filters.query!.toLowerCase().trim();
+      final normalizedQuery = StringUtils.normalize(filters.query!);
       results = results.where((task) {
-        final titleMatch = task.title.toLowerCase().contains(query);
-        final descMatch =
-            task.description?.toLowerCase().contains(query) ?? false;
+        final normalizedTitle = StringUtils.normalize(task.title);
+        final normalizedDesc = task.description != null
+            ? StringUtils.normalize(task.description!)
+            : '';
+
+        final titleMatch = normalizedTitle.contains(normalizedQuery);
+        final descMatch = normalizedDesc.contains(normalizedQuery);
         final tagsMatch = task.tags.any(
-          (tag) => tag.toLowerCase().contains(query),
+          (tag) => StringUtils.normalize(tag).contains(normalizedQuery),
         );
         final categoriesMatch = task.categories.any(
-          (cat) => cat.toLowerCase().contains(query),
+          (cat) => cat.toLowerCase().contains(
+            normalizedQuery,
+          ), // Categories are usually IDs
         );
         return titleMatch || descMatch || tagsMatch || categoriesMatch;
       }).toList();
@@ -118,8 +125,13 @@ class SearchService {
 
     // Apply tag filter
     if (filters.tags != null && filters.tags!.isNotEmpty) {
+      final normalizedFiltersTags = filters.tags!
+          .map((t) => StringUtils.normalize(t))
+          .toSet();
       results = results.where((task) {
-        return task.tags.any((tag) => filters.tags!.contains(tag));
+        return task.tags.any(
+          (tag) => normalizedFiltersTags.contains(StringUtils.normalize(tag)),
+        );
       }).toList();
     }
 

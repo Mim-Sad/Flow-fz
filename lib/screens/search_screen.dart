@@ -47,52 +47,43 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _applyInitialParams(Map<String, String> params) {
-    final parsed = SearchRouteBuilder.parseSearchParams(params);
     final searchNotifier = ref.read(searchProvider.notifier);
 
-    if (parsed.query != null) {
+    if (params.isEmpty) {
+      searchNotifier.reset();
+      _searchController.clear();
+      return;
+    }
+
+    final parsed = SearchRouteBuilder.parseSearchParams(params);
+
+    // Update controller
+    if (parsed.query != null && parsed.query!.isNotEmpty) {
       _searchController.text = parsed.query!;
-      searchNotifier.setQuery(parsed.query!);
+    } else {
+      _searchController.clear();
     }
 
-    if (parsed.categories != null) {
-      searchNotifier.setCategories(parsed.categories);
-    }
+    // Prepare filters
+    final filters = SearchFilters(
+      query: parsed.query,
+      categories: parsed.categories,
+      tags: parsed.tags,
+      dateFrom: parsed.dateFrom,
+      dateTo: parsed.dateTo,
+      specificDate: parsed.specificDate,
+      priority: parsed.priority,
+      statuses: parsed.statuses,
+      isRecurring: parsed.isRecurring,
+    );
 
-    if (parsed.tags != null) {
-      searchNotifier.setTags(parsed.tags);
-    }
-
-    if (parsed.dateFrom != null || parsed.dateTo != null) {
-      searchNotifier.setDateRange(parsed.dateFrom, parsed.dateTo);
-    }
-
-    if (parsed.priority != null) {
-      searchNotifier.setPriority(parsed.priority);
-    }
-
-    if (parsed.statuses != null && parsed.statuses!.isNotEmpty) {
-      searchNotifier.setStatuses(parsed.statuses);
-    } else if (parsed.status != null) {
-      // Legacy support - convert single status to list
-      searchNotifier.setStatuses([parsed.status!]);
-    }
-
-    if (parsed.specificDate != null) {
-      searchNotifier.setSpecificDate(parsed.specificDate);
-    }
-
-    if (parsed.isRecurring != null) {
-      searchNotifier.setRecurring(parsed.isRecurring);
-    }
-
-    if (parsed.sortOption != null) {
-      searchNotifier.setSortOption(parsed.sortOption!);
-    }
-
-    if (parsed.viewStyle != null) {
-      searchNotifier.setViewStyle(parsed.viewStyle!);
-    }
+    // Apply everything at once
+    searchNotifier.updateSearchState(
+      query: parsed.query ?? '',
+      filters: filters,
+      sortOption: parsed.sortOption,
+      viewStyle: parsed.viewStyle,
+    );
   }
 
   @override
@@ -1374,152 +1365,154 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                         onSubmitted: (val) => _addTag(val),
                       ),
                       // Suggestions
-                      if (_tagController.text.isNotEmpty) ...[
-                        Consumer(
-                          builder: (context, ref, child) {
-                            final suggestions = ref.watch(
-                              tagSuggestionsProvider(_tagController.text),
-                            );
-                            final filteredSuggestions = suggestions
-                                .where(
-                                  (s) => !StringUtils.containsTag(
-                                    _filters.tags ?? [],
-                                    s,
-                                  ),
-                                )
-                                .take(5)
-                                .toList();
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final suggestions = _tagController.text.isEmpty
+                              ? ref.watch(allTagsProvider)
+                              : ref.watch(
+                                  tagSuggestionsProvider(_tagController.text),
+                                );
+                          final filteredSuggestions = suggestions
+                              .where(
+                                (s) => !StringUtils.containsTag(
+                                  _filters.tags ?? [],
+                                  s,
+                                ),
+                              )
+                              .take(10)
+                              .toList();
 
-                            if (filteredSuggestions.isEmpty)
-                              return const SizedBox.shrink();
+                          if (filteredSuggestions.isEmpty)
+                            return const SizedBox.shrink();
 
-                            return Padding(
-                              padding: const EdgeInsets.fromLTRB(0, 12, 0, 0),
-                              child: Center(
-                                child: Wrap(
-                                  alignment: WrapAlignment.center,
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: filteredSuggestions
-                                      .map(
-                                        (suggestion) => ActionChip(
-                                          label: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text(
-                                                suggestion,
-                                                style: const TextStyle(
-                                                  fontSize: 11,
-                                                ),
+                          return Padding(
+                            padding: const EdgeInsets.fromLTRB(0, 12, 0, 0),
+                            child: Center(
+                              child: Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: filteredSuggestions
+                                    .map(
+                                      (suggestion) => ActionChip(
+                                        label: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              suggestion,
+                                              style: const TextStyle(
+                                                fontSize: 11,
                                               ),
-                                              const SizedBox(width: 4),
-                                              Icon(
-                                                Icons.add,
-                                                size: 14,
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.primary,
-                                              ),
-                                            ],
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Icon(
+                                              Icons.add,
+                                              size: 14,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                            ),
+                                          ],
+                                        ),
+                                        onPressed: () => _addTag(suggestion),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
                                           ),
-                                          onPressed: () => _addTag(suggestion),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              10,
+                                        ),
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .primaryContainer
+                                            .withValues(alpha: 0.3),
+                                        side: BorderSide(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary
+                                              .withValues(alpha: 0.2),
+                                        ),
+                                        materialTapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 0,
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      // Added Tags
+                      if (_filters.tags != null && _filters.tags!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Center(
+                            child: Wrap(
+                              alignment: WrapAlignment.center,
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: _filters.tags!
+                                  .map(
+                                    (tag) => ActionChip(
+                                      label: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            tag,
+                                            style: const TextStyle(
+                                              fontSize: 11,
                                             ),
                                           ),
-                                          backgroundColor: Theme.of(context)
-                                              .colorScheme
-                                              .primaryContainer
-                                              .withValues(alpha: 0.3),
-                                          side: BorderSide(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .primary
-                                                .withValues(alpha: 0.2),
+                                          const SizedBox(width: 4),
+                                          Icon(
+                                            Icons.close,
+                                            size: 14,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.secondary,
                                           ),
-                                          materialTapTargetSize:
-                                              MaterialTapTargetSize.shrinkWrap,
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 0,
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                      // Added Tags
-                      if (_filters.tags != null &&
-                          _filters.tags!.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Center(
-                          child: Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: _filters.tags!
-                                .map(
-                                  (tag) => ActionChip(
-                                    label: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          tag,
-                                          style: const TextStyle(fontSize: 11),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Icon(
-                                          Icons.close,
-                                          size: 14,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.secondary,
-                                        ),
-                                      ],
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        final current = List<String>.from(
-                                          _filters.tags ?? [],
-                                        );
-                                        current.remove(tag);
-                                        _filters = _filters.copyWith(
-                                          tags: current.isEmpty
-                                              ? null
-                                              : current,
-                                        );
-                                      });
-                                    },
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    backgroundColor: Theme.of(context)
-                                        .colorScheme
-                                        .secondaryContainer
-                                        .withValues(alpha: 0.3),
-                                    side: BorderSide(
-                                      color: Theme.of(context)
+                                        ],
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          final current = List<String>.from(
+                                            _filters.tags ?? [],
+                                          );
+                                          current.remove(tag);
+                                          _filters = _filters.copyWith(
+                                            tags: current.isEmpty
+                                                ? null
+                                                : current,
+                                          );
+                                        });
+                                      },
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      backgroundColor: Theme.of(context)
                                           .colorScheme
-                                          .secondary
-                                          .withValues(alpha: 0.2),
+                                          .secondaryContainer
+                                          .withValues(alpha: 0.3),
+                                      side: BorderSide(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .secondary
+                                            .withValues(alpha: 0.2),
+                                      ),
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 0,
+                                      ),
                                     ),
-                                    materialTapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 0,
-                                    ),
-                                  ),
-                                )
-                                .toList(),
+                                  )
+                                  .toList(),
+                            ),
                           ),
                         ),
-                      ],
                       const SizedBox(height: 24),
                       // Priority - Similar to add_task_screen
                       Center(

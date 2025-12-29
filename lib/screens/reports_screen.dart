@@ -248,36 +248,47 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       'کل تسک‌ها',
                       Theme.of(context).colorScheme.primary,
                       filteredTasks.length,
+                      range,
                     ),
                     _buildLegendItem(
                       context,
                       'موفق',
                       Colors.greenAccent,
                       successCount,
+                      range,
+                      status: TaskStatus.success,
                     ),
                     _buildLegendItem(
                       context,
                       'ناموفق',
                       Colors.redAccent,
                       failedCount,
+                      range,
+                      status: TaskStatus.failed,
                     ),
                     _buildLegendItem(
                       context,
                       'لغو شده',
                       Colors.grey,
                       cancelledCount,
+                      range,
+                      status: TaskStatus.cancelled,
                     ),
                     _buildLegendItem(
                       context,
                       'تعویق',
                       Colors.orangeAccent,
                       deferredCount,
+                      range,
+                      status: TaskStatus.deferred,
                     ),
                     _buildLegendItem(
                       context,
                       'در جریان',
                       Theme.of(context).colorScheme.surfaceContainerHigh,
                       pendingCount,
+                      range,
+                      status: TaskStatus.pending,
                     ),
                   ],
                 ),
@@ -645,46 +656,59 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'بهره‌وری شما',
-                style: TextStyle(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                percentage < 0
-                    ? 'داده‌ای نداریم'
-                    : '${_toPersianDigit(percentage.toStringAsFixed(1))}%',
-                style: TextStyle(
-                  color: _getSpectrumColor(percentage),
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  height: 1,
-                ),
-              ),
-            ],
+    return InkWell(
+      onTap: () {
+        final range = _getRange();
+        context.push(
+          SearchRouteBuilder.buildSearchUrl(
+            dateFrom: range.start,
+            dateTo: range.end,
+            statuses: [TaskStatus.success, TaskStatus.failed],
           ),
-          Icon(
-            Icons.insights_rounded,
-            color: _getSpectrumColor(percentage),
-            size: 40,
-          ),
-        ],
+        );
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'بهره‌وری شما',
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  percentage < 0
+                      ? 'داده‌ای نداریم'
+                      : '${_toPersianDigit(percentage.toStringAsFixed(1))}%',
+                  style: TextStyle(
+                    color: _getSpectrumColor(percentage),
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    height: 1,
+                  ),
+                ),
+              ],
+            ),
+            Icon(
+              Icons.insights_rounded,
+              color: _getSpectrumColor(percentage),
+              size: 40,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -990,30 +1014,61 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     String label,
     Color color,
     int count,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    DateTimeRange range, {
+    TaskStatus? status,
+  }) {
+    return InkWell(
+      onTap: () {
+        context.push(
+          SearchRouteBuilder.buildSearchUrl(
+            dateFrom: range.start,
+            dateTo: range.end,
+            statuses: status != null ? [status] : null,
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(fontSize: 12),
-              overflow: TextOverflow.ellipsis,
+        );
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+        child: Row(
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
-          ),
-          Text(
-            _toPersianDigit(count.toString()),
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-          ),
-        ],
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(fontSize: 12),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Text(
+              _toPersianDigit(count.toString()),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  DateTimeRange _getRange() {
+    if (_viewMode == 0) {
+      return DateTimeRange(start: _selectedDate, end: _selectedDate);
+    } else if (_viewMode == 1) {
+      final startOfWeek = _selectedDate.subtract(
+        Duration(days: (_selectedDate.weekday + 1) % 7),
+      );
+      final endOfWeek = startOfWeek.add(const Duration(days: 6));
+      return DateTimeRange(start: startOfWeek, end: endOfWeek);
+    } else {
+      final jSelected = Jalali.fromDateTime(_selectedDate);
+      final jStart = jSelected.copy(day: 1);
+      final jEnd = jSelected.copy(day: jSelected.monthLength);
+      return DateTimeRange(start: jStart.toDateTime(), end: jEnd.toDateTime());
+    }
   }
 }
