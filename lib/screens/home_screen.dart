@@ -199,45 +199,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     )
                                     .animate(
                                       onPlay: (controller) =>
-                                          controller.repeat(),
+                                          controller.repeat(reverse: true),
                                     )
                                     .scale(
-                                      begin: const Offset(0.7, 0.7),
+                                      begin: const Offset(0.85, 0.85),
                                       end: const Offset(1.0, 1.0),
-                                      duration: 800.ms,
-                                      curve: Curves.elasticOut,
-                                    )
-                                    .rotate(
-                                      begin: 0,
-                                      end: 0.1,
-                                      duration: 800.ms,
+                                      duration: 1200.ms,
                                       curve: Curves.easeInOut,
                                     )
-                                    .then()
-                                    .scale(
-                                      begin: const Offset(1.0, 1.0),
-                                      end: const Offset(0.7, 0.7),
-                                      duration: 800.ms,
+                                    .fade(
+                                      begin: 0.6,
+                                      end: 1.0,
+                                      duration: 1200.ms,
                                       curve: Curves.easeInOut,
-                                    )
-                                    .rotate(
-                                      begin: 0.1,
-                                      end: 0,
-                                      duration: 800.ms,
-                                      curve: Curves.easeInOut,
-                                    )
-                                    .animate(
-                                      onPlay: (controller) =>
-                                          controller.repeat(),
-                                    )
-                                    .shimmer(
-                                      duration: 2000.ms,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primaryContainer,
-                                    )
-                                    .then()
-                                    .shake(hz: 1),
+                                    ),
                               ],
                             ),
                           ),
