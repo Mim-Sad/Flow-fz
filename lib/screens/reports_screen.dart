@@ -828,9 +828,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           : '${_toPersianDigit(percentage.toStringAsFixed(1))}%',
                       style: TextStyle(
                         color: statColor,
-                        fontSize: 22,
+                        fontSize: !hasData ? 18 : 22,
                         fontWeight: FontWeight.bold,
-                        height: 1,
+                        height: !hasData ? 1.2 : 1,
                       ),
                     ),
                   ],
@@ -846,47 +846,53 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             Row(
               children: [
                 Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: !hasData
-                        ? [
-                            Padding(
-                              padding: EdgeInsets.symmetric(vertical: 10),
-                              child: Text(
+                  child: Container(
+                    height: 45,
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: !hasData
+                          ? [
+                              Text(
                                 'داده‌ای نداریم',
                                 style: TextStyle(
                                   color: theme.colorScheme.onSurfaceVariant
                                       .withValues(alpha: 0.7),
                                   fontSize: 12,
+                                  height: 1.2,
                                 ),
                               ),
-                            ),
-                          ]
-                        : [
-                            getChangeIcon(changeFromPrev),
-                            const SizedBox(width: 4),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  formatChange(changeFromPrev),
-                                  style: TextStyle(
-                                    color: getChangeColor(changeFromPrev),
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
+                            ]
+                          : [
+                              getChangeIcon(changeFromPrev),
+                              const SizedBox(width: 4),
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    formatChange(changeFromPrev),
+                                    style: TextStyle(
+                                      color: getChangeColor(changeFromPrev),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      height: 1.2,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  'نسبت به $periodLabel',
-                                  style: TextStyle(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    fontSize: 10,
+                                  Text(
+                                    'نسبت به $periodLabel',
+                                    style: TextStyle(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                      fontSize: 10,
+                                      height: 1.2,
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                ],
+                              ),
+                            ],
+                    ),
                   ),
                 ),
                 Container(
@@ -897,47 +903,53 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ),
                 ),
                 Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: !hasData
-                        ? [
-                            Padding(
-                              padding: EdgeInsets.symmetric(vertical: 10),
-                              child: Text(
+                  child: Container(
+                    height: 45,
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: !hasData
+                          ? [
+                              Text(
                                 'داده‌ای نداریم',
                                 style: TextStyle(
                                   color: theme.colorScheme.onSurfaceVariant
                                       .withValues(alpha: 0.7),
                                   fontSize: 12,
+                                  height: 1.2,
                                 ),
                               ),
-                            ),
-                          ]
-                        : [
-                            getChangeIcon(changeFromAvg),
-                            const SizedBox(width: 4),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  formatChange(changeFromAvg),
-                                  style: TextStyle(
-                                    color: getChangeColor(changeFromAvg),
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
+                            ]
+                          : [
+                              getChangeIcon(changeFromAvg),
+                              const SizedBox(width: 4),
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    formatChange(changeFromAvg),
+                                    style: TextStyle(
+                                      color: getChangeColor(changeFromAvg),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      height: 1.2,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  'نسبت به میانگین کل',
-                                  style: TextStyle(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    fontSize: 10,
+                                  Text(
+                                    'نسبت به میانگین کل',
+                                    style: TextStyle(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                      fontSize: 10,
+                                      height: 1.2,
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                ],
+                              ),
+                            ],
+                    ),
                   ),
                 ),
               ],
