@@ -32,16 +32,18 @@ class DatabaseService {
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
-    
+
     // Migrate old attachments to media table on startup
     await _migrateOldAttachments(db);
-    
+
     return db;
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      await db.execute('ALTER TABLE tasks ADD COLUMN position INTEGER NOT NULL DEFAULT 0');
+      await db.execute(
+        'ALTER TABLE tasks ADD COLUMN position INTEGER NOT NULL DEFAULT 0',
+      );
     }
     if (oldVersion < 3) {
       await db.execute('ALTER TABLE tasks ADD COLUMN categories TEXT');
@@ -65,10 +67,14 @@ class DatabaseService {
       ''');
     }
     if (oldVersion < 6) {
-      await db.execute('ALTER TABLE categories ADD COLUMN position INTEGER NOT NULL DEFAULT 0');
+      await db.execute(
+        'ALTER TABLE categories ADD COLUMN position INTEGER NOT NULL DEFAULT 0',
+      );
     }
     if (oldVersion < 7) {
-      await db.execute('ALTER TABLE tasks ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0');
+      await db.execute(
+        'ALTER TABLE tasks ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0',
+      );
       await db.execute('ALTER TABLE tasks ADD COLUMN deletedAt TEXT');
       await db.execute('ALTER TABLE tasks ADD COLUMN updatedAt TEXT');
 
@@ -106,14 +112,16 @@ class DatabaseService {
     }
     if (oldVersion < 13) {
       // Version 13: Migration to remove 'status' column from tasks table
-      // SQLite doesn't support DROP COLUMN directly in older versions, 
+      // SQLite doesn't support DROP COLUMN directly in older versions,
       // but we can just leave it or do the table swap dance.
       // For safety and simplicity in mobile DBs, we'll keep the column but stop using it.
       // However, we should migrate any existing 'status' data to 'statusHistory' if not already done.
-      
+
       final List<Map<String, dynamic>> tasks = await db.query('tasks');
       for (var taskMap in tasks) {
-        if (taskMap['status'] != null && (taskMap['statusHistory'] == null || taskMap['statusHistory'] == '{}')) {
+        if (taskMap['status'] != null &&
+            (taskMap['statusHistory'] == null ||
+                taskMap['statusHistory'] == '{}')) {
           final dueDate = taskMap['dueDate'].toString().split('T')[0];
           final status = taskMap['status'];
           final history = json.encode({dueDate: status});
@@ -129,7 +137,7 @@ class DatabaseService {
     if (oldVersion < 14) {
       // Version 14: Create media table for attachments
       await _createMediaTable(db);
-      
+
       // Ensure mimeType column exists (in case table was created without it)
       try {
         await db.execute('ALTER TABLE media ADD COLUMN mimeType TEXT');
@@ -144,11 +152,13 @@ class DatabaseService {
       try {
         // Check if media table exists
         final tableInfo = await db.rawQuery('PRAGMA table_info(media)');
-        final hasFileType = tableInfo.any((column) => column['name'] == 'fileType');
-        
+        final hasFileType = tableInfo.any(
+          (column) => column['name'] == 'fileType',
+        );
+
         if (hasFileType) {
           debugPrint('fileType column exists, recreating media table...');
-          
+
           // Create new table with correct structure
           await db.execute('''
             CREATE TABLE IF NOT EXISTS media_new(
@@ -161,7 +171,7 @@ class DatabaseService {
               taskId INTEGER
             )
           ''');
-          
+
           // Copy data from old table to new table (excluding fileType)
           // Use COALESCE to handle NULL values
           await db.execute('''
@@ -171,18 +181,18 @@ class DatabaseService {
                    createdAt, taskId
             FROM media
           ''');
-          
+
           // Drop old table
           await db.execute('DROP TABLE media');
-          
+
           // Rename new table
           await db.execute('ALTER TABLE media_new RENAME TO media');
-          
+
           debugPrint('✅ Media table recreated successfully without fileType');
         } else {
           debugPrint('fileType column does not exist, no migration needed');
         }
-        
+
         // Ensure mimeType column exists
         try {
           await db.execute('ALTER TABLE media ADD COLUMN mimeType TEXT');
@@ -207,12 +217,15 @@ class DatabaseService {
         debugPrint('Error adding deletedAt column: $e');
         // Column might already exist, ignore error
       }
-      
+
       // Merge duplicate categories by name (case-insensitive) and update tasks
       try {
-        final allCategories = await db.query('categories', orderBy: 'position ASC');
+        final allCategories = await db.query(
+          'categories',
+          orderBy: 'position ASC',
+        );
         final Map<String, List<Map<String, dynamic>>> categoriesByName = {};
-        
+
         // Group categories by lowercase label
         for (var cat in allCategories) {
           final labelLower = (cat['label'] as String? ?? '').toLowerCase();
@@ -221,37 +234,49 @@ class DatabaseService {
           }
           categoriesByName[labelLower]!.add(cat);
         }
-        
+
         // For each group with duplicates, keep the oldest one and merge others
         for (var entry in categoriesByName.entries) {
           final duplicates = entry.value;
           if (duplicates.length > 1) {
             // Sort by position (lower position = older)
-            duplicates.sort((a, b) => (a['position'] as int? ?? 0).compareTo(b['position'] as int? ?? 0));
+            duplicates.sort(
+              (a, b) => (a['position'] as int? ?? 0).compareTo(
+                b['position'] as int? ?? 0,
+              ),
+            );
             final keepCategory = duplicates.first;
             final keepId = keepCategory['id'] as String;
-            
-            debugPrint('Merging duplicate categories for "${entry.key}": keeping ${keepId}');
-            
+
+            debugPrint(
+              'Merging duplicate categories for "${entry.key}": keeping $keepId',
+            );
+
             // Update all tasks that reference duplicate categories to use the kept one
             for (var duplicate in duplicates.skip(1)) {
               final duplicateId = duplicate['id'] as String;
-              
+
               // Find all tasks with this category
-              final tasks = await db.query('tasks', where: 'categories LIKE ?', whereArgs: ['%$duplicateId%']);
-              
+              final tasks = await db.query(
+                'tasks',
+                where: 'categories LIKE ?',
+                whereArgs: ['%$duplicateId%'],
+              );
+
               for (var task in tasks) {
                 try {
                   final categoriesJson = task['categories'] as String? ?? '[]';
-                  final categories = List<String>.from(json.decode(categoriesJson));
-                  
+                  final categories = List<String>.from(
+                    json.decode(categoriesJson),
+                  );
+
                   if (categories.contains(duplicateId)) {
                     // Replace duplicate ID with kept ID
                     categories.remove(duplicateId);
                     if (!categories.contains(keepId)) {
                       categories.add(keepId);
                     }
-                    
+
                     await db.update(
                       'tasks',
                       {'categories': json.encode(categories)},
@@ -263,7 +288,7 @@ class DatabaseService {
                   debugPrint('Error updating task categories: $e');
                 }
               }
-              
+
               // Soft delete the duplicate category
               await db.update(
                 'categories',
@@ -274,13 +299,13 @@ class DatabaseService {
             }
           }
         }
-        
+
         // Update study category emoji to 74_BOTAN_OUT
         final studyCategory = allCategories.firstWhere(
           (c) => (c['id'] as String? ?? '').toLowerCase() == 'study',
           orElse: () => {},
         );
-        
+
         if (studyCategory.isNotEmpty) {
           await db.update(
             'categories',
@@ -289,18 +314,23 @@ class DatabaseService {
             whereArgs: [studyCategory['id']],
           );
         }
-        
+
         // Check if "تحصیلی" category exists, if not add it, if yes ensure it uses correct emoji
-        final academicExists = allCategories.any((c) => 
-          (c['label'] as String? ?? '').toLowerCase() == 'تحصیلی' ||
-          (c['id'] as String? ?? '').toLowerCase() == 'academic'
+        final academicExists = allCategories.any(
+          (c) =>
+              (c['label'] as String? ?? '').toLowerCase() == 'تحصیلی' ||
+              (c['id'] as String? ?? '').toLowerCase() == 'academic',
         );
-        
+
         if (!academicExists) {
           // Add new academic category
-          final maxPosition = allCategories.isEmpty ? 0 : 
-            (allCategories.map((c) => c['position'] as int? ?? 0).reduce((a, b) => a > b ? a : b) + 1);
-          
+          final maxPosition = allCategories.isEmpty
+              ? 0
+              : (allCategories
+                        .map((c) => c['position'] as int? ?? 0)
+                        .reduce((a, b) => a > b ? a : b) +
+                    1);
+
           await db.insert('categories', {
             'id': 'academic',
             'label': 'تحصیلی',
@@ -311,12 +341,14 @@ class DatabaseService {
         } else {
           // Update existing academic category to use correct emoji
           final academicCategory = allCategories.firstWhere(
-            (c) => (c['label'] as String? ?? '').toLowerCase() == 'تحصیلی' ||
-                   (c['id'] as String? ?? '').toLowerCase() == 'academic',
+            (c) =>
+                (c['label'] as String? ?? '').toLowerCase() == 'تحصیلی' ||
+                (c['id'] as String? ?? '').toLowerCase() == 'academic',
             orElse: () => {},
           );
-          
-          if (academicCategory.isNotEmpty && academicCategory['emoji'] != DuckEmojis.academic) {
+
+          if (academicCategory.isNotEmpty &&
+              academicCategory['emoji'] != DuckEmojis.academic) {
             await db.update(
               'categories',
               {'emoji': DuckEmojis.academic},
@@ -397,7 +429,7 @@ class DatabaseService {
         deletedAt TEXT
       )
     ''');
-    
+
     // Insert default categories
     final batch = db.batch();
     for (var cat in defaultCategories) {
@@ -407,7 +439,9 @@ class DatabaseService {
   }
 
   // Categories CRUD
-  Future<List<CategoryData>> getAllCategories({bool includeDeleted = false}) async {
+  Future<List<CategoryData>> getAllCategories({
+    bool includeDeleted = false,
+  }) async {
     Database db = await database;
     List<Map<String, dynamic>> maps;
     if (includeDeleted) {
@@ -422,7 +456,7 @@ class DatabaseService {
     if (maps.isEmpty) return [];
     return List.generate(maps.length, (i) => CategoryData.fromMap(maps[i]));
   }
-  
+
   // Get category by ID (including deleted ones for task display)
   Future<CategoryData?> getCategoryById(String id) async {
     Database db = await database;
@@ -438,35 +472,39 @@ class DatabaseService {
 
   Future<int> insertCategory(CategoryData category) async {
     Database db = await database;
-    
+
     // Check for duplicate name (case-insensitive)
     final existing = await db.query(
       'categories',
       where: 'LOWER(label) = ? AND deletedAt IS NULL',
       whereArgs: [category.label.toLowerCase()],
     );
-    
+
     if (existing.isNotEmpty) {
       throw Exception('دسته‌بندی با این نام از قبل وجود دارد');
     }
-    
-    return await db.insert('categories', category.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+
+    return await db.insert(
+      'categories',
+      category.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<int> updateCategory(CategoryData category) async {
     Database db = await database;
-    
+
     // Check for duplicate name (case-insensitive), excluding current category
     final existing = await db.query(
       'categories',
       where: 'LOWER(label) = ? AND id != ? AND deletedAt IS NULL',
       whereArgs: [category.label.toLowerCase(), category.id],
     );
-    
+
     if (existing.isNotEmpty) {
       throw Exception('دسته‌بندی با این نام از قبل وجود دارد');
     }
-    
+
     return await db.update(
       'categories',
       category.toMap(),
@@ -506,7 +544,7 @@ class DatabaseService {
           final fileName = attachment.split('/').last;
           final fileSize = await file.length();
           final mimeType = _getMimeType(fileName);
-          
+
           final mediaId = await insertMedia(
             filePath: attachment,
             fileName: fileName,
@@ -518,9 +556,11 @@ class DatabaseService {
         }
       }
     }
-    
+
     // Update attachments with media IDs
-    map['attachments'] = json.encode(mediaIds.map((id) => id.toString()).toList());
+    map['attachments'] = json.encode(
+      mediaIds.map((id) => id.toString()).toList(),
+    );
 
     final id = await db.insert('tasks', map);
 
@@ -552,13 +592,15 @@ class DatabaseService {
       where: includeDeleted ? null : 'isDeleted = 0',
       orderBy: 'position ASC, dueDate ASC',
     );
-    
-    debugPrint("📥 DB: Fetched ${maps.length} tasks (includeDeleted: $includeDeleted)");
-    
+
+    debugPrint(
+      "📥 DB: Fetched ${maps.length} tasks (includeDeleted: $includeDeleted)",
+    );
+
     // Collect all media IDs from all tasks for batch lookup
     final Map<int, String> mediaIdToFilePath = {};
     final Set<int> allMediaIds = {};
-    
+
     for (var taskMap in maps) {
       final attachmentsJson = taskMap['attachments'] as String?;
       if (attachmentsJson != null && attachmentsJson.isNotEmpty) {
@@ -572,7 +614,7 @@ class DatabaseService {
         } catch (_) {}
       }
     }
-    
+
     // Batch fetch all media in one query
     if (allMediaIds.isNotEmpty) {
       final mediaList = await getMediaByIds(allMediaIds.toList());
@@ -580,7 +622,7 @@ class DatabaseService {
         mediaIdToFilePath[media['id'] as int] = media['filePath'] as String;
       }
     }
-    
+
     // Convert task maps and resolve media IDs to file paths
     List<Task> tasks = [];
     for (var i = 0; i < maps.length; i++) {
@@ -591,7 +633,7 @@ class DatabaseService {
           try {
             final List<dynamic> attachmentIds = json.decode(attachmentsJson);
             final List<String> filePaths = [];
-            
+
             for (var id in attachmentIds) {
               if (RegExp(r'^\d+$').hasMatch(id.toString())) {
                 final mediaId = int.parse(id.toString());
@@ -604,21 +646,25 @@ class DatabaseService {
                 filePaths.add(id.toString());
               }
             }
-            
+
             taskMap['attachments'] = json.encode(filePaths);
           } catch (e) {
-            debugPrint('Error converting media IDs to file paths for task ${taskMap['id']}: $e');
+            debugPrint(
+              'Error converting media IDs to file paths for task ${taskMap['id']}: $e',
+            );
             // Keep original attachments on error
           }
         }
-        
+
         tasks.add(Task.fromMap(taskMap));
       } catch (e) {
-        debugPrint("❌ Error parsing task at index $i (ID: ${maps[i]['id']}): $e");
+        debugPrint(
+          "❌ Error parsing task at index $i (ID: ${maps[i]['id']}): $e",
+        );
         // debugPrint("   Raw Data: ${maps[i]}");
       }
     }
-    
+
     debugPrint("✅ DB: Successfully parsed ${tasks.length} tasks");
     return tasks;
   }
@@ -631,7 +677,11 @@ class DatabaseService {
     if (task.id == null) return -1;
 
     // Get old media IDs
-    final oldTaskMap = (await db.query('tasks', where: 'id = ?', whereArgs: [task.id])).first;
+    final oldTaskMap = (await db.query(
+      'tasks',
+      where: 'id = ?',
+      whereArgs: [task.id],
+    )).first;
     final oldAttachmentsJson = oldTaskMap['attachments'] as String?;
     List<int> oldMediaIds = [];
     if (oldAttachmentsJson != null && oldAttachmentsJson.isNotEmpty) {
@@ -659,7 +709,7 @@ class DatabaseService {
             final fileName = attachment.toString().split('/').last;
             final fileSize = await file.length();
             final mimeType = _getMimeType(fileName);
-            
+
             final mediaId = await insertMedia(
               filePath: attachment.toString(),
               fileName: fileName,
@@ -679,7 +729,9 @@ class DatabaseService {
     }
 
     // Delete media that are no longer referenced
-    final mediaToDelete = oldMediaIds.where((id) => !newMediaIds.contains(id)).toList();
+    final mediaToDelete = oldMediaIds
+        .where((id) => !newMediaIds.contains(id))
+        .toList();
     for (var mediaId in mediaToDelete) {
       await deleteMedia(mediaId);
     }
@@ -687,14 +739,11 @@ class DatabaseService {
     final map = task.toMap();
     map.remove('id'); // Ensure we don't try to update the primary key column
     map['updatedAt'] = nowStr;
-    map['attachments'] = json.encode(newMediaIds.map((id) => id.toString()).toList());
-
-    await db.update(
-      'tasks',
-      map,
-      where: 'id = ?',
-      whereArgs: [task.id],
+    map['attachments'] = json.encode(
+      newMediaIds.map((id) => id.toString()).toList(),
     );
+
+    await db.update('tasks', map, where: 'id = ?', whereArgs: [task.id]);
 
     await insertTaskEvent(
       taskId: task.id!,
@@ -797,25 +846,31 @@ class DatabaseService {
     // Get all media files
     final db = await database;
     final allMedia = await db.query('media');
-    
+
     // Create ZIP archive
     final archive = Archive();
-    
+
     // Add JSON data file
     archive.addFile(ArchiveFile('data.json', jsonBytes.length, jsonBytes));
-    
+
     // Add all media files
     for (var media in allMedia) {
       final filePath = media['filePath'] as String;
       final fileName = media['fileName'] as String;
       final mediaId = media['id'] as int;
-      
+
       try {
         final file = File(filePath);
         if (await file.exists()) {
           final fileBytes = await file.readAsBytes();
           // Store in media/ folder with media ID prefix to avoid name conflicts
-          archive.addFile(ArchiveFile('media/${mediaId}_$fileName', fileBytes.length, fileBytes));
+          archive.addFile(
+            ArchiveFile(
+              'media/${mediaId}_$fileName',
+              fileBytes.length,
+              fileBytes,
+            ),
+          );
         } else {
           debugPrint('Media file not found: $filePath');
         }
@@ -823,15 +878,15 @@ class DatabaseService {
         debugPrint('Error reading media file $filePath: $e');
       }
     }
-    
+
     // Create ZIP file
     final zipEncoder = ZipEncoder();
     final zipBytes = zipEncoder.encode(archive);
-    
+
     if (zipBytes == null) {
       throw Exception('Failed to create ZIP archive');
     }
-    
+
     return Uint8List.fromList(zipBytes);
   }
 
@@ -848,28 +903,33 @@ class DatabaseService {
     } else {
       throw Exception('Invalid data format for import');
     }
-    
+
     try {
       await db.transaction((txn) async {
         // 1. Import Categories (Deduplicate by ID or label - Case Insensitive)
         Map<String, String> categoryIdMap = {}; // oldId -> newId
         if (data['categories'] != null) {
-          final categoriesList = (data['categories'] as List).cast<Map<String, dynamic>>();
+          final categoriesList = (data['categories'] as List)
+              .cast<Map<String, dynamic>>();
           debugPrint('Importing ${categoriesList.length} categories...');
-          
+
           // Get existing categories (including deleted ones for merging)
-          final existingCategories = await txn.query('categories', orderBy: 'position ASC');
-          
+          final existingCategories = await txn.query(
+            'categories',
+            orderBy: 'position ASC',
+          );
+
           // First, check for duplicates within imported categories and merge them
           final Map<String, List<Map<String, dynamic>>> importedByName = {};
           for (var catMap in categoriesList) {
-            final importLabel = (catMap['label']?.toString() ?? '').toLowerCase();
+            final importLabel = (catMap['label']?.toString() ?? '')
+                .toLowerCase();
             if (!importedByName.containsKey(importLabel)) {
               importedByName[importLabel] = [];
             }
             importedByName[importLabel]!.add(catMap);
           }
-          
+
           // Merge duplicates within imported data (keep the first one)
           final List<Map<String, dynamic>> deduplicatedImports = [];
           for (var entry in importedByName.entries) {
@@ -881,86 +941,92 @@ class DatabaseService {
                 final posB = b['position'] as int? ?? 999;
                 return posA.compareTo(posB);
               });
-              debugPrint('Merging duplicate imported categories for "${entry.key}": keeping first');
+              debugPrint(
+                'Merging duplicate imported categories for "${entry.key}": keeping first',
+              );
             }
             deduplicatedImports.add(duplicates.first);
           }
-          
+
           // Now process deduplicated imports against existing categories
           for (var catMap in deduplicatedImports) {
             final importId = catMap['id']?.toString() ?? '';
             final importLabel = catMap['label']?.toString() ?? '';
-            
+
             // Check if category with same ID or label exists (case-insensitive, excluding deleted)
-            final existing = existingCategories.firstWhere(
-              (c) {
-                final dbId = c['id']?.toString().toLowerCase();
-                final dbLabel = c['label']?.toString().toLowerCase();
-                final impIdLower = importId.toLowerCase();
-                final impLabelLower = importLabel.toLowerCase();
-                final isDeleted = c['deletedAt'] != null;
-                return !isDeleted && (dbId == impIdLower || dbLabel == impLabelLower);
-              },
-              orElse: () => {},
-            );
-            
+            final existing = existingCategories.firstWhere((c) {
+              final dbId = c['id']?.toString().toLowerCase();
+              final dbLabel = c['label']?.toString().toLowerCase();
+              final impIdLower = importId.toLowerCase();
+              final impLabelLower = importLabel.toLowerCase();
+              final isDeleted = c['deletedAt'] != null;
+              return !isDeleted &&
+                  (dbId == impIdLower || dbLabel == impLabelLower);
+            }, orElse: () => {});
+
             if (existing.isNotEmpty) {
               final existingId = existing['id'] as String;
               final existingPosition = existing['position'] as int? ?? 999;
               final importPosition = catMap['position'] as int? ?? 999;
-              
+
               // Keep the older category (lower position)
               if (importPosition < existingPosition) {
                 // Imported is older, update existing with imported data
                 categoryIdMap[importId] = existingId;
-                final updates = <String, dynamic>{
-                  'position': importPosition,
-                };
+                final updates = <String, dynamic>{'position': importPosition};
                 if (catMap['emoji'] != null) {
                   updates['emoji'] = catMap['emoji'];
                 }
                 if (catMap['color'] != null) {
                   updates['color'] = catMap['color'];
                 }
-                await txn.update('categories', updates, where: 'id = ?', whereArgs: [existingId]);
+                await txn.update(
+                  'categories',
+                  updates,
+                  where: 'id = ?',
+                  whereArgs: [existingId],
+                );
               } else {
                 // Existing is older, just map import ID to existing
                 categoryIdMap[importId] = existingId;
-                
+
                 // Update emoji or color if they changed (but keep existing position)
                 final updates = <String, dynamic>{};
-                if (catMap['emoji'] != null && catMap['emoji'] != existing['emoji']) {
+                if (catMap['emoji'] != null &&
+                    catMap['emoji'] != existing['emoji']) {
                   updates['emoji'] = catMap['emoji'];
                 }
-                if (catMap['color'] != null && catMap['color'] != existing['color']) {
+                if (catMap['color'] != null &&
+                    catMap['color'] != existing['color']) {
                   updates['color'] = catMap['color'];
                 }
-                
+
                 if (updates.isNotEmpty) {
-                  await txn.update('categories', updates, where: 'id = ?', whereArgs: [existingId]);
+                  await txn.update(
+                    'categories',
+                    updates,
+                    where: 'id = ?',
+                    whereArgs: [existingId],
+                  );
                 }
               }
             } else {
               // Check if there's a deleted category with same name to restore
-              final deleted = existingCategories.firstWhere(
-                (c) {
-                  final dbId = c['id']?.toString().toLowerCase();
-                  final dbLabel = c['label']?.toString().toLowerCase();
-                  final impIdLower = importId.toLowerCase();
-                  final impLabelLower = importLabel.toLowerCase();
-                  final isDeleted = c['deletedAt'] != null;
-                  return isDeleted && (dbId == impIdLower || dbLabel == impLabelLower);
-                },
-                orElse: () => {},
-              );
-              
+              final deleted = existingCategories.firstWhere((c) {
+                final dbId = c['id']?.toString().toLowerCase();
+                final dbLabel = c['label']?.toString().toLowerCase();
+                final impIdLower = importId.toLowerCase();
+                final impLabelLower = importLabel.toLowerCase();
+                final isDeleted = c['deletedAt'] != null;
+                return isDeleted &&
+                    (dbId == impIdLower || dbLabel == impLabelLower);
+              }, orElse: () => {});
+
               if (deleted.isNotEmpty) {
                 // Restore deleted category
                 final deletedId = deleted['id'] as String;
                 categoryIdMap[importId] = deletedId;
-                final updates = <String, dynamic>{
-                  'deletedAt': null,
-                };
+                final updates = <String, dynamic>{'deletedAt': null};
                 if (catMap['emoji'] != null) {
                   updates['emoji'] = catMap['emoji'];
                 }
@@ -970,26 +1036,34 @@ class DatabaseService {
                 if (catMap['position'] != null) {
                   updates['position'] = catMap['position'];
                 }
-                await txn.update('categories', updates, where: 'id = ?', whereArgs: [deletedId]);
+                await txn.update(
+                  'categories',
+                  updates,
+                  where: 'id = ?',
+                  whereArgs: [deletedId],
+                );
               } else {
                 // New category - check for duplicate name in existing (case-insensitive)
-                final duplicateName = existingCategories.firstWhere(
-                  (c) {
-                    final dbLabel = (c['label']?.toString() ?? '').toLowerCase();
-                    final impLabelLower = importLabel.toLowerCase();
-                    return dbLabel == impLabelLower;
-                  },
-                  orElse: () => {},
-                );
-                
+                final duplicateName = existingCategories.firstWhere((c) {
+                  final dbLabel = (c['label']?.toString() ?? '').toLowerCase();
+                  final impLabelLower = importLabel.toLowerCase();
+                  return dbLabel == impLabelLower;
+                }, orElse: () => {});
+
                 if (duplicateName.isNotEmpty) {
                   // Merge into existing category with same name
                   final duplicateId = duplicateName['id'] as String;
                   categoryIdMap[importId] = duplicateId;
-                  debugPrint('Merging imported category "$importLabel" into existing "$duplicateId"');
+                  debugPrint(
+                    'Merging imported category "$importLabel" into existing "$duplicateId"',
+                  );
                 } else {
                   // Truly new category
-                  await txn.insert('categories', catMap, conflictAlgorithm: ConflictAlgorithm.replace);
+                  await txn.insert(
+                    'categories',
+                    catMap,
+                    conflictAlgorithm: ConflictAlgorithm.replace,
+                  );
                   categoryIdMap[importId] = importId;
                 }
               }
@@ -1000,25 +1074,30 @@ class DatabaseService {
         // 2. Import Tasks (Deduplicate by title, description, and dueDate)
         Map<int, int> taskIdMap = {}; // oldId -> newId
         if (data['tasks'] != null) {
-          final tasksList = (data['tasks'] as List).cast<Map<String, dynamic>>();
+          final tasksList = (data['tasks'] as List)
+              .cast<Map<String, dynamic>>();
           debugPrint('Importing ${tasksList.length} tasks...');
-          
-          final existingTasks = await txn.query('tasks', where: 'isDeleted = 0');
-          
+
+          final existingTasks = await txn.query(
+            'tasks',
+            where: 'isDeleted = 0',
+          );
+
           for (var taskMap in tasksList) {
             final oldId = taskMap['id'] as int?; // Safe cast to nullable int
             final title = taskMap['title'] as String? ?? '';
             final description = taskMap['description'] as String?;
             final dueDate = taskMap['dueDate'] as String? ?? now;
-            
+
             // Basic deduplication: same title, description, and dueDate
             final duplicate = existingTasks.firstWhere(
-              (t) => t['title'] == title && 
-                     t['description'] == description && 
-                     t['dueDate'] == dueDate,
+              (t) =>
+                  t['title'] == title &&
+                  t['description'] == description &&
+                  t['dueDate'] == dueDate,
               orElse: () => {},
             );
-            
+
             if (duplicate.isNotEmpty) {
               if (oldId != null) taskIdMap[oldId] = duplicate['id'] as int;
               debugPrint('Skipping duplicate task: $title');
@@ -1026,12 +1105,17 @@ class DatabaseService {
               // New task
               final newTaskMap = Map<String, dynamic>.from(taskMap);
               newTaskMap.remove('id'); // Let SQLite handle ID
-              
+
               // Ensure numeric fields are actually numbers and not null
               newTaskMap['title'] = title;
               newTaskMap['dueDate'] = dueDate;
-              newTaskMap['priority'] = _toInt(newTaskMap['priority'], 1); // Default to Medium (1)
-              newTaskMap['isDeleted'] = _toInt(newTaskMap['isDeleted'], 0) == 1 ? 1 : 0;
+              newTaskMap['priority'] = _toInt(
+                newTaskMap['priority'],
+                1,
+              ); // Default to Medium (1)
+              newTaskMap['isDeleted'] = _toInt(newTaskMap['isDeleted'], 0) == 1
+                  ? 1
+                  : 0;
               newTaskMap['position'] = _toInt(newTaskMap['position'], 0);
               newTaskMap['createdAt'] = newTaskMap['createdAt'] ?? now;
 
@@ -1055,19 +1139,27 @@ class DatabaseService {
                       updatedCats.add(categoryIdMap[catId]!);
                     } else {
                       // Check if category exists in DB
-                      final exists = await txn.query('categories', where: 'id = ?', whereArgs: [catId]);
+                      final exists = await txn.query(
+                        'categories',
+                        where: 'id = ?',
+                        whereArgs: [catId],
+                      );
                       if (exists.isNotEmpty) {
                         updatedCats.add(catId);
                       } else {
                         // Category missing! Create a placeholder category
                         final newCatId = 'imported_$catId';
-                        await txn.insert('categories', {
-                          'id': newCatId,
-                          'label': catId, // Use the ID as label for now
-                          'emoji': '🏷️',
-                          'color': 0xFF9E9E9E, // Grey
-                          'position': 999,
-                        }, conflictAlgorithm: ConflictAlgorithm.ignore);
+                        await txn.insert(
+                          'categories',
+                          {
+                            'id': newCatId,
+                            'label': catId, // Use the ID as label for now
+                            'emoji': '🏷️',
+                            'color': 0xFF9E9E9E, // Grey
+                            'position': 999,
+                          },
+                          conflictAlgorithm: ConflictAlgorithm.ignore,
+                        );
                         categoryIdMap[catId] = newCatId;
                         updatedCats.add(newCatId);
                       }
@@ -1094,23 +1186,33 @@ class DatabaseService {
 
               // Ensure recurrence is a JSON string
               if (newTaskMap['recurrence'] != null) {
-                if (newTaskMap['recurrence'] is Map || newTaskMap['recurrence'] is List) {
-                  newTaskMap['recurrence'] = json.encode(newTaskMap['recurrence']);
+                if (newTaskMap['recurrence'] is Map ||
+                    newTaskMap['recurrence'] is List) {
+                  newTaskMap['recurrence'] = json.encode(
+                    newTaskMap['recurrence'],
+                  );
                 } else if (newTaskMap['recurrence'] is! String) {
                   newTaskMap['recurrence'] = null;
                 }
               }
 
               // Move legacy status to statusHistory if it exists and statusHistory is empty
-              if (newTaskMap['status'] != null && (newTaskMap['statusHistory'] == null || newTaskMap['statusHistory'] == '{}' || newTaskMap['statusHistory'] == '[]')) {
-                 final int statusValue = _toInt(newTaskMap['status'], 0);
-                 final dateKey = dueDate.split('T')[0];
-                 newTaskMap['statusHistory'] = json.encode({dateKey: statusValue});
+              if (newTaskMap['status'] != null &&
+                  (newTaskMap['statusHistory'] == null ||
+                      newTaskMap['statusHistory'] == '{}' ||
+                      newTaskMap['statusHistory'] == '[]')) {
+                final int statusValue = _toInt(newTaskMap['status'], 0);
+                final dateKey = dueDate.split('T')[0];
+                newTaskMap['statusHistory'] = json.encode({
+                  dateKey: statusValue,
+                });
               }
 
               if (newTaskMap['statusHistory'] != null) {
                 if (newTaskMap['statusHistory'] is Map) {
-                  newTaskMap['statusHistory'] = json.encode(newTaskMap['statusHistory']);
+                  newTaskMap['statusHistory'] = json.encode(
+                    newTaskMap['statusHistory'],
+                  );
                 } else if (newTaskMap['statusHistory'] is! String) {
                   newTaskMap['statusHistory'] = '{}';
                 }
@@ -1134,9 +1236,9 @@ class DatabaseService {
               metadata['isImported'] = true;
               newTaskMap['metadata'] = json.encode(metadata);
               newTaskMap['updatedAt'] = now;
-              
+
               // Remove fields that are not in the table
-              newTaskMap.remove('status'); 
+              newTaskMap.remove('status');
 
               final newId = await txn.insert('tasks', newTaskMap);
               if (oldId != null) taskIdMap[oldId] = newId;
@@ -1146,26 +1248,32 @@ class DatabaseService {
 
         // 3. Import Events
         if (data['events'] != null) {
-          final eventsList = (data['events'] as List).cast<Map<String, dynamic>>();
+          final eventsList = (data['events'] as List)
+              .cast<Map<String, dynamic>>();
           debugPrint('Importing ${eventsList.length} events...');
           for (var eventMap in eventsList) {
             final oldTaskId = eventMap['taskId'] as int?;
             if (oldTaskId != null && taskIdMap.containsKey(oldTaskId)) {
-               final newTaskId = taskIdMap[oldTaskId]!;
-               final newEventMap = Map<String, dynamic>.from(eventMap);
-               newEventMap.remove('id');
-               newEventMap['taskId'] = newTaskId;
-               await txn.insert('task_events', newEventMap);
+              final newTaskId = taskIdMap[oldTaskId]!;
+              final newEventMap = Map<String, dynamic>.from(eventMap);
+              newEventMap.remove('id');
+              newEventMap['taskId'] = newTaskId;
+              await txn.insert('task_events', newEventMap);
             }
           }
         }
 
         // 4. Import Settings
         if (data['settings'] != null) {
-          final settingsList = (data['settings'] as List).cast<Map<String, dynamic>>();
+          final settingsList = (data['settings'] as List)
+              .cast<Map<String, dynamic>>();
           debugPrint('Importing ${settingsList.length} settings...');
           for (var settingMap in settingsList) {
-            await txn.insert('settings', settingMap, conflictAlgorithm: ConflictAlgorithm.replace);
+            await txn.insert(
+              'settings',
+              settingMap,
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
           }
         }
       });
@@ -1179,23 +1287,23 @@ class DatabaseService {
   // Import full data from ZIP file (including media files)
   Future<void> importFullData(String zipFilePath) async {
     debugPrint('Starting full data import from ZIP...');
-    
+
     try {
       // Read ZIP file
       final zipFile = File(zipFilePath);
       if (!await zipFile.exists()) {
         throw Exception('ZIP file not found: $zipFilePath');
       }
-      
+
       final zipBytes = await zipFile.readAsBytes();
-      
+
       // Decode ZIP archive
       final archive = ZipDecoder().decodeBytes(zipBytes);
-      
+
       // Find and read data.json
       ArchiveFile? dataFile;
       final List<ArchiveFile> mediaFiles = [];
-      
+
       for (var file in archive) {
         if (file.name == 'data.json') {
           dataFile = file;
@@ -1203,19 +1311,20 @@ class DatabaseService {
           mediaFiles.add(file);
         }
       }
-      
+
       if (dataFile == null) {
         throw Exception('data.json not found in ZIP archive');
       }
-      
+
       // Parse JSON data
       final jsonString = utf8.decode(dataFile.content as List<int>);
       final data = jsonDecode(jsonString) as Map<String, dynamic>;
-      
+
       // Get application documents directory for media files
       final appDir = await getApplicationDocumentsDirectory();
-      final Map<int, String> oldMediaIdToNewPath = {}; // oldMediaId -> newFilePath
-      
+      final Map<int, String> oldMediaIdToNewPath =
+          {}; // oldMediaId -> newFilePath
+
       // Extract and copy media files
       for (var mediaFile in mediaFiles) {
         try {
@@ -1223,43 +1332,48 @@ class DatabaseService {
           final fileName = mediaFile.name.replaceFirst('media/', '');
           final underscoreIndex = fileName.indexOf('_');
           if (underscoreIndex > 0) {
-            final oldMediaId = int.tryParse(fileName.substring(0, underscoreIndex));
+            final oldMediaId = int.tryParse(
+              fileName.substring(0, underscoreIndex),
+            );
             final originalFileName = fileName.substring(underscoreIndex + 1);
-            
+
             if (oldMediaId != null) {
               // Create new file path
               final timestamp = DateTime.now().millisecondsSinceEpoch;
               final newFileName = 'imported_${timestamp}_$originalFileName';
               final newFilePath = join(appDir.path, newFileName);
-              
+
               // Write media file
               final file = File(newFilePath);
               await file.writeAsBytes(mediaFile.content as List<int>);
-              
+
               oldMediaIdToNewPath[oldMediaId] = newFilePath;
-              debugPrint('Extracted media file: $originalFileName -> $newFilePath');
+              debugPrint(
+                'Extracted media file: $originalFileName -> $newFilePath',
+              );
             }
           }
         } catch (e) {
           debugPrint('Error extracting media file ${mediaFile.name}: $e');
         }
       }
-      
+
       // Create media table entries for extracted files and map old IDs to new IDs
       final db = await database;
-      final Map<int, int> oldMediaIdToNewMediaId = {}; // oldMediaId -> newMediaId
-      
+      final Map<int, int> oldMediaIdToNewMediaId =
+          {}; // oldMediaId -> newMediaId
+
       for (var entry in oldMediaIdToNewPath.entries) {
         final oldMediaId = entry.key;
         final newFilePath = entry.value;
         final file = File(newFilePath);
-        
+
         if (await file.exists()) {
           try {
             final fileName = newFilePath.split('/').last;
             final fileSize = await file.length();
             final mimeType = _getMimeType(fileName);
-            
+
             final newMediaId = await insertMedia(
               filePath: newFilePath,
               fileName: fileName,
@@ -1267,27 +1381,29 @@ class DatabaseService {
               mimeType: mimeType,
               taskId: null, // Will be updated when tasks are imported
             );
-            
+
             oldMediaIdToNewMediaId[oldMediaId] = newMediaId;
-            debugPrint('Created media entry: $oldMediaId -> $newMediaId ($fileName)');
+            debugPrint(
+              'Created media entry: $oldMediaId -> $newMediaId ($fileName)',
+            );
           } catch (e) {
             debugPrint('Error creating media entry for $newFilePath: $e');
           }
         }
       }
-      
+
       // Update task attachments to use new media IDs
       if (data['tasks'] != null && oldMediaIdToNewMediaId.isNotEmpty) {
         final tasksList = data['tasks'] as List;
         for (var task in tasksList) {
           final taskMap = task as Map<String, dynamic>;
           final attachmentsJson = taskMap['attachments'] as String?;
-          
+
           if (attachmentsJson != null && attachmentsJson.isNotEmpty) {
             try {
               final attachments = json.decode(attachmentsJson) as List;
               final updatedAttachments = <String>[];
-              
+
               for (var attachment in attachments) {
                 final attachmentStr = attachment.toString();
                 // Check if it's a media ID (numeric string)
@@ -1297,14 +1413,16 @@ class DatabaseService {
                   if (newMediaId != null) {
                     updatedAttachments.add(newMediaId.toString());
                   } else {
-                    debugPrint('Media ID $oldMediaId not found in extracted files');
+                    debugPrint(
+                      'Media ID $oldMediaId not found in extracted files',
+                    );
                   }
                 } else {
                   // Legacy file path, keep as is
                   updatedAttachments.add(attachmentStr);
                 }
               }
-              
+
               taskMap['attachments'] = json.encode(updatedAttachments);
             } catch (e) {
               debugPrint('Error updating attachments for task: $e');
@@ -1312,38 +1430,40 @@ class DatabaseService {
           }
         }
       }
-      
+
       // Import the data
       await importData(data);
-      
+
       // Update media entries with task IDs after import
       if (data['tasks'] != null) {
         final tasksList = data['tasks'] as List;
-        
+
         // Update media entries by matching tasks
         for (var task in tasksList) {
           final taskMap = task as Map<String, dynamic>;
           final oldTaskId = taskMap['id'] as int?;
           final attachmentsJson = taskMap['attachments'] as String?;
-          
-          if (oldTaskId != null && attachmentsJson != null && attachmentsJson.isNotEmpty) {
+
+          if (oldTaskId != null &&
+              attachmentsJson != null &&
+              attachmentsJson.isNotEmpty) {
             try {
               final attachments = json.decode(attachmentsJson) as List;
               // Find the new task ID by matching title, description, and dueDate
               final title = taskMap['title'] as String? ?? '';
               final description = taskMap['description'] as String?;
               final dueDate = taskMap['dueDate'] as String?;
-              
+
               final newTask = await db.query(
                 'tasks',
                 where: 'title = ? AND description = ? AND dueDate = ?',
                 whereArgs: [title, description, dueDate],
                 limit: 1,
               );
-              
+
               if (newTask.isNotEmpty) {
                 final newTaskId = newTask.first['id'] as int;
-                
+
                 // Update media entries with new task ID
                 for (var attachment in attachments) {
                   final attachmentStr = attachment.toString();
@@ -1364,7 +1484,7 @@ class DatabaseService {
           }
         }
       }
-      
+
       debugPrint('Full data import completed successfully!');
     } catch (e) {
       debugPrint('Error during full data import: $e');
@@ -1375,11 +1495,10 @@ class DatabaseService {
   // Settings methods
   Future<void> setSetting(String key, String value) async {
     Database db = await database;
-    await db.insert(
-      'settings',
-      {'key': key, 'value': value},
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('settings', {
+      'key': key,
+      'value': value,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<String?> getSetting(String key) async {
@@ -1393,20 +1512,32 @@ class DatabaseService {
     if (maps.isEmpty) return null;
     return maps.first['value'] as String?;
   }
-  Future<void> updateTaskStatus(int taskId, TaskStatus status, {String? dateKey}) async {
+
+  Future<void> updateTaskStatus(
+    int taskId,
+    TaskStatus status, {
+    String? dateKey,
+  }) async {
     Database db = await database;
-    final taskMap = (await db.query('tasks', where: 'id = ?', whereArgs: [taskId])).first;
-    
+    final taskMap = (await db.query(
+      'tasks',
+      where: 'id = ?',
+      whereArgs: [taskId],
+    )).first;
+
     Map<String, int> history = {};
     if (taskMap['statusHistory'] != null) {
       try {
-        history = Map<String, int>.from(json.decode(taskMap['statusHistory'] as String));
+        history = Map<String, int>.from(
+          json.decode(taskMap['statusHistory'] as String),
+        );
       } catch (_) {}
     }
-    
-    final effectiveDateKey = dateKey ?? taskMap['dueDate'].toString().split('T')[0];
+
+    final effectiveDateKey =
+        dateKey ?? taskMap['dueDate'].toString().split('T')[0];
     history[effectiveDateKey] = status.index;
-    
+
     await db.update(
       'tasks',
       {'statusHistory': json.encode(history)},
@@ -1429,7 +1560,7 @@ class DatabaseService {
     DateTime? occurredAt,
   }) async {
     Database db = await database;
-    
+
     // Create a human-readable log message based on type and payload
     String logMessage = '';
     switch (type) {
@@ -1444,11 +1575,21 @@ class DatabaseService {
         String statusName = 'نامشخص';
         if (statusIndex != null) {
           switch (TaskStatus.values[statusIndex]) {
-            case TaskStatus.pending: statusName = 'در انتظار'; break;
-            case TaskStatus.success: statusName = 'انجام شده'; break;
-            case TaskStatus.failed: statusName = 'ناموفق'; break;
-            case TaskStatus.cancelled: statusName = 'لغو شده'; break;
-            case TaskStatus.deferred: statusName = 'به تعویق افتاده'; break;
+            case TaskStatus.pending:
+              statusName = 'در انتظار';
+              break;
+            case TaskStatus.success:
+              statusName = 'انجام شده';
+              break;
+            case TaskStatus.failed:
+              statusName = 'ناموفق';
+              break;
+            case TaskStatus.cancelled:
+              statusName = 'لغو شده';
+              break;
+            case TaskStatus.deferred:
+              statusName = 'به تعویق افتاده';
+              break;
           }
         }
         logMessage = 'وضعیت تسک به "$statusName" تغییر کرد';
@@ -1459,11 +1600,21 @@ class DatabaseService {
         String statusName = 'نامشخص';
         if (statusIndex != null) {
           switch (TaskStatus.values[statusIndex]) {
-            case TaskStatus.pending: statusName = 'در انتظار'; break;
-            case TaskStatus.success: statusName = 'انجام شده'; break;
-            case TaskStatus.failed: statusName = 'ناموفق'; break;
-            case TaskStatus.cancelled: statusName = 'لغو شده'; break;
-            case TaskStatus.deferred: statusName = 'به تعویق افتاده'; break;
+            case TaskStatus.pending:
+              statusName = 'در انتظار';
+              break;
+            case TaskStatus.success:
+              statusName = 'انجام شده';
+              break;
+            case TaskStatus.failed:
+              statusName = 'ناموفق';
+              break;
+            case TaskStatus.cancelled:
+              statusName = 'لغو شده';
+              break;
+            case TaskStatus.deferred:
+              statusName = 'به تعویق افتاده';
+              break;
           }
         }
         logMessage = 'تسک در تاریخ $date به وضعیت "$statusName" تغییر یافت';
@@ -1504,7 +1655,7 @@ class DatabaseService {
       await txn.delete('task_events');
       await txn.delete('settings');
       await txn.delete('categories');
-      
+
       // Re-insert default categories
       for (var cat in defaultCategories) {
         await txn.insert('categories', cat.toMap());
@@ -1531,7 +1682,7 @@ class DatabaseService {
   }) async {
     Database db = await database;
     final now = DateTime.now().toIso8601String();
-    
+
     return await db.insert('media', {
       'filePath': filePath,
       'fileName': fileName,
@@ -1589,20 +1740,16 @@ class DatabaseService {
       } catch (e) {
         debugPrint('Error deleting media file: $e');
       }
-      
+
       // Delete from database
-      await db.delete(
-        'media',
-        where: 'id = ?',
-        whereArgs: [mediaId],
-      );
+      await db.delete('media', where: 'id = ?', whereArgs: [mediaId]);
     }
   }
 
   Future<void> deleteMediaByTaskId(int taskId) async {
     Database db = await database;
     final mediaList = await getMediaByTaskId(taskId);
-    
+
     for (var media in mediaList) {
       try {
         final file = File(media['filePath'] as String);
@@ -1613,12 +1760,8 @@ class DatabaseService {
         debugPrint('Error deleting media file: $e');
       }
     }
-    
-    await db.delete(
-      'media',
-      where: 'taskId = ?',
-      whereArgs: [taskId],
-    );
+
+    await db.delete('media', where: 'taskId = ?', whereArgs: [taskId]);
   }
 
   // Migrate old attachments (file paths) to media table
@@ -1626,41 +1769,43 @@ class DatabaseService {
     try {
       final List<Map<String, dynamic>> tasks = await db.query('tasks');
       final now = DateTime.now().toIso8601String();
-      
+
       for (var taskMap in tasks) {
         final taskId = taskMap['id'] as int;
         final attachmentsJson = taskMap['attachments'] as String?;
-        
-        if (attachmentsJson == null || attachmentsJson.isEmpty || attachmentsJson == '[]') {
+
+        if (attachmentsJson == null ||
+            attachmentsJson.isEmpty ||
+            attachmentsJson == '[]') {
           continue;
         }
-        
+
         try {
           final List<dynamic> attachments = json.decode(attachmentsJson);
           final List<int> mediaIds = [];
-          
+
           for (var attachment in attachments) {
             final filePath = attachment.toString();
-            
+
             // Check if this is already a media ID (numeric string)
             if (RegExp(r'^\d+$').hasMatch(filePath)) {
               // Already migrated, just add to list
               mediaIds.add(int.parse(filePath));
               continue;
             }
-            
+
             // Check if file exists
             final file = File(filePath);
             if (!await file.exists()) {
               debugPrint('Attachment file not found: $filePath');
               continue;
             }
-            
+
             // Get file info
             final fileName = filePath.split('/').last;
             final fileSize = await file.length();
             final mimeType = _getMimeType(fileName);
-            
+
             // Insert into media table
             final mediaId = await db.insert('media', {
               'filePath': filePath,
@@ -1670,15 +1815,19 @@ class DatabaseService {
               'createdAt': now,
               'taskId': taskId,
             });
-            
+
             mediaIds.add(mediaId);
           }
-          
+
           // Update task with media IDs
           if (mediaIds.isNotEmpty) {
             await db.update(
               'tasks',
-              {'attachments': json.encode(mediaIds.map((id) => id.toString()).toList())},
+              {
+                'attachments': json.encode(
+                  mediaIds.map((id) => id.toString()).toList(),
+                ),
+              },
               where: 'id = ?',
               whereArgs: [taskId],
             );
@@ -1687,7 +1836,7 @@ class DatabaseService {
           debugPrint('Error migrating attachments for task $taskId: $e');
         }
       }
-      
+
       debugPrint('✅ Old attachments migration completed');
     } catch (e) {
       debugPrint('❌ Error in attachments migration: $e');

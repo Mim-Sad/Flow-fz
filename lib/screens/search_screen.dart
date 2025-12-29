@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
-import 'package:shamsi_date/shamsi_date.dart';
 import 'package:text_scroll/text_scroll.dart';
 import '../models/task.dart';
 import '../models/category_data.dart';
@@ -123,14 +122,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => _SortSheet(
-        currentSort: searchState.sortOption,
-      ),
+      builder: (context) => _SortSheet(currentSort: searchState.sortOption),
     );
   }
 
   Widget _buildCompactTaskRow(Task task, int index) {
-    final status = ref.read(tasksProvider.notifier).getStatusForDate(task.id!, task.dueDate);
+    final status = ref
+        .read(tasksProvider.notifier)
+        .getStatusForDate(task.id!, task.dueDate);
     final isCancelled = status == TaskStatus.cancelled;
     final isSuccess = status == TaskStatus.success;
 
@@ -156,7 +155,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         break;
       case TaskStatus.pending:
         icon = HugeIcons.strokeRoundedCircle;
-        color = Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4);
+        color = Theme.of(
+          context,
+        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4);
         break;
     }
 
@@ -174,10 +175,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             context: context,
             isScrollControlled: true,
             backgroundColor: Colors.transparent,
-            builder: (context) => TaskOptionsSheet(
-              task: task,
-              date: task.dueDate,
-            ),
+            builder: (context) =>
+                TaskOptionsSheet(task: task, date: task.dueDate),
           );
         },
         child: Container(
@@ -190,9 +189,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 child: InkWell(
                   onTap: () {
                     HapticFeedback.lightImpact();
-                    ref.read(tasksProvider.notifier).updateStatus(
+                    ref
+                        .read(tasksProvider.notifier)
+                        .updateStatus(
                           task.id!,
-                          status == TaskStatus.success ? TaskStatus.pending : TaskStatus.success,
+                          status == TaskStatus.success
+                              ? TaskStatus.pending
+                              : TaskStatus.success,
                           date: task.dueDate,
                         );
                   },
@@ -205,23 +208,31 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   textDirection: TextDirection.rtl,
                   children: [
                     if (task.taskEmoji != null) ...[
-                      Text(task.taskEmoji!, style: const TextStyle(fontSize: 14)),
+                      Text(
+                        task.taskEmoji!,
+                        style: const TextStyle(fontSize: 14),
+                      ),
                       const SizedBox(width: 6),
                     ],
                     Expanded(
                       child: TextScroll(
                         task.title,
                         mode: TextScrollMode.endless,
-                        velocity: const Velocity(pixelsPerSecond: Offset(30, 0)),
+                        velocity: const Velocity(
+                          pixelsPerSecond: Offset(30, 0),
+                        ),
                         delayBefore: const Duration(seconds: 2),
                         pauseBetween: const Duration(seconds: 2),
                         textDirection: TextDirection.rtl,
                         textAlign: TextAlign.right,
                         style: TextStyle(
                           fontSize: 13,
-                          decoration: isSuccess ? TextDecoration.lineThrough : null,
+                          decoration: isSuccess
+                              ? TextDecoration.lineThrough
+                              : null,
                           color: isSuccess
-                              ? Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
+                              ? Theme.of(context).colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.5)
                               : Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
@@ -235,18 +246,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       ),
     );
 
-    return shouldAnimate
-        ? FadeInOnce(
-            delay: (index * 50).ms,
-            child: row,
-          )
-        : row;
+    return shouldAnimate ? FadeInOnce(delay: (index * 50).ms, child: row) : row;
   }
 
   Widget _buildSortToggle() {
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -269,7 +277,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
         child: HugeIcon(
@@ -327,7 +337,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             return Padding(
                               padding: const EdgeInsets.only(left: 6),
                               child: FilterChip(
-                                label: Text(cat.label, style: const TextStyle(fontSize: 12)),
+                                label: Text(
+                                  cat.label,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
                                 avatar: LottieCategoryIcon(
                                   assetPath: cat.emoji,
                                   width: 14,
@@ -353,7 +366,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             return Padding(
                               padding: const EdgeInsets.only(left: 6),
                               child: FilterChip(
-                                label: Text(tag, style: const TextStyle(fontSize: 12)),
+                                label: Text(
+                                  tag,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
                                 onSelected: (_) {
                                   final newTags = List<String>.from(
                                     searchState.filters.tags ?? [],
@@ -372,11 +388,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             padding: const EdgeInsets.only(left: 6),
                             child: FilterChip(
                               label: Text(
-                                _getPriorityLabel(searchState.filters.priority!),
+                                _getPriorityLabel(
+                                  searchState.filters.priority!,
+                                ),
                                 style: const TextStyle(fontSize: 12),
                               ),
                               onSelected: (_) {
-                                ref.read(searchProvider.notifier).setPriority(null);
+                                ref
+                                    .read(searchProvider.notifier)
+                                    .setPriority(null);
                               },
                             ),
                           ),
@@ -391,7 +411,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                   style: const TextStyle(fontSize: 12),
                                 ),
                                 onSelected: (_) {
-                                  ref.read(searchProvider.notifier).toggleStatus(status);
+                                  ref
+                                      .read(searchProvider.notifier)
+                                      .toggleStatus(status);
                                 },
                               ),
                             );
@@ -405,7 +427,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 style: const TextStyle(fontSize: 12),
                               ),
                               onSelected: (_) {
-                                ref.read(searchProvider.notifier).setSpecificDate(null);
+                                ref
+                                    .read(searchProvider.notifier)
+                                    .setSpecificDate(null);
                               },
                             ),
                           )
@@ -422,7 +446,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 style: const TextStyle(fontSize: 12),
                               ),
                               onSelected: (_) {
-                                ref.read(searchProvider.notifier).setDateRange(null, null);
+                                ref
+                                    .read(searchProvider.notifier)
+                                    .setDateRange(null, null);
                               },
                             ),
                           ),
@@ -437,7 +463,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 style: const TextStyle(fontSize: 12),
                               ),
                               onSelected: (_) {
-                                ref.read(searchProvider.notifier).setRecurring(null);
+                                ref
+                                    .read(searchProvider.notifier)
+                                    .setRecurring(null);
                               },
                             ),
                           ),
@@ -472,7 +500,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          searchState.filters.hasFilters || searchState.query.isNotEmpty
+                          searchState.filters.hasFilters ||
+                                  searchState.query.isNotEmpty
                               ? 'نتیجه‌ای یافت نشد'
                               : 'جستجو کنید...',
                           style: theme.textTheme.bodyLarge,
@@ -485,42 +514,26 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final task = results[index];
-                        bool shouldAnimate = !_animatedTaskIds.contains(task.id);
-                        if (shouldAnimate) {
-                          _animatedTaskIds.add(task.id!);
-                        }
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final task = results[index];
+                      bool shouldAnimate = !_animatedTaskIds.contains(task.id);
+                      if (shouldAnimate) {
+                        _animatedTaskIds.add(task.id!);
+                      }
 
-                        return Padding(
-                          key: ValueKey(task.id),
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: shouldAnimate
-                              ? FadeInOnce(
-                                  delay: (index * 50).ms,
-                                  child: TaskListTile(
-                                    task: task,
-                                    index: index,
-                                    onStatusToggle: () {
-                                      ref.read(tasksProvider.notifier).updateStatus(
-                                            task.id!,
-                                            task.status == TaskStatus.success
-                                                ? TaskStatus.pending
-                                                : TaskStatus.success,
-                                            date: task.dueDate,
-                                          );
-                                    },
-                                    isReorderEnabled: false,
-                                    isSelectionMode: false,
-                                    isSelected: false,
-                                  ),
-                                )
-                              : TaskListTile(
+                      return Padding(
+                        key: ValueKey(task.id),
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: shouldAnimate
+                            ? FadeInOnce(
+                                delay: (index * 50).ms,
+                                child: TaskListTile(
                                   task: task,
                                   index: index,
                                   onStatusToggle: () {
-                                    ref.read(tasksProvider.notifier).updateStatus(
+                                    ref
+                                        .read(tasksProvider.notifier)
+                                        .updateStatus(
                                           task.id!,
                                           task.status == TaskStatus.success
                                               ? TaskStatus.pending
@@ -532,27 +545,41 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                   isSelectionMode: false,
                                   isSelected: false,
                                 ),
-                        );
-                      },
-                      childCount: results.length,
-                    ),
+                              )
+                            : TaskListTile(
+                                task: task,
+                                index: index,
+                                onStatusToggle: () {
+                                  ref
+                                      .read(tasksProvider.notifier)
+                                      .updateStatus(
+                                        task.id!,
+                                        task.status == TaskStatus.success
+                                            ? TaskStatus.pending
+                                            : TaskStatus.success,
+                                        date: task.dueDate,
+                                      );
+                                },
+                                isReorderEnabled: false,
+                                isSelectionMode: false,
+                                isSelected: false,
+                              ),
+                      );
+                    }, childCount: results.length),
                   ),
                 )
               else
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final task = results[index];
-                        return Padding(
-                          key: ValueKey(task.id),
-                          padding: const EdgeInsets.only(bottom: 0),
-                          child: _buildCompactTaskRow(task, index),
-                        );
-                      },
-                      childCount: results.length,
-                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final task = results[index];
+                      return Padding(
+                        key: ValueKey(task.id),
+                        padding: const EdgeInsets.only(bottom: 0),
+                        child: _buildCompactTaskRow(task, index),
+                      );
+                    }, childCount: results.length),
                   ),
                 ),
             ],
@@ -612,7 +639,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                       ),
                                       onPressed: () {
                                         _searchController.clear();
-                                        ref.read(searchProvider.notifier).setQuery('');
+                                        ref
+                                            .read(searchProvider.notifier)
+                                            .setQuery('');
                                       },
                                     )
                                   : null,
@@ -621,7 +650,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 borderSide: BorderSide.none,
                               ),
                               filled: true,
-                              fillColor: theme.colorScheme.surfaceContainer.withValues(alpha: 0.7),
+                              fillColor: theme.colorScheme.surfaceContainer
+                                  .withValues(alpha: 0.7),
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16,
                                 vertical: 10,
@@ -631,7 +661,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        
+
                         // Sort Button
                         IconButton(
                           icon: const HugeIcon(
@@ -730,10 +760,7 @@ class _FilterSheet extends ConsumerStatefulWidget {
   final SearchFilters initialFilters;
   final List<CategoryData> categories;
 
-  const _FilterSheet({
-    required this.initialFilters,
-    required this.categories,
-  });
+  const _FilterSheet({required this.initialFilters, required this.categories});
 
   @override
   ConsumerState<_FilterSheet> createState() => _FilterSheetState();
@@ -757,7 +784,8 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
 
   void _addTag(String tag) {
     final trimmedTag = tag.trim();
-    if (trimmedTag.isNotEmpty && !StringUtils.containsTag(_filters.tags ?? [], trimmedTag)) {
+    if (trimmedTag.isNotEmpty &&
+        !StringUtils.containsTag(_filters.tags ?? [], trimmedTag)) {
       setState(() {
         final current = List<String>.from(_filters.tags ?? []);
         current.add(trimmedTag);
@@ -863,7 +891,9 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: HugeIcon(
@@ -876,8 +906,8 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                 Text(
                   'فیلترها',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const Spacer(),
                 TextButton(
@@ -903,16 +933,19 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                       final categoriesAsync = ref.watch(categoryProvider);
                       return categoriesAsync.when(
                         data: (categories) {
-                          final cats = categories.isEmpty ? defaultCategories : categories;
-                          final activeCats = cats.where((c) => !c.isDeleted).toList();
+                          final cats = categories.isEmpty
+                              ? defaultCategories
+                              : categories;
+                          final activeCats = cats
+                              .where((c) => !c.isDeleted)
+                              .toList();
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
                                 'دسته‌بندی',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 12),
@@ -923,7 +956,9 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                                   runSpacing: 8,
                                   alignment: WrapAlignment.center,
                                   children: activeCats.map((cat) {
-                                    final isSelected = _filters.categories?.contains(cat.id) ?? false;
+                                    final isSelected =
+                                        _filters.categories?.contains(cat.id) ??
+                                        false;
                                     return GestureDetector(
                                       onTap: () {
                                         setState(() {
@@ -936,21 +971,37 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                                             current.add(cat.id);
                                           }
                                           _filters = _filters.copyWith(
-                                            categories: current.isEmpty ? null : current,
+                                            categories: current.isEmpty
+                                                ? null
+                                                : current,
                                           );
                                         });
                                       },
                                       child: AnimatedContainer(
-                                        duration: const Duration(milliseconds: 200),
-                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                        duration: const Duration(
+                                          milliseconds: 200,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 8,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: isSelected
-                                              ? cat.color.withValues(alpha: 0.15)
-                                              : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                                          borderRadius: BorderRadius.circular(14),
+                                              ? cat.color.withValues(
+                                                  alpha: 0.15,
+                                                )
+                                              : Theme.of(context)
+                                                    .colorScheme
+                                                    .surfaceContainerHighest
+                                                    .withValues(alpha: 0.3),
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
                                           border: Border.all(
                                             color: isSelected
-                                                ? cat.color.withValues(alpha: 0.5)
+                                                ? cat.color.withValues(
+                                                    alpha: 0.5,
+                                                  )
                                                 : Colors.transparent,
                                             width: 1.5,
                                           ),
@@ -958,14 +1009,25 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            LottieCategoryIcon(assetPath: cat.emoji, width: 22, height: 22, repeat: false),
+                                            LottieCategoryIcon(
+                                              assetPath: cat.emoji,
+                                              width: 22,
+                                              height: 22,
+                                              repeat: false,
+                                            ),
                                             const SizedBox(width: 8),
                                             Text(
                                               cat.label,
                                               style: TextStyle(
                                                 fontSize: 12,
-                                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                                color: isSelected ? cat.color : Theme.of(context).colorScheme.onSurface,
+                                                fontWeight: isSelected
+                                                    ? FontWeight.bold
+                                                    : FontWeight.w500,
+                                                color: isSelected
+                                                    ? cat.color
+                                                    : Theme.of(
+                                                        context,
+                                                      ).colorScheme.onSurface,
                                               ),
                                             ),
                                           ],
@@ -978,7 +1040,8 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                             ],
                           );
                         },
-                        loading: () => const Center(child: CircularProgressIndicator()),
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
                         error: (err, stack) => Text('خطا: $err'),
                       );
                     },
@@ -989,8 +1052,8 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                     child: Text(
                       'تگ‌ها',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -1002,7 +1065,10 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                       hintText: 'افزودن تگ جدید...',
                       hintStyle: const TextStyle(fontSize: 12),
                       prefixIcon: Container(
-                        margin: const EdgeInsetsDirectional.only(start: 14, end: 10),
+                        margin: const EdgeInsetsDirectional.only(
+                          start: 14,
+                          end: 10,
+                        ),
                         child: HugeIcon(
                           icon: HugeIcons.strokeRoundedTag01,
                           size: 20,
@@ -1022,13 +1088,24 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                        borderSide: BorderSide(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                        borderSide: BorderSide(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        ),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                     onSubmitted: (val) => _addTag(val),
                   ),
@@ -1036,13 +1113,21 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                   if (_tagController.text.isNotEmpty) ...[
                     Consumer(
                       builder: (context, ref, child) {
-                        final suggestions = ref.watch(tagSuggestionsProvider(_tagController.text));
+                        final suggestions = ref.watch(
+                          tagSuggestionsProvider(_tagController.text),
+                        );
                         final filteredSuggestions = suggestions
-                            .where((s) => !StringUtils.containsTag(_filters.tags ?? [], s))
+                            .where(
+                              (s) => !StringUtils.containsTag(
+                                _filters.tags ?? [],
+                                s,
+                              ),
+                            )
                             .take(5)
                             .toList();
 
-                        if (filteredSuggestions.isEmpty) return const SizedBox.shrink();
+                        if (filteredSuggestions.isEmpty)
+                          return const SizedBox.shrink();
 
                         return Padding(
                           padding: const EdgeInsets.fromLTRB(0, 12, 0, 0),
@@ -1051,26 +1136,51 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                               alignment: WrapAlignment.center,
                               spacing: 8,
                               runSpacing: 8,
-                              children: filteredSuggestions.map((suggestion) => ActionChip(
-                                label: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(suggestion, style: const TextStyle(fontSize: 11)),
-                                    const SizedBox(width: 4),
-                                    Icon(
-                                      Icons.add,
-                                      size: 14,
-                                      color: Theme.of(context).colorScheme.primary,
+                              children: filteredSuggestions
+                                  .map(
+                                    (suggestion) => ActionChip(
+                                      label: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            suggestion,
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Icon(
+                                            Icons.add,
+                                            size: 14,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                          ),
+                                        ],
+                                      ),
+                                      onPressed: () => _addTag(suggestion),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      backgroundColor: Theme.of(context)
+                                          .colorScheme
+                                          .primaryContainer
+                                          .withValues(alpha: 0.3),
+                                      side: BorderSide(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary
+                                            .withValues(alpha: 0.2),
+                                      ),
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 0,
+                                      ),
                                     ),
-                                  ],
-                                ),
-                                onPressed: () => _addTag(suggestion),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                backgroundColor: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
-                                side: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
-                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                              )).toList(),
+                                  )
+                                  .toList(),
                             ),
                           ),
                         );
@@ -1085,34 +1195,57 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                         alignment: WrapAlignment.center,
                         spacing: 8,
                         runSpacing: 8,
-                        children: _filters.tags!.map((tag) => ActionChip(
-                          label: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(tag, style: const TextStyle(fontSize: 11)),
-                              const SizedBox(width: 4),
-                              Icon(
-                                Icons.close,
-                                size: 14,
-                                color: Theme.of(context).colorScheme.secondary,
+                        children: _filters.tags!
+                            .map(
+                              (tag) => ActionChip(
+                                label: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      tag,
+                                      style: const TextStyle(fontSize: 11),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.close,
+                                      size: 14,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.secondary,
+                                    ),
+                                  ],
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    final current = List<String>.from(
+                                      _filters.tags ?? [],
+                                    );
+                                    current.remove(tag);
+                                    _filters = _filters.copyWith(
+                                      tags: current.isEmpty ? null : current,
+                                    );
+                                  });
+                                },
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                backgroundColor: Theme.of(context)
+                                    .colorScheme
+                                    .secondaryContainer
+                                    .withValues(alpha: 0.3),
+                                side: BorderSide(
+                                  color: Theme.of(context).colorScheme.secondary
+                                      .withValues(alpha: 0.2),
+                                ),
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 0,
+                                ),
                               ),
-                            ],
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              final current = List<String>.from(_filters.tags ?? []);
-                              current.remove(tag);
-                              _filters = _filters.copyWith(
-                                tags: current.isEmpty ? null : current,
-                              );
-                            });
-                          },
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          backgroundColor: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
-                          side: BorderSide(color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2)),
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                        )).toList(),
+                            )
+                            .toList(),
                       ),
                     ),
                   ],
@@ -1122,8 +1255,8 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                     child: Text(
                       'اولویت',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -1137,17 +1270,29 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                           ButtonSegment(
                             value: TaskPriority.low,
                             label: Text('فرعی'),
-                            icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowDown01, color: Colors.green, size: 18),
+                            icon: HugeIcon(
+                              icon: HugeIcons.strokeRoundedArrowDown01,
+                              color: Colors.green,
+                              size: 18,
+                            ),
                           ),
                           ButtonSegment(
                             value: TaskPriority.medium,
                             label: Text('عادی'),
-                            icon: HugeIcon(icon: HugeIcons.strokeRoundedMinusSign, color: Colors.grey, size: 18),
+                            icon: HugeIcon(
+                              icon: HugeIcons.strokeRoundedMinusSign,
+                              color: Colors.grey,
+                              size: 18,
+                            ),
                           ),
                           ButtonSegment(
                             value: TaskPriority.high,
                             label: Text('فوری'),
-                            icon: HugeIcon(icon: HugeIcons.strokeRoundedAlertCircle, color: Colors.red, size: 18),
+                            icon: HugeIcon(
+                              icon: HugeIcons.strokeRoundedAlertCircle,
+                              color: Colors.red,
+                              size: 18,
+                            ),
                           ),
                         ],
                         selected: {_filters.priority},
@@ -1156,14 +1301,22 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                             final selected = newSelection.first;
                             // Toggle: if same priority selected, deselect it
                             _filters = _filters.copyWith(
-                              priority: selected == _filters.priority ? null : selected,
+                              priority: selected == _filters.priority
+                                  ? null
+                                  : selected,
                             );
                           });
                         },
                         style: SegmentedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          side: BorderSide(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                          ),
                         ),
                       ),
                     ),
@@ -1174,8 +1327,8 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                     child: Text(
                       'وضعیت',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -1240,8 +1393,8 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                     child: Text(
                       'تاریخ',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -1273,7 +1426,10 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.3),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .errorContainer
+                                  .withValues(alpha: 0.3),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: HugeIcon(
@@ -1297,7 +1453,10 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                               size: 18,
                             ),
                             label: Text(
-                              _formatDateRange(_filters.dateFrom, _filters.dateTo),
+                              _formatDateRange(
+                                _filters.dateFrom,
+                                _filters.dateTo,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -1315,7 +1474,10 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.3),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .errorContainer
+                                  .withValues(alpha: 0.3),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: HugeIcon(
@@ -1360,8 +1522,8 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                     child: Text(
                       'نوع تسک',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -1373,12 +1535,18 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                         ButtonSegment(
                           value: true,
                           label: Text('تکرار شونده'),
-                          icon: HugeIcon(icon: HugeIcons.strokeRoundedRepeat, size: 18),
+                          icon: HugeIcon(
+                            icon: HugeIcons.strokeRoundedRepeat,
+                            size: 18,
+                          ),
                         ),
                         ButtonSegment(
                           value: false,
                           label: Text('غیر تکرار شونده'),
-                          icon: HugeIcon(icon: HugeIcons.strokeRoundedCalendarRemove01, size: 18),
+                          icon: HugeIcon(
+                            icon: HugeIcons.strokeRoundedCalendarRemove01,
+                            size: 18,
+                          ),
                         ),
                       ],
                       selected: {_filters.isRecurring},
@@ -1387,14 +1555,25 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                           final selected = newSelection.first;
                           // Toggle: if same option selected, deselect it
                           _filters = _filters.copyWith(
-                            isRecurring: selected == _filters.isRecurring ? null : selected,
+                            isRecurring: selected == _filters.isRecurring
+                                ? null
+                                : selected,
                           );
                         });
                       },
                       style: SegmentedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                          horizontal: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        side: BorderSide(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        ),
                       ),
                     ),
                   ),
@@ -1414,12 +1593,13 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                   end: Alignment.topCenter,
                   colors: [
                     Theme.of(context).colorScheme.surface,
-                    Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+                    Theme.of(
+                      context,
+                    ).colorScheme.surface.withValues(alpha: 0.8),
                     Theme.of(context).colorScheme.surface.withValues(alpha: 0),
                   ],
                   stops: const [0, 0.6, 1.0],
                 ),
-                
               ),
               child: SizedBox(
                 width: double.infinity,
@@ -1443,7 +1623,9 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                   ),
                   style: FilledButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
                   ),
                   label: Text(
                     'اعمال فیلترها',
@@ -1483,9 +1665,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
             );
           } else {
             current.add(status);
-            _filters = _filters.copyWith(
-              statuses: current,
-            );
+            _filters = _filters.copyWith(statuses: current);
           }
         });
       },
@@ -1521,7 +1701,9 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                       color: isSelected
                           ? color
                           : Theme.of(context).colorScheme.onSurface,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
                 ],
@@ -1544,7 +1726,9 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                       color: isSelected
                           ? color
                           : Theme.of(context).colorScheme.onSurface,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
                 ],
@@ -1616,7 +1800,9 @@ class _SortSheet extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: HugeIcon(
@@ -1628,9 +1814,8 @@ class _SortSheet extends ConsumerWidget {
                         const SizedBox(width: 14),
                         Text(
                           'مرتب‌سازی',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -1651,7 +1836,9 @@ class _SortSheet extends ConsumerWidget {
                       ref,
                       option,
                       _getSortLabel(option),
-                      isSelected ? HugeIcons.strokeRoundedCheckmarkSquare02 : null,
+                      isSelected
+                          ? HugeIcons.strokeRoundedCheckmarkSquare02
+                          : null,
                       isSelected,
                     );
                   }).toList(),
@@ -1682,7 +1869,9 @@ class _SortSheet extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         decoration: BoxDecoration(
           color: isSelected
-              ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
+              ? Theme.of(
+                  context,
+                ).colorScheme.primaryContainer.withValues(alpha: 0.3)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),
