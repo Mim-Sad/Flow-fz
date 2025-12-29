@@ -100,7 +100,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     super.dispose();
   }
 
-  void _showFilterSheet() {
+  void _showFilterSheet([String? target]) {
     final searchState = ref.read(searchProvider);
     final categories = ref.read(categoryProvider).valueOrNull ?? [];
 
@@ -112,6 +112,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       builder: (context) => _FilterSheet(
         initialFilters: searchState.filters,
         categories: categories,
+        initialTarget: target,
       ),
     );
   }
@@ -308,161 +309,156 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               // Filter Chips
               if (searchState.filters.hasFilters)
                 SliverToBoxAdapter(
-                  child: Container(
-                    height: 32,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: ListView(
+                  child: Center(
+                    child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
-                      reverse: true,
-                      children: [
-                        if (searchState.filters.categories != null &&
-                            searchState.filters.categories!.isNotEmpty)
-                          ...searchState.filters.categories!.map((catId) {
-                            final cat = categories.firstWhere(
-                              (c) => c.id == catId,
-                              orElse: () => CategoryData(
-                                id: catId,
-                                label: catId,
-                                emoji: '',
-                                color: Colors.grey,
-                              ),
-                            );
-                            return Padding(
-                              padding: const EdgeInsets.only(left: 6),
-                              child: FilterChip(
-                                label: Text(
-                                  cat.label,
-                                  style: const TextStyle(fontSize: 12),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (searchState.filters.isRecurring != null)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 6),
+                                child: _buildHeaderFilterChip(
+                                  label: searchState.filters.isRecurring!
+                                      ? 'تکرار شونده'
+                                      : 'غیر تکرار شونده',
+                                  onDeleted: () {
+                                    ref
+                                        .read(searchProvider.notifier)
+                                        .setRecurring(null);
+                                  },
+                                  onSelected: (_) =>
+                                      _showFilterSheet('recurring'),
                                 ),
-                                avatar: LottieCategoryIcon(
-                                  assetPath: cat.emoji,
-                                  width: 14,
-                                  height: 14,
-                                  repeat: false,
+                              ),
+                            if (searchState.filters.specificDate != null)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 6),
+                                child: _buildHeaderFilterChip(
+                                  label: _formatDate(
+                                    searchState.filters.specificDate!,
+                                  ),
+                                  onDeleted: () {
+                                    ref
+                                        .read(searchProvider.notifier)
+                                        .setSpecificDate(null);
+                                  },
+                                  onSelected: (_) => _showFilterSheet('date'),
                                 ),
-                                onSelected: (_) {
-                                  final newCats = List<String>.from(
-                                    searchState.filters.categories ?? [],
-                                  )..remove(catId);
-                                  ref
-                                      .read(searchProvider.notifier)
-                                      .setCategories(
-                                        newCats.isEmpty ? null : newCats,
-                                      );
-                                },
-                              ),
-                            );
-                          }),
-                        if (searchState.filters.tags != null &&
-                            searchState.filters.tags!.isNotEmpty)
-                          ...searchState.filters.tags!.map((tag) {
-                            return Padding(
-                              padding: const EdgeInsets.only(left: 6),
-                              child: FilterChip(
-                                label: Text(
-                                  tag,
-                                  style: const TextStyle(fontSize: 12),
+                              )
+                            else if (searchState.filters.dateFrom != null ||
+                                searchState.filters.dateTo != null)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 6),
+                                child: _buildHeaderFilterChip(
+                                  label: _formatDateRange(
+                                    searchState.filters.dateFrom,
+                                    searchState.filters.dateTo,
+                                  ),
+                                  onDeleted: () {
+                                    ref
+                                        .read(searchProvider.notifier)
+                                        .setDateRange(null, null);
+                                  },
+                                  onSelected: (_) => _showFilterSheet('date'),
                                 ),
-                                onSelected: (_) {
-                                  final newTags = List<String>.from(
-                                    searchState.filters.tags ?? [],
-                                  )..remove(tag);
-                                  ref
-                                      .read(searchProvider.notifier)
-                                      .setTags(
-                                        newTags.isEmpty ? null : newTags,
-                                      );
-                                },
                               ),
-                            );
-                          }),
-                        if (searchState.filters.priority != null)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 6),
-                            child: FilterChip(
-                              label: Text(
-                                _getPriorityLabel(
-                                  searchState.filters.priority!,
+                            if (searchState.filters.statuses != null &&
+                                searchState.filters.statuses!.isNotEmpty)
+                              ...searchState.filters.statuses!.map((status) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(left: 6),
+                                  child: _buildHeaderFilterChip(
+                                    label: _getStatusLabel(status),
+                                    onDeleted: () {
+                                      ref
+                                          .read(searchProvider.notifier)
+                                          .toggleStatus(status);
+                                    },
+                                    onSelected: (_) =>
+                                        _showFilterSheet('status'),
+                                  ),
+                                );
+                              }),
+                            if (searchState.filters.priority != null)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 6),
+                                child: _buildHeaderFilterChip(
+                                  label: _getPriorityLabel(
+                                    searchState.filters.priority!,
+                                  ),
+                                  onDeleted: () {
+                                    ref
+                                        .read(searchProvider.notifier)
+                                        .setPriority(null);
+                                  },
+                                  onSelected: (_) =>
+                                      _showFilterSheet('priority'),
                                 ),
-                                style: const TextStyle(fontSize: 12),
                               ),
-                              onSelected: (_) {
-                                ref
-                                    .read(searchProvider.notifier)
-                                    .setPriority(null);
-                              },
-                            ),
-                          ),
-                        if (searchState.filters.statuses != null &&
-                            searchState.filters.statuses!.isNotEmpty)
-                          ...searchState.filters.statuses!.map((status) {
-                            return Padding(
-                              padding: const EdgeInsets.only(left: 6),
-                              child: FilterChip(
-                                label: Text(
-                                  _getStatusLabel(status),
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                                onSelected: (_) {
-                                  ref
-                                      .read(searchProvider.notifier)
-                                      .toggleStatus(status);
-                                },
-                              ),
-                            );
-                          }),
-                        if (searchState.filters.specificDate != null)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 6),
-                            child: FilterChip(
-                              label: Text(
-                                _formatDate(searchState.filters.specificDate!),
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                              onSelected: (_) {
-                                ref
-                                    .read(searchProvider.notifier)
-                                    .setSpecificDate(null);
-                              },
-                            ),
-                          )
-                        else if (searchState.filters.dateFrom != null ||
-                            searchState.filters.dateTo != null)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 6),
-                            child: FilterChip(
-                              label: Text(
-                                _formatDateRange(
-                                  searchState.filters.dateFrom,
-                                  searchState.filters.dateTo,
-                                ),
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                              onSelected: (_) {
-                                ref
-                                    .read(searchProvider.notifier)
-                                    .setDateRange(null, null);
-                              },
-                            ),
-                          ),
-                        if (searchState.filters.isRecurring != null)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 6),
-                            child: FilterChip(
-                              label: Text(
-                                searchState.filters.isRecurring!
-                                    ? 'تکرار شونده'
-                                    : 'غیر تکرار شونده',
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                              onSelected: (_) {
-                                ref
-                                    .read(searchProvider.notifier)
-                                    .setRecurring(null);
-                              },
-                            ),
-                          ),
-                      ],
+                            if (searchState.filters.tags != null &&
+                                searchState.filters.tags!.isNotEmpty)
+                              ...searchState.filters.tags!.map((tag) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(left: 6),
+                                  child: _buildHeaderFilterChip(
+                                    label: tag,
+                                    onDeleted: () {
+                                      final newTags = List<String>.from(
+                                        searchState.filters.tags ?? [],
+                                      )..remove(tag);
+                                      ref
+                                          .read(searchProvider.notifier)
+                                          .setTags(
+                                            newTags.isEmpty ? null : newTags,
+                                          );
+                                    },
+                                    onSelected: (_) => _showFilterSheet('tags'),
+                                  ),
+                                );
+                              }),
+                            if (searchState.filters.categories != null &&
+                                searchState.filters.categories!.isNotEmpty)
+                              ...searchState.filters.categories!.map((catId) {
+                                final cat = categories.firstWhere(
+                                  (c) => c.id == catId,
+                                  orElse: () => CategoryData(
+                                    id: catId,
+                                    label: catId,
+                                    emoji: '',
+                                    color: Colors.grey,
+                                  ),
+                                );
+                                return Padding(
+                                  padding: const EdgeInsets.only(left: 6),
+                                  child: _buildHeaderFilterChip(
+                                    label: cat.label,
+                                    avatar: LottieCategoryIcon(
+                                      assetPath: cat.emoji,
+                                      width: 14,
+                                      height: 14,
+                                      repeat: false,
+                                    ),
+                                    onDeleted: () {
+                                      final newCats = List<String>.from(
+                                        searchState.filters.categories ?? [],
+                                      )..remove(catId);
+                                      ref
+                                          .read(searchProvider.notifier)
+                                          .setCategories(
+                                            newCats.isEmpty ? null : newCats,
+                                          );
+                                    },
+                                    onSelected: (_) =>
+                                        _showFilterSheet('categories'),
+                                  ),
+                                );
+                              }),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -704,6 +700,35 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
+  Widget _buildHeaderFilterChip({
+    required String label,
+    required VoidCallback onDeleted,
+    required Function(bool) onSelected,
+    Widget? avatar,
+  }) {
+    return FilterChip(
+      label: Text(label, style: const TextStyle(fontSize: 12, height: 1.1)),
+      avatar: avatar,
+      deleteIcon: const HugeIcon(
+        icon: HugeIcons.strokeRoundedCancel01,
+        size: 14,
+      ),
+      onDeleted: onDeleted,
+      onSelected: onSelected,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+      visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
+      shape: StadiumBorder(
+        side: BorderSide(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+    );
+  }
+
   String _getPriorityLabel(TaskPriority priority) {
     switch (priority) {
       case TaskPriority.low:
@@ -754,8 +779,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 class _FilterSheet extends ConsumerStatefulWidget {
   final SearchFilters initialFilters;
   final List<CategoryData> categories;
+  final String? initialTarget;
 
-  const _FilterSheet({required this.initialFilters, required this.categories});
+  const _FilterSheet({
+    required this.initialFilters,
+    required this.categories,
+    this.initialTarget,
+  });
 
   @override
   ConsumerState<_FilterSheet> createState() => _FilterSheetState();
@@ -764,16 +794,44 @@ class _FilterSheet extends ConsumerStatefulWidget {
 class _FilterSheetState extends ConsumerState<_FilterSheet> {
   late SearchFilters _filters;
   final TextEditingController _tagController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+
+  final Map<String, GlobalKey> _sectionKeys = {
+    'categories': GlobalKey(),
+    'tags': GlobalKey(),
+    'priority': GlobalKey(),
+    'status': GlobalKey(),
+    'date': GlobalKey(),
+    'recurring': GlobalKey(),
+  };
 
   @override
   void initState() {
     super.initState();
     _filters = widget.initialFilters;
+
+    if (widget.initialTarget != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToSection(widget.initialTarget!);
+      });
+    }
+  }
+
+  void _scrollToSection(String target) {
+    final key = _sectionKeys[target];
+    if (key != null && key.currentContext != null) {
+      Scrollable.ensureVisible(
+        key.currentContext!,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   @override
   void dispose() {
     _tagController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -1044,6 +1102,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                   const SizedBox(height: 24),
                   // Tags - Similar to add_task_screen
                   Center(
+                    key: _sectionKeys['tags'],
                     child: Text(
                       'تگ‌ها',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -1247,6 +1306,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                   const SizedBox(height: 24),
                   // Priority - Similar to add_task_screen
                   Center(
+                    key: _sectionKeys['priority'],
                     child: Text(
                       'اولویت',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -1320,6 +1380,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                   const SizedBox(height: 24),
                   // Status - Like task status picker sheet with multiple selection
                   Center(
+                    key: _sectionKeys['status'],
                     child: Text(
                       'وضعیت',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -1386,6 +1447,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                   const SizedBox(height: 24),
                   // Date Selection
                   Center(
+                    key: _sectionKeys['date'],
                     child: Text(
                       'تاریخ',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -1450,6 +1512,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                   const SizedBox(height: 24),
                   // Recurring - Full width with icons like priority
                   Center(
+                    key: _sectionKeys['recurring'],
                     child: Text(
                       'نوع تسک',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
