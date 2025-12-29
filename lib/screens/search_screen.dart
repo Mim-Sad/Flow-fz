@@ -1153,7 +1153,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: HugeIcon(
-                    icon: HugeIcons.strokeRoundedSettings03,
+                    icon: HugeIcons.strokeRoundedFilter,
                     size: 20,
                     color: Theme.of(context).colorScheme.primary,
                   ),
@@ -1816,7 +1816,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                     Navigator.pop(context);
                   },
                   icon: HugeIcon(
-                    icon: HugeIcons.strokeRoundedCheckmarkSquare04,
+                    icon: HugeIcons.strokeRoundedFilterAdd,
                     size: 20,
                     color: Theme.of(context).colorScheme.onPrimary,
                   ),
