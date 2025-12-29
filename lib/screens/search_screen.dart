@@ -1178,664 +1178,685 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
           ),
           const SizedBox(height: 24),
           Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Categories - Similar to add_task_screen
-                  Consumer(
-                    builder: (context, ref, child) {
-                      final categoriesAsync = ref.watch(categoryProvider);
-                      return categoriesAsync.when(
-                        data: (categories) {
-                          final cats = categories.isEmpty
-                              ? defaultCategories
-                              : categories;
-                          final activeCats = cats
-                              .where((c) => !c.isDeleted)
-                              .toList();
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                'دسته‌بندی',
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.bold),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 12),
-                              SizedBox(
-                                width: double.infinity,
-                                child: Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  alignment: WrapAlignment.center,
-                                  children: activeCats.map((cat) {
-                                    final isSelected =
-                                        _filters.categories?.contains(cat.id) ??
-                                        false;
-                                    return GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          final current = List<String>.from(
-                                            _filters.categories ?? [],
-                                          );
-                                          if (isSelected) {
-                                            current.remove(cat.id);
-                                          } else {
-                                            current.add(cat.id);
-                                          }
-                                          _filters = _filters.copyWith(
-                                            categories: current.isEmpty
-                                                ? null
-                                                : current,
-                                          );
-                                        });
-                                      },
-                                      child: AnimatedContainer(
-                                        duration: const Duration(
-                                          milliseconds: 200,
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 8,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: isSelected
-                                              ? cat.color.withValues(
-                                                  alpha: 0.15,
-                                                )
-                                              : Theme.of(context)
-                                                    .colorScheme
-                                                    .surfaceContainerHighest
-                                                    .withValues(alpha: 0.3),
-                                          borderRadius: BorderRadius.circular(
-                                            14,
-                                          ),
-                                          border: Border.all(
-                                            color: isSelected
-                                                ? cat.color.withValues(
-                                                    alpha: 0.5,
-                                                  )
-                                                : Colors.transparent,
-                                            width: 1.5,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            LottieCategoryIcon(
-                                              assetPath: cat.emoji,
-                                              width: 22,
-                                              height: 22,
-                                              repeat: false,
+            child: Stack(
+              children: [
+                SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Categories - Similar to add_task_screen
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final categoriesAsync = ref.watch(categoryProvider);
+                          return categoriesAsync.when(
+                            data: (categories) {
+                              final cats = categories.isEmpty
+                                  ? defaultCategories
+                                  : categories;
+                              final activeCats = cats
+                                  .where((c) => !c.isDeleted)
+                                  .toList();
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'دسته‌بندی',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      alignment: WrapAlignment.center,
+                                      children: activeCats.map((cat) {
+                                        final isSelected =
+                                            _filters.categories?.contains(
+                                              cat.id,
+                                            ) ??
+                                            false;
+                                        return GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              final current = List<String>.from(
+                                                _filters.categories ?? [],
+                                              );
+                                              if (isSelected) {
+                                                current.remove(cat.id);
+                                              } else {
+                                                current.add(cat.id);
+                                              }
+                                              _filters = _filters.copyWith(
+                                                categories: current.isEmpty
+                                                    ? null
+                                                    : current,
+                                              );
+                                            });
+                                          },
+                                          child: AnimatedContainer(
+                                            duration: const Duration(
+                                              milliseconds: 200,
                                             ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              cat.label,
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: isSelected
-                                                    ? FontWeight.bold
-                                                    : FontWeight.w500,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 8,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isSelected
+                                                  ? cat.color.withValues(
+                                                      alpha: 0.15,
+                                                    )
+                                                  : Theme.of(context)
+                                                        .colorScheme
+                                                        .surfaceContainerHighest
+                                                        .withValues(alpha: 0.3),
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                              border: Border.all(
                                                 color: isSelected
-                                                    ? cat.color
-                                                    : Theme.of(
-                                                        context,
-                                                      ).colorScheme.onSurface,
+                                                    ? cat.color.withValues(
+                                                        alpha: 0.5,
+                                                      )
+                                                    : Colors.transparent,
+                                                width: 1.5,
                                               ),
                                             ),
-                                          ],
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                LottieCategoryIcon(
+                                                  assetPath: cat.emoji,
+                                                  width: 22,
+                                                  height: 22,
+                                                  repeat: false,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  cat.label,
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: isSelected
+                                                        ? FontWeight.bold
+                                                        : FontWeight.w500,
+                                                    color: isSelected
+                                                        ? cat.color
+                                                        : Theme.of(context)
+                                                              .colorScheme
+                                                              .onSurface,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                            loading: () => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                            error: (err, stack) => Text('خطا: $err'),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      // Tags - Similar to add_task_screen
+                      Center(
+                        key: _sectionKeys['tags'],
+                        child: Text(
+                          'تگ‌ها',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _tagController,
+                        onChanged: (value) => setState(() {}),
+                        decoration: InputDecoration(
+                          hintText: 'افزودن تگ جدید...',
+                          hintStyle: const TextStyle(fontSize: 12),
+                          prefixIcon: Container(
+                            margin: const EdgeInsetsDirectional.only(
+                              start: 14,
+                              end: 10,
+                            ),
+                            child: HugeIcon(
+                              icon: HugeIcons.strokeRoundedTag01,
+                              size: 20,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          prefixIconConstraints: const BoxConstraints(
+                            minWidth: 0,
+                            minHeight: 0,
+                          ),
+                          suffixIcon: IconButton(
+                            icon: const HugeIcon(
+                              icon: HugeIcons.strokeRoundedAddCircle,
+                              size: 20,
+                            ),
+                            onPressed: () => _addTag(_tagController.text),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: BorderSide(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .outlineVariant
+                                  .withValues(alpha: 0.5),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: BorderSide(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .outlineVariant
+                                  .withValues(alpha: 0.5),
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                        ),
+                        onSubmitted: (val) => _addTag(val),
+                      ),
+                      // Suggestions
+                      if (_tagController.text.isNotEmpty) ...[
+                        Consumer(
+                          builder: (context, ref, child) {
+                            final suggestions = ref.watch(
+                              tagSuggestionsProvider(_tagController.text),
+                            );
+                            final filteredSuggestions = suggestions
+                                .where(
+                                  (s) => !StringUtils.containsTag(
+                                    _filters.tags ?? [],
+                                    s,
+                                  ),
+                                )
+                                .take(5)
+                                .toList();
+
+                            if (filteredSuggestions.isEmpty)
+                              return const SizedBox.shrink();
+
+                            return Padding(
+                              padding: const EdgeInsets.fromLTRB(0, 12, 0, 0),
+                              child: Center(
+                                child: Wrap(
+                                  alignment: WrapAlignment.center,
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: filteredSuggestions
+                                      .map(
+                                        (suggestion) => ActionChip(
+                                          label: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                suggestion,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Icon(
+                                                Icons.add,
+                                                size: 14,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.primary,
+                                              ),
+                                            ],
+                                          ),
+                                          onPressed: () => _addTag(suggestion),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                          ),
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .primaryContainer
+                                              .withValues(alpha: 0.3),
+                                          side: BorderSide(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary
+                                                .withValues(alpha: 0.2),
+                                          ),
+                                          materialTapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 0,
+                                          ),
                                         ),
-                                      ),
-                                    );
-                                  }).toList(),
+                                      )
+                                      .toList(),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                      // Added Tags
+                      if (_filters.tags != null &&
+                          _filters.tags!.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Center(
+                          child: Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _filters.tags!
+                                .map(
+                                  (tag) => ActionChip(
+                                    label: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          tag,
+                                          style: const TextStyle(fontSize: 11),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          Icons.close,
+                                          size: 14,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.secondary,
+                                        ),
+                                      ],
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        final current = List<String>.from(
+                                          _filters.tags ?? [],
+                                        );
+                                        current.remove(tag);
+                                        _filters = _filters.copyWith(
+                                          tags: current.isEmpty
+                                              ? null
+                                              : current,
+                                        );
+                                      });
+                                    },
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    backgroundColor: Theme.of(context)
+                                        .colorScheme
+                                        .secondaryContainer
+                                        .withValues(alpha: 0.3),
+                                    side: BorderSide(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .secondary
+                                          .withValues(alpha: 0.2),
+                                    ),
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 0,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      // Priority - Similar to add_task_screen
+                      Center(
+                        key: _sectionKeys['priority'],
+                        child: Text(
+                          'اولویت',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 0),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: SegmentedButton<TaskPriority?>(
+                            segments: const [
+                              ButtonSegment(
+                                value: TaskPriority.low,
+                                label: Text('فرعی'),
+                                icon: HugeIcon(
+                                  icon: HugeIcons.strokeRoundedArrowDown01,
+                                  color: Colors.green,
+                                  size: 18,
+                                ),
+                              ),
+                              ButtonSegment(
+                                value: TaskPriority.medium,
+                                label: Text('عادی'),
+                                icon: HugeIcon(
+                                  icon: HugeIcons.strokeRoundedMinusSign,
+                                  color: Colors.grey,
+                                  size: 18,
+                                ),
+                              ),
+                              ButtonSegment(
+                                value: TaskPriority.high,
+                                label: Text('فوری'),
+                                icon: HugeIcon(
+                                  icon: HugeIcons.strokeRoundedAlertCircle,
+                                  color: Colors.red,
+                                  size: 18,
                                 ),
                               ),
                             ],
-                          );
-                        },
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (err, stack) => Text('خطا: $err'),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  // Tags - Similar to add_task_screen
-                  Center(
-                    key: _sectionKeys['tags'],
-                    child: Text(
-                      'تگ‌ها',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _tagController,
-                    onChanged: (value) => setState(() {}),
-                    decoration: InputDecoration(
-                      hintText: 'افزودن تگ جدید...',
-                      hintStyle: const TextStyle(fontSize: 12),
-                      prefixIcon: Container(
-                        margin: const EdgeInsetsDirectional.only(
-                          start: 14,
-                          end: 10,
-                        ),
-                        child: HugeIcon(
-                          icon: HugeIcons.strokeRoundedTag01,
-                          size: 20,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      prefixIconConstraints: const BoxConstraints(
-                        minWidth: 0,
-                        minHeight: 0,
-                      ),
-                      suffixIcon: IconButton(
-                        icon: const HugeIcon(
-                          icon: HugeIcons.strokeRoundedAddCircle,
-                          size: 20,
-                        ),
-                        onPressed: () => _addTag(_tagController.text),
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                    onSubmitted: (val) => _addTag(val),
-                  ),
-                  // Suggestions
-                  if (_tagController.text.isNotEmpty) ...[
-                    Consumer(
-                      builder: (context, ref, child) {
-                        final suggestions = ref.watch(
-                          tagSuggestionsProvider(_tagController.text),
-                        );
-                        final filteredSuggestions = suggestions
-                            .where(
-                              (s) => !StringUtils.containsTag(
-                                _filters.tags ?? [],
-                                s,
-                              ),
-                            )
-                            .take(5)
-                            .toList();
-
-                        if (filteredSuggestions.isEmpty)
-                          return const SizedBox.shrink();
-
-                        return Padding(
-                          padding: const EdgeInsets.fromLTRB(0, 12, 0, 0),
-                          child: Center(
-                            child: Wrap(
-                              alignment: WrapAlignment.center,
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: filteredSuggestions
-                                  .map(
-                                    (suggestion) => ActionChip(
-                                      label: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            suggestion,
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Icon(
-                                            Icons.add,
-                                            size: 14,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                          ),
-                                        ],
-                                      ),
-                                      onPressed: () => _addTag(suggestion),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      backgroundColor: Theme.of(context)
-                                          .colorScheme
-                                          .primaryContainer
-                                          .withValues(alpha: 0.3),
-                                      side: BorderSide(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary
-                                            .withValues(alpha: 0.2),
-                                      ),
-                                      materialTapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 0,
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                  // Added Tags
-                  if (_filters.tags != null && _filters.tags!.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Center(
-                      child: Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _filters.tags!
-                            .map(
-                              (tag) => ActionChip(
-                                label: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      tag,
-                                      style: const TextStyle(fontSize: 11),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Icon(
-                                      Icons.close,
-                                      size: 14,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.secondary,
-                                    ),
-                                  ],
-                                ),
-                                onPressed: () {
+                            selected: {
+                              if (_filters.priority != null) _filters.priority!,
+                            },
+                            onSelectionChanged:
+                                (Set<TaskPriority?> newSelection) {
                                   setState(() {
-                                    final current = List<String>.from(
-                                      _filters.tags ?? [],
-                                    );
-                                    current.remove(tag);
                                     _filters = _filters.copyWith(
-                                      tags: current.isEmpty ? null : current,
+                                      priority: newSelection.isEmpty
+                                          ? null
+                                          : newSelection.first,
                                     );
                                   });
                                 },
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                backgroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .secondaryContainer
-                                    .withValues(alpha: 0.3),
-                                side: BorderSide(
-                                  color: Theme.of(context).colorScheme.secondary
-                                      .withValues(alpha: 0.2),
-                                ),
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 0,
-                                ),
+                            emptySelectionAllowed: true,
+                            style: SegmentedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              textStyle: const TextStyle(
+                                fontSize: 12,
+                                fontFamily: 'IRANSansX',
                               ),
-                            )
-                            .toList(),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  // Priority - Similar to add_task_screen
-                  Center(
-                    key: _sectionKeys['priority'],
-                    child: Text(
-                      'اولویت',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 0),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: SegmentedButton<TaskPriority?>(
-                        segments: const [
-                          ButtonSegment(
-                            value: TaskPriority.low,
-                            label: Text('فرعی'),
-                            icon: HugeIcon(
-                              icon: HugeIcons.strokeRoundedArrowDown01,
-                              color: Colors.green,
-                              size: 18,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              side: BorderSide(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .outlineVariant
+                                    .withValues(alpha: 0.5),
+                              ),
                             ),
                           ),
-                          ButtonSegment(
-                            value: TaskPriority.medium,
-                            label: Text('عادی'),
-                            icon: HugeIcon(
-                              icon: HugeIcons.strokeRoundedMinusSign,
-                              color: Colors.grey,
-                              size: 18,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // Status - Like task status picker sheet with multiple selection
+                      Center(
+                        key: _sectionKeys['status'],
+                        child: Text(
+                          'وضعیت',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildStatusAction(
+                              TaskStatus.success,
+                              'انجام شده',
+                              HugeIcons.strokeRoundedCheckmarkCircle03,
+                              Colors.green,
                             ),
                           ),
-                          ButtonSegment(
-                            value: TaskPriority.high,
-                            label: Text('فوری'),
-                            icon: HugeIcon(
-                              icon: HugeIcons.strokeRoundedAlertCircle,
-                              color: Colors.red,
-                              size: 18,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildStatusAction(
+                              TaskStatus.pending,
+                              'در جریان',
+                              HugeIcons.strokeRoundedCircle,
+                              Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildStatusAction(
+                              TaskStatus.failed,
+                              'انجام نشده',
+                              HugeIcons.strokeRoundedCancelCircle,
+                              Colors.red,
                             ),
                           ),
                         ],
-                        selected: {
-                          if (_filters.priority != null) _filters.priority!,
-                        },
-                        onSelectionChanged: (Set<TaskPriority?> newSelection) {
-                          setState(() {
-                            _filters = _filters.copyWith(
-                              priority: newSelection.isEmpty
-                                  ? null
-                                  : newSelection.first,
-                            );
-                          });
-                        },
-                        emptySelectionAllowed: true,
-                        style: SegmentedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          textStyle: const TextStyle(
-                            fontSize: 12,
-                            fontFamily: 'IRANSansX',
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildStatusAction(
+                              TaskStatus.cancelled,
+                              'لغو شده',
+                              HugeIcons.strokeRoundedMinusSignCircle,
+                              Colors.grey,
+                              horizontal: true,
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildStatusAction(
+                              TaskStatus.deferred,
+                              'تعویق شده',
+                              HugeIcons.strokeRoundedClock01,
+                              Colors.orange,
+                              horizontal: true,
+                            ),
                           ),
-                          side: BorderSide(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      // Date Selection
+                      Center(
+                        key: _sectionKeys['date'],
+                        child: Text(
+                          'تاریخ',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (_filters.specificDate != null)
+                        _buildDateCapsule(
+                          onTap: _selectSpecificDate,
+                          label: _formatDate(_filters.specificDate!),
+                          icon: HugeIcons.strokeRoundedCalendar03,
+                          isSelected: true,
+                          onClear: () {
+                            setState(() {
+                              _filters = _filters.copyWith(specificDate: null);
+                            });
+                          },
+                        )
+                      else if (_filters.dateFrom != null ||
+                          _filters.dateTo != null)
+                        _buildDateCapsule(
+                          onTap: _selectDateRange,
+                          label: _formatDateRange(
+                            _filters.dateFrom,
+                            _filters.dateTo,
+                          ),
+                          icon: HugeIcons.strokeRoundedCalendar02,
+                          isSelected: true,
+                          onClear: () {
+                            setState(() {
+                              _filters = _filters.copyWith(
+                                dateFrom: null,
+                                dateTo: null,
+                              );
+                            });
+                          },
+                        )
+                      else
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildDateCapsule(
+                                onTap: _selectSpecificDate,
+                                label: 'تاریخ مشخص',
+                                icon: HugeIcons.strokeRoundedCalendar03,
+                                isSelected: false,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _buildDateCapsule(
+                                onTap: _selectDateRange,
+                                label: 'بازه تاریخی',
+                                icon: HugeIcons.strokeRoundedCalendar02,
+                                isSelected: false,
+                              ),
+                            ),
+                          ],
+                        ),
+                      const SizedBox(height: 24),
+                      // Recurring - Full width with icons like priority
+                      Center(
+                        key: _sectionKeys['recurring'],
+                        child: Text(
+                          'نوع تسک',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: SegmentedButton<bool?>(
+                          segments: const [
+                            ButtonSegment(
+                              value: true,
+                              label: Text('تکرار شونده'),
+                              icon: HugeIcon(
+                                icon: HugeIcons.strokeRoundedRepeat,
+                                size: 18,
+                              ),
+                            ),
+                            ButtonSegment(
+                              value: false,
+                              label: Text('غیر تکرار شونده'),
+                              icon: HugeIcon(
+                                icon: HugeIcons.strokeRoundedCalendarRemove01,
+                                size: 18,
+                              ),
+                            ),
+                          ],
+                          selected: {
+                            if (_filters.isRecurring != null)
+                              _filters.isRecurring!,
+                          },
+                          onSelectionChanged: (Set<bool?> newSelection) {
+                            setState(() {
+                              _filters = _filters.copyWith(
+                                isRecurring: newSelection.isEmpty
+                                    ? null
+                                    : newSelection.first,
+                              );
+                            });
+                          },
+                          emptySelectionAllowed: true,
+                          style: SegmentedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                              horizontal: 12,
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 12,
+                              fontFamily: 'IRANSansX',
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            side: BorderSide(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .outlineVariant
+                                  .withValues(alpha: 0.5),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Status - Like task status picker sheet with multiple selection
-                  Center(
-                    key: _sectionKeys['status'],
-                    child: Text(
-                      'وضعیت',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatusAction(
-                          TaskStatus.success,
-                          'انجام شده',
-                          HugeIcons.strokeRoundedCheckmarkCircle03,
-                          Colors.green,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildStatusAction(
-                          TaskStatus.pending,
-                          'در جریان',
-                          HugeIcons.strokeRoundedCircle,
-                          Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildStatusAction(
-                          TaskStatus.failed,
-                          'انجام نشده',
-                          HugeIcons.strokeRoundedCancelCircle,
-                          Colors.red,
-                        ),
-                      ),
+                      const SizedBox(height: 24),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatusAction(
-                          TaskStatus.cancelled,
-                          'لغو شده',
-                          HugeIcons.strokeRoundedMinusSignCircle,
-                          Colors.grey,
-                          horizontal: true,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildStatusAction(
-                          TaskStatus.deferred,
-                          'تعویق شده',
-                          HugeIcons.strokeRoundedClock01,
-                          Colors.orange,
-                          horizontal: true,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  // Date Selection
-                  Center(
-                    key: _sectionKeys['date'],
-                    child: Text(
-                      'تاریخ',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  if (_filters.specificDate != null)
-                    _buildDateCapsule(
-                      onTap: _selectSpecificDate,
-                      label: _formatDate(_filters.specificDate!),
-                      icon: HugeIcons.strokeRoundedCalendar03,
-                      isSelected: true,
-                      onClear: () {
-                        setState(() {
-                          _filters = _filters.copyWith(specificDate: null);
-                        });
-                      },
-                    )
-                  else if (_filters.dateFrom != null || _filters.dateTo != null)
-                    _buildDateCapsule(
-                      onTap: _selectDateRange,
-                      label: _formatDateRange(
-                        _filters.dateFrom,
-                        _filters.dateTo,
-                      ),
-                      icon: HugeIcons.strokeRoundedCalendar02,
-                      isSelected: true,
-                      onClear: () {
-                        setState(() {
-                          _filters = _filters.copyWith(
-                            dateFrom: null,
-                            dateTo: null,
-                          );
-                        });
-                      },
-                    )
-                  else
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildDateCapsule(
-                            onTap: _selectSpecificDate,
-                            label: 'تاریخ مشخص',
-                            icon: HugeIcons.strokeRoundedCalendar03,
-                            isSelected: false,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildDateCapsule(
-                            onTap: _selectDateRange,
-                            label: 'بازه تاریخی',
-                            icon: HugeIcons.strokeRoundedCalendar02,
-                            isSelected: false,
-                          ),
-                        ),
-                      ],
-                    ),
-                  const SizedBox(height: 24),
-                  // Recurring - Full width with icons like priority
-                  Center(
-                    key: _sectionKeys['recurring'],
-                    child: Text(
-                      'نوع تسک',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: SegmentedButton<bool?>(
-                      segments: const [
-                        ButtonSegment(
-                          value: true,
-                          label: Text('تکرار شونده'),
-                          icon: HugeIcon(
-                            icon: HugeIcons.strokeRoundedRepeat,
-                            size: 18,
-                          ),
-                        ),
-                        ButtonSegment(
-                          value: false,
-                          label: Text('غیر تکرار شونده'),
-                          icon: HugeIcon(
-                            icon: HugeIcons.strokeRoundedCalendarRemove01,
-                            size: 18,
-                          ),
-                        ),
-                      ],
-                      selected: {
-                        if (_filters.isRecurring != null) _filters.isRecurring!,
-                      },
-                      onSelectionChanged: (Set<bool?> newSelection) {
-                        setState(() {
-                          _filters = _filters.copyWith(
-                            isRecurring: newSelection.isEmpty
-                                ? null
-                                : newSelection.first,
-                          );
-                        });
-                      },
-                      emptySelectionAllowed: true,
-                      style: SegmentedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 14,
-                          horizontal: 12,
-                        ),
-                        textStyle: const TextStyle(
-                          fontSize: 12,
-                          fontFamily: 'IRANSansX',
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        side: BorderSide(
-                          color: Theme.of(
+                ),
+                // Apply Button - Sticky and styled like add task button
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          Theme.of(context).colorScheme.surface,
+                          Theme.of(
                             context,
-                          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                          ).colorScheme.surface.withValues(alpha: 0.8),
+                          Theme.of(
+                            context,
+                          ).colorScheme.surface.withValues(alpha: 0),
+                        ],
+                        stops: const [0, 0.6, 1.0],
+                      ),
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: FilledButton.icon(
+                        onPressed: () {
+                          ref
+                              .read(searchProvider.notifier)
+                              .setFilters(_filters);
+                          Navigator.pop(context);
+                        },
+                        icon: HugeIcon(
+                          icon: HugeIcons.strokeRoundedFilterAdd,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                        style: FilledButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
+                        label: const Text(
+                          'اعمال فیلترها',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-          ),
-          // Apply Button - Faded background like add task button
-          SafeArea(
-            top: false,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Theme.of(context).colorScheme.surface,
-                    Theme.of(
-                      context,
-                    ).colorScheme.surface.withValues(alpha: 0.8),
-                    Theme.of(context).colorScheme.surface.withValues(alpha: 0),
-                  ],
-                  stops: const [0, 0.6, 1.0],
                 ),
-              ),
-              child: SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: FilledButton.icon(
-                  onPressed: () {
-                    ref.read(searchProvider.notifier).setFilters(_filters);
-                    Navigator.pop(context);
-                  },
-                  icon: HugeIcon(
-                    icon: HugeIcons.strokeRoundedFilterAdd,
-                    size: 20,
-                    color: Theme.of(context).colorScheme.onPrimary,
-                  ),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
-                  label: Text(
-                    'اعمال فیلترها',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
-                  ),
-                ),
-              ),
+              ],
             ),
           ),
         ],
