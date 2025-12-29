@@ -1295,18 +1295,19 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                             ),
                           ),
                         ],
-                        selected: {_filters.priority},
+                        selected: {
+                          if (_filters.priority != null) _filters.priority!,
+                        },
                         onSelectionChanged: (Set<TaskPriority?> newSelection) {
                           setState(() {
-                            final selected = newSelection.first;
-                            // Toggle: if same priority selected, deselect it
                             _filters = _filters.copyWith(
-                              priority: selected == _filters.priority
+                              priority: newSelection.isEmpty
                                   ? null
-                                  : selected,
+                                  : newSelection.first,
                             );
                           });
                         },
+                        emptySelectionAllowed: true,
                         style: SegmentedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(
@@ -1549,18 +1550,19 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                           ),
                         ),
                       ],
-                      selected: {_filters.isRecurring},
+                      selected: {
+                        if (_filters.isRecurring != null) _filters.isRecurring!,
+                      },
                       onSelectionChanged: (Set<bool?> newSelection) {
                         setState(() {
-                          final selected = newSelection.first;
-                          // Toggle: if same option selected, deselect it
                           _filters = _filters.copyWith(
-                            isRecurring: selected == _filters.isRecurring
+                            isRecurring: newSelection.isEmpty
                                 ? null
-                                : selected,
+                                : newSelection.first,
                           );
                         });
                       },
+                      emptySelectionAllowed: true,
                       style: SegmentedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                           vertical: 14,

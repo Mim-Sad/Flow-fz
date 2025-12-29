@@ -36,28 +36,40 @@ class SearchFilters {
   });
 
   SearchFilters copyWith({
-    String? query,
-    List<String>? categories,
-    List<String>? tags,
-    DateTime? dateFrom,
-    DateTime? dateTo,
-    DateTime? specificDate,
-    TaskPriority? priority,
-    List<TaskStatus>? statuses,
-    bool? isRecurring,
+    Object? query = _sentinel,
+    Object? categories = _sentinel,
+    Object? tags = _sentinel,
+    Object? dateFrom = _sentinel,
+    Object? dateTo = _sentinel,
+    Object? specificDate = _sentinel,
+    Object? priority = _sentinel,
+    Object? statuses = _sentinel,
+    Object? isRecurring = _sentinel,
   }) {
     return SearchFilters(
-      query: query ?? this.query,
-      categories: categories ?? this.categories,
-      tags: tags ?? this.tags,
-      dateFrom: dateFrom ?? this.dateFrom,
-      dateTo: dateTo ?? this.dateTo,
-      specificDate: specificDate ?? this.specificDate,
-      priority: priority ?? this.priority,
-      statuses: statuses ?? this.statuses,
-      isRecurring: isRecurring ?? this.isRecurring,
+      query: query == _sentinel ? this.query : query as String?,
+      categories: categories == _sentinel
+          ? this.categories
+          : categories as List<String>?,
+      tags: tags == _sentinel ? this.tags : tags as List<String>?,
+      dateFrom: dateFrom == _sentinel ? this.dateFrom : dateFrom as DateTime?,
+      dateTo: dateTo == _sentinel ? this.dateTo : dateTo as DateTime?,
+      specificDate: specificDate == _sentinel
+          ? this.specificDate
+          : specificDate as DateTime?,
+      priority: priority == _sentinel
+          ? this.priority
+          : priority as TaskPriority?,
+      statuses: statuses == _sentinel
+          ? this.statuses
+          : statuses as List<TaskStatus>?,
+      isRecurring: isRecurring == _sentinel
+          ? this.isRecurring
+          : isRecurring as bool?,
     );
   }
+
+  static const _sentinel = Object();
 
   bool get hasFilters {
     return query != null && query!.isNotEmpty ||
@@ -85,9 +97,14 @@ class SearchService {
       final query = filters.query!.toLowerCase().trim();
       results = results.where((task) {
         final titleMatch = task.title.toLowerCase().contains(query);
-        final descMatch = task.description?.toLowerCase().contains(query) ?? false;
-        final tagsMatch = task.tags.any((tag) => tag.toLowerCase().contains(query));
-        final categoriesMatch = task.categories.any((cat) => cat.toLowerCase().contains(query));
+        final descMatch =
+            task.description?.toLowerCase().contains(query) ?? false;
+        final tagsMatch = task.tags.any(
+          (tag) => tag.toLowerCase().contains(query),
+        );
+        final categoriesMatch = task.categories.any(
+          (cat) => cat.toLowerCase().contains(query),
+        );
         return titleMatch || descMatch || tagsMatch || categoriesMatch;
       }).toList();
     }
@@ -114,13 +131,21 @@ class SearchService {
         filters.specificDate!.day,
       );
       results = results.where((task) {
-        final taskDate = DateTime(task.dueDate.year, task.dueDate.month, task.dueDate.day);
+        final taskDate = DateTime(
+          task.dueDate.year,
+          task.dueDate.month,
+          task.dueDate.day,
+        );
         return taskDate.isAtSameMomentAs(specificDateOnly);
       }).toList();
     } else if (filters.dateFrom != null || filters.dateTo != null) {
       results = results.where((task) {
-        final taskDate = DateTime(task.dueDate.year, task.dueDate.month, task.dueDate.day);
-        
+        final taskDate = DateTime(
+          task.dueDate.year,
+          task.dueDate.month,
+          task.dueDate.day,
+        );
+
         if (filters.dateFrom != null) {
           final fromDate = DateTime(
             filters.dateFrom!.year,
@@ -129,7 +154,7 @@ class SearchService {
           );
           if (taskDate.isBefore(fromDate)) return false;
         }
-        
+
         if (filters.dateTo != null) {
           final toDate = DateTime(
             filters.dateTo!.year,
@@ -138,25 +163,30 @@ class SearchService {
           );
           if (taskDate.isAfter(toDate)) return false;
         }
-        
+
         return true;
       }).toList();
     }
 
     // Apply priority filter
     if (filters.priority != null) {
-      results = results.where((task) => task.priority == filters.priority).toList();
+      results = results
+          .where((task) => task.priority == filters.priority)
+          .toList();
     }
 
     // Apply status filter (multiple statuses)
     if (filters.statuses != null && filters.statuses!.isNotEmpty) {
-      results = results.where((task) => filters.statuses!.contains(task.status)).toList();
+      results = results
+          .where((task) => filters.statuses!.contains(task.status))
+          .toList();
     }
 
     // Apply recurring filter
     if (filters.isRecurring != null) {
       results = results.where((task) {
-        final isRecurring = task.recurrence != null &&
+        final isRecurring =
+            task.recurrence != null &&
             task.recurrence!.type != RecurrenceType.none;
         return isRecurring == filters.isRecurring;
       }).toList();
@@ -196,4 +226,3 @@ class SearchService {
     return results;
   }
 }
-
