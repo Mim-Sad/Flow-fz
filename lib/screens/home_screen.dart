@@ -13,6 +13,8 @@ import '../models/category_data.dart';
 import '../widgets/postpone_dialog.dart';
 import '../widgets/task_sheets.dart';
 import '../widgets/animations.dart';
+import 'package:go_router/go_router.dart';
+import '../utils/route_builder.dart';
 import 'add_task_screen.dart';
 
 enum SortMode { manual, defaultSort }
@@ -800,27 +802,38 @@ class TaskListTile extends ConsumerWidget {
         break;
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          HugeIcon(icon: icon, size: 10, color: color),
-          const SizedBox(width: 4),
-          Text(
-            _toPersianDigit(label),
-            style: TextStyle(
-              fontSize: 10,
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
+    return InkWell(
+      onTap: () {
+        context.push(
+          SearchRouteBuilder.buildSearchUrl(
+            priority: task.priority,
+            specificDate: task.dueDate,
           ),
-        ],
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            HugeIcon(icon: icon, size: 10, color: color),
+            const SizedBox(width: 4),
+            Text(
+              _toPersianDigit(label),
+              style: TextStyle(
+                fontSize: 10,
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -852,38 +865,49 @@ class TaskListTile extends ConsumerWidget {
         final isDeleted = catData.isDeleted;
         final displayColor = isDeleted ? Colors.grey : catData.color;
 
-        return Container(
-          margin: EdgeInsetsDirectional.only(start: index == 0 ? 0 : 6),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: displayColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: displayColor.withValues(alpha: 0.3)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Opacity(
-                opacity: isDeleted ? 0.5 : 1.0,
-                child: LottieCategoryIcon(
-                  assetPath: catData.emoji,
-                  width: 14,
-                  height: 14,
-                  repeat: false,
-                ),
+        return InkWell(
+          onTap: () {
+            context.push(
+              SearchRouteBuilder.buildSearchUrl(
+                categories: [catId],
+                specificDate: task.dueDate,
               ),
-              const SizedBox(width: 4),
-              Text(
-                _toPersianDigit(catData.label),
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: displayColor,
-                  decoration: isDeleted ? TextDecoration.lineThrough : null,
-                  decorationColor: Colors.grey,
+            );
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            margin: EdgeInsetsDirectional.only(start: index == 0 ? 0 : 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: displayColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: displayColor.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Opacity(
+                  opacity: isDeleted ? 0.5 : 1.0,
+                  child: LottieCategoryIcon(
+                    assetPath: catData.emoji,
+                    width: 14,
+                    height: 14,
+                    repeat: false,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 4),
+                Text(
+                  _toPersianDigit(catData.label),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: displayColor,
+                    decoration: isDeleted ? TextDecoration.lineThrough : null,
+                    decorationColor: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       }).toList(),

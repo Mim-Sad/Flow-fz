@@ -8,6 +8,8 @@ import 'package:intl/intl.dart' as intl;
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import '../providers/task_provider.dart';
 import '../models/task.dart';
+import 'package:go_router/go_router.dart';
+import '../utils/route_builder.dart';
 import '../widgets/animations.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
@@ -120,19 +122,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       final index = entry.key;
       final child = entry.value;
       final delay = (startDelay + (index * delayStep)).ms;
-      final useScale = useScaleList != null && index < useScaleList.length && useScaleList[index];
-      
-      return FadeInOnce(
-        delay: delay,
-        useScale: useScale,
-        child: child,
-      );
+      final useScale =
+          useScaleList != null &&
+          index < useScaleList.length &&
+          useScaleList[index];
+
+      return FadeInOnce(delay: delay, useScale: useScale, child: child);
     }).toList();
   }
 
   /// Build report content widgets list
   List<Widget> _buildReportContent(
     BuildContext context,
+    DateTimeRange range,
     List<Task> filteredTasks,
     int successCount,
     int failedCount,
@@ -150,10 +152,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       ),
       const SizedBox(height: 32),
       Center(
-        child: Text(
-          'وضعیت کلی تسک‌ها',
-          style: Theme.of(context).textTheme.titleLarge
-              ?.copyWith(fontWeight: FontWeight.bold),
+        child: InkWell(
+          onTap: () {
+            context.push(
+              SearchRouteBuilder.buildSearchUrl(
+                dateFrom: range.start,
+                dateTo: range.end,
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: Text(
+              'وضعیت کلی تسک‌ها',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ),
         ),
       ),
       const SizedBox(height: 18),
@@ -203,7 +220,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           PieChartSectionData(
                             value: pendingCount.toDouble(),
                             title: '',
-                            color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHigh,
                             radius: 35,
                           ),
                         if (deferredCount > 0)
@@ -224,12 +243,42 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildLegendItem(context, 'کل تسک‌ها', Theme.of(context).colorScheme.primary, filteredTasks.length),
-                    _buildLegendItem(context, 'موفق', Colors.greenAccent, successCount),
-                    _buildLegendItem(context, 'ناموفق', Colors.redAccent, failedCount),
-                    _buildLegendItem(context, 'لغو شده', Colors.grey, cancelledCount),
-                    _buildLegendItem(context, 'تعویق', Colors.orangeAccent, deferredCount),
-                    _buildLegendItem( context, 'در جریان', Theme.of(context).colorScheme.surfaceContainerHigh, pendingCount,),
+                    _buildLegendItem(
+                      context,
+                      'کل تسک‌ها',
+                      Theme.of(context).colorScheme.primary,
+                      filteredTasks.length,
+                    ),
+                    _buildLegendItem(
+                      context,
+                      'موفق',
+                      Colors.greenAccent,
+                      successCount,
+                    ),
+                    _buildLegendItem(
+                      context,
+                      'ناموفق',
+                      Colors.redAccent,
+                      failedCount,
+                    ),
+                    _buildLegendItem(
+                      context,
+                      'لغو شده',
+                      Colors.grey,
+                      cancelledCount,
+                    ),
+                    _buildLegendItem(
+                      context,
+                      'تعویق',
+                      Colors.orangeAccent,
+                      deferredCount,
+                    ),
+                    _buildLegendItem(
+                      context,
+                      'در جریان',
+                      Theme.of(context).colorScheme.surfaceContainerHigh,
+                      pendingCount,
+                    ),
                   ],
                 ),
               ),
@@ -242,10 +291,29 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         content.addAll([
           const SizedBox(height: 32),
           Center(
-            child: Text(
-              'روند موفقیت',
-              style: Theme.of(context).textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
+            child: InkWell(
+              onTap: () {
+                context.push(
+                  SearchRouteBuilder.buildSearchUrl(
+                    dateFrom: range.start,
+                    dateTo: range.end,
+                    status: TaskStatus.success,
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+                child: Text(
+                  'روند موفقیت',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 18),
@@ -310,8 +378,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final relevantTasks = filteredTasks
         .where(
           (t) =>
-              t.status == TaskStatus.success ||
-              t.status == TaskStatus.failed,
+              t.status == TaskStatus.success || t.status == TaskStatus.failed,
         )
         .toList();
 
@@ -349,6 +416,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     children: _buildAnimatedChildren(
                       children: _buildReportContent(
                         context,
+                        range,
                         filteredTasks,
                         successCount,
                         failedCount,
@@ -358,7 +426,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         relevantTasks.length,
                       ),
                       useScaleList: filteredTasks.isNotEmpty
-                          ? [false, false, false, true] // Scale effect for pie chart (index 3)
+                          ? [
+                              false,
+                              false,
+                              false,
+                              true,
+                            ] // Scale effect for pie chart (index 3)
                           : null,
                     ),
                   ),
@@ -380,9 +453,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     Theme.of(
                       context,
                     ).colorScheme.surface.withValues(alpha: 0.8),
-                    Theme.of(
-                      context,
-                    ).colorScheme.surface.withValues(alpha: 0),
+                    Theme.of(context).colorScheme.surface.withValues(alpha: 0),
                   ],
                   stops: const [0, 0.6, 1.0],
                 ),
@@ -478,9 +549,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
-      decoration: const BoxDecoration(
-        color: Colors.transparent,
-      ),
+      decoration: const BoxDecoration(color: Colors.transparent),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

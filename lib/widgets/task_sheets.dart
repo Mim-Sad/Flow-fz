@@ -13,6 +13,8 @@ import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
 import '../screens/add_task_screen.dart';
 import 'postpone_dialog.dart';
+import 'package:go_router/go_router.dart';
+import '../utils/route_builder.dart';
 import 'audio_waveform_player.dart';
 
 class TaskStatusPickerSheet extends ConsumerWidget {
@@ -135,7 +137,8 @@ class TaskStatusPickerSheet extends ConsumerWidget {
     bool horizontal = false,
   }) {
     // Determine the target date for this status change
-    final targetDate = recurringDate ??
+    final targetDate =
+        recurringDate ??
         (task.recurrence != null && task.recurrence!.type != RecurrenceType.none
             ? task.dueDate
             : null);
@@ -161,7 +164,9 @@ class TaskStatusPickerSheet extends ConsumerWidget {
           PostponeDialog.show(context, ref, task, targetDate: targetDate);
         } else {
           if (targetDate != null) {
-            ref.read(tasksProvider.notifier).updateStatus(task.id!, status, date: targetDate);
+            ref
+                .read(tasksProvider.notifier)
+                .updateStatus(task.id!, status, date: targetDate);
           } else {
             ref.read(tasksProvider.notifier).updateStatus(task.id!, status);
           }
@@ -200,8 +205,9 @@ class TaskStatusPickerSheet extends ConsumerWidget {
                       color: isSelected
                           ? color
                           : Theme.of(context).colorScheme.onSurface,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
                 ],
@@ -224,8 +230,9 @@ class TaskStatusPickerSheet extends ConsumerWidget {
                       color: isSelected
                           ? color
                           : Theme.of(context).colorScheme.onSurface,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
                 ],
@@ -368,28 +375,42 @@ class BulkTaskStatusPickerSheet extends ConsumerWidget {
           // If it IS deferred, we probably shouldn't show the postpone dialog for EACH task.
           // For simplicity and safety, and since the user didn't explicitly ask for bulk-defer date picking:
           // We will treat "Deferred" as just setting the status to deferred without changing the date (or using today/due date).
-          
+
           final tasks = ref.read(tasksProvider);
           for (var taskId in selectedTaskIds) {
-            final task = tasks.firstWhere((t) => t.id == taskId, orElse: () => Task(title: '', dueDate: DateTime.now()));
-            final isRecurring = task.recurrence != null && task.recurrence!.type != RecurrenceType.none;
-            
+            final task = tasks.firstWhere(
+              (t) => t.id == taskId,
+              orElse: () => Task(title: '', dueDate: DateTime.now()),
+            );
+            final isRecurring =
+                task.recurrence != null &&
+                task.recurrence!.type != RecurrenceType.none;
+
             // For recurring tasks, we change status for the *current view date* (todayDate passed in).
             // For regular tasks, we change status for their *due date*.
             final targetDate = isRecurring ? todayDate : task.dueDate;
-            
-            ref.read(tasksProvider.notifier).updateStatus(taskId, status, date: targetDate);
+
+            ref
+                .read(tasksProvider.notifier)
+                .updateStatus(taskId, status, date: targetDate);
           }
           if (context.mounted) Navigator.pop(context);
         } else {
           final tasks = ref.read(tasksProvider);
           for (var taskId in selectedTaskIds) {
-            final task = tasks.firstWhere((t) => t.id == taskId, orElse: () => Task(title: '', dueDate: DateTime.now()));
-            final isRecurring = task.recurrence != null && task.recurrence!.type != RecurrenceType.none;
-            
+            final task = tasks.firstWhere(
+              (t) => t.id == taskId,
+              orElse: () => Task(title: '', dueDate: DateTime.now()),
+            );
+            final isRecurring =
+                task.recurrence != null &&
+                task.recurrence!.type != RecurrenceType.none;
+
             final targetDate = isRecurring ? todayDate : task.dueDate;
-            
-            ref.read(tasksProvider.notifier).updateStatus(taskId, status, date: targetDate);
+
+            ref
+                .read(tasksProvider.notifier)
+                .updateStatus(taskId, status, date: targetDate);
           }
           if (context.mounted) Navigator.pop(context);
         }
@@ -458,21 +479,23 @@ class TaskOptionsSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final allCategories = ref.watch(categoryProvider).valueOrNull ?? [];
-    
+
     final taskCategories = task.categories;
 
     // Find the original task to get the true start date if it's a recurring task
-     final allTasks = ref.watch(tasksProvider);
-     final originalTask = allTasks.cast<Task?>().firstWhere(
+    final allTasks = ref.watch(tasksProvider);
+    final originalTask = allTasks.cast<Task?>().firstWhere(
       (t) => t?.id == task.id,
       orElse: () => task,
     );
-    
+
     final displayDate = originalTask?.dueDate ?? task.dueDate;
     final occurrenceDate = date ?? task.dueDate;
-    final isRecurring = task.recurrence != null && task.recurrence!.type != RecurrenceType.none;
-    final isOccurrenceDifferent = isRecurring && !DateUtils.isSameDay(displayDate, occurrenceDate);
-    
+    final isRecurring =
+        task.recurrence != null && task.recurrence!.type != RecurrenceType.none;
+    final isOccurrenceDifferent =
+        isRecurring && !DateUtils.isSameDay(displayDate, occurrenceDate);
+
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
@@ -503,10 +526,15 @@ class TaskOptionsSheet extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(28),
                       border: Border.all(
-                        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outlineVariant.withValues(alpha: 0.5),
                       ),
                     ),
                     child: Column(
@@ -520,7 +548,10 @@ class TaskOptionsSheet extends ConsumerWidget {
                                 width: 52,
                                 height: 52,
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainerHighest
+                                      .withValues(alpha: 0.3),
                                   borderRadius: BorderRadius.circular(18),
                                 ),
                                 alignment: Alignment.center,
@@ -547,12 +578,12 @@ class TaskOptionsSheet extends ConsumerWidget {
                             _buildPriorityBadge(context, task.priority),
                           ],
                         ),
-                        
+
                         // Date and Time Info
                         const SizedBox(height: 16),
                         const Divider(height: 1, thickness: 0.5),
                         const SizedBox(height: 16),
-                        
+
                         // Date Row
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -569,32 +600,36 @@ class TaskOptionsSheet extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _buildParenthesesStyledText(
-                                     "${isRecurring ? 'آغاز:' : 'تاریخ:'} ${_formatDate(displayDate)}",
-                                     TextStyle(
-                                       fontSize: 13,
-                                       color: Theme.of(context).colorScheme.onSurface,
-                                       fontWeight: FontWeight.w600,
-                                       fontFamily: 'IRANSansX',
-                                     ),
-                                   ),
-                                   // Occurrence Date Row (if different)
-                                   if (isOccurrenceDifferent) ...[
-                                     const SizedBox(height: 4),
-                                     _buildParenthesesStyledText(
-                                       'تکرار فعلی: ${_formatDate(occurrenceDate)}',
-                                       TextStyle(
-                                         fontSize: 11,
-                                         color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                         fontWeight: FontWeight.w500,
-                                       ),
-                                     ),
-                                   ],
+                                    "${isRecurring ? 'آغاز:' : 'تاریخ:'} ${_formatDate(displayDate)}",
+                                    TextStyle(
+                                      fontSize: 13,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
+                                      fontWeight: FontWeight.w600,
+                                      fontFamily: 'IRANSansX',
+                                    ),
+                                  ),
+                                  // Occurrence Date Row (if different)
+                                  if (isOccurrenceDifferent) ...[
+                                    const SizedBox(height: 4),
+                                    _buildParenthesesStyledText(
+                                      'تکرار فعلی: ${_formatDate(occurrenceDate)}',
+                                      TextStyle(
+                                        fontSize: 11,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
                           ],
                         ),
-                        
+
                         // Time Row (New Line)
                         if (task.metadata['hasTime'] ?? true) ...[
                           const SizedBox(height: 12),
@@ -613,7 +648,9 @@ class TaskOptionsSheet extends ConsumerWidget {
                                   "زمان: ${_toPersianDigit(_formatTime(displayDate))}",
                                   TextStyle(
                                     fontSize: 13,
-                                    color: Theme.of(context).colorScheme.onSurface,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -623,23 +660,26 @@ class TaskOptionsSheet extends ConsumerWidget {
                         ],
 
                         // Recurrence Info
-                        if (task.recurrence != null && task.recurrence!.type != RecurrenceType.none) ...[
+                        if (task.recurrence != null &&
+                            task.recurrence!.type != RecurrenceType.none) ...[
                           const SizedBox(height: 12),
                           Row(
                             textDirection: TextDirection.rtl,
                             children: [
                               HugeIcon(
-                                 icon: HugeIcons.strokeRoundedRefresh,
-                                 size: 18,
-                                 color: Theme.of(context).colorScheme.primary,
-                               ),
+                                icon: HugeIcons.strokeRoundedRefresh,
+                                size: 18,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: _buildParenthesesStyledText(
                                   _getRecurrenceText(task.recurrence!),
                                   TextStyle(
                                     fontSize: 13,
-                                    color: Theme.of(context).colorScheme.onSurface,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -648,7 +688,8 @@ class TaskOptionsSheet extends ConsumerWidget {
                           ),
                         ],
 
-                        if (task.description != null && task.description!.isNotEmpty) ...[
+                        if (task.description != null &&
+                            task.description!.isNotEmpty) ...[
                           const SizedBox(height: 16),
                           const Divider(height: 1, thickness: 0.5),
                           const SizedBox(height: 16),
@@ -656,13 +697,15 @@ class TaskOptionsSheet extends ConsumerWidget {
                             task.description!,
                             style: TextStyle(
                               fontSize: 13,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                               height: 1.6,
                             ),
                             textDirection: TextDirection.rtl,
                           ),
                         ],
-                        
+
                         if (taskCategories.isNotEmpty) ...[
                           const SizedBox(height: 16),
                           Wrap(
@@ -672,72 +715,134 @@ class TaskOptionsSheet extends ConsumerWidget {
                             children: taskCategories.map((catId) {
                               final catData = allCategories.firstWhere(
                                 (c) => c.id == catId,
-                                orElse: () => defaultCategories.firstWhere((dc) => dc.id == catId, orElse: () => defaultCategories.first),
-                              );
-                              return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: catData.color.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: catData.color.withValues(alpha: 0.5),
-                                    width: 1.5,
-                                  ),
+                                orElse: () => defaultCategories.firstWhere(
+                                  (dc) => dc.id == catId,
+                                  orElse: () => defaultCategories.first,
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  textDirection: TextDirection.rtl,
-                                  children: [
-                                    LottieCategoryIcon(assetPath: catData.emoji, width: 22, height: 22, repeat: false),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      catData.label,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: catData.color,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                              );
+                              return InkWell(
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  context.push(
+                                    SearchRouteBuilder.buildSearchUrl(
+                                      categories: [catId],
+                                      specificDate: occurrenceDate,
                                     ),
-                                  ],
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(14),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: catData.color.withValues(
+                                      alpha: 0.15,
+                                    ),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: catData.color.withValues(
+                                        alpha: 0.5,
+                                      ),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    textDirection: TextDirection.rtl,
+                                    children: [
+                                      LottieCategoryIcon(
+                                        assetPath: catData.emoji,
+                                        width: 22,
+                                        height: 22,
+                                        repeat: false,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        catData.label,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: catData.color,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               );
                             }).toList(),
                           ),
                         ],
-                        
+
                         if (task.tags.isNotEmpty) ...[
                           const SizedBox(height: 16),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
                             textDirection: TextDirection.rtl,
-                            children: task.tags.map((tag) => Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                textDirection: TextDirection.rtl,
-                                children: [
-                                  HugeIcon(icon: HugeIcons.strokeRoundedTag01, size: 12, color: Theme.of(context).colorScheme.secondary),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    tag,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: Theme.of(context).colorScheme.onSecondaryContainer,
+                            children: task.tags
+                                .map(
+                                  (tag) => InkWell(
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      context.push(
+                                        SearchRouteBuilder.buildSearchUrl(
+                                          tags: [tag],
+                                          specificDate: occurrenceDate,
+                                        ),
+                                      );
+                                    },
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer
+                                            .withValues(alpha: 0.3),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .secondary
+                                              .withValues(alpha: 0.2),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        textDirection: TextDirection.rtl,
+                                        children: [
+                                          HugeIcon(
+                                            icon: HugeIcons.strokeRoundedTag01,
+                                            size: 12,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.secondary,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            tag,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSecondaryContainer,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                ],
-                              ),
-                            )).toList(),
+                                )
+                                .toList(),
                           ),
                         ],
-                        
+
                         if (task.attachments.isNotEmpty) ...[
                           const SizedBox(height: 16),
                           const Divider(height: 1, thickness: 0.5),
@@ -745,52 +850,87 @@ class TaskOptionsSheet extends ConsumerWidget {
                           Column(
                             children: task.attachments.map((att) {
                               final name = att.split('/').last;
-                              final isVoice = name.startsWith('voice_') || att.endsWith('.m4a');
-                              final isImage = name.toLowerCase().endsWith('.jpg') || 
-                                           name.toLowerCase().endsWith('.jpeg') || 
-                                           name.toLowerCase().endsWith('.png') || 
-                                           name.toLowerCase().endsWith('.gif') || 
-                                           name.toLowerCase().endsWith('.webp');
-                              
+                              final isVoice =
+                                  name.startsWith('voice_') ||
+                                  att.endsWith('.m4a');
+                              final isImage =
+                                  name.toLowerCase().endsWith('.jpg') ||
+                                  name.toLowerCase().endsWith('.jpeg') ||
+                                  name.toLowerCase().endsWith('.png') ||
+                                  name.toLowerCase().endsWith('.gif') ||
+                                  name.toLowerCase().endsWith('.webp');
+
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 8),
                                 child: isVoice
                                     ? GestureDetector(
-                                        onLongPress: () => _showAttachmentOptions(context, att, name),
+                                        onLongPress: () =>
+                                            _showAttachmentOptions(
+                                              context,
+                                              att,
+                                              name,
+                                            ),
                                         child: AudioWaveformPlayer(
                                           audioPath: att,
                                         ),
                                       )
                                     : GestureDetector(
-                                        onLongPress: () => _showAttachmentOptions(context, att, name),
+                                        onLongPress: () =>
+                                            _showAttachmentOptions(
+                                              context,
+                                              att,
+                                              name,
+                                            ),
                                         child: Container(
                                           height: 48,
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 8,
+                                          ),
                                           decoration: BoxDecoration(
-                                            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                                            borderRadius: BorderRadius.circular(12),
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .surfaceContainerHighest
+                                                .withValues(alpha: 0.3),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
                                             border: Border.all(
-                                              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .outlineVariant
+                                                  .withValues(alpha: 0.3),
                                             ),
                                           ),
                                           child: InkWell(
                                             onTap: () => OpenFilex.open(att),
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
                                             child: Row(
                                               children: [
                                                 HugeIcon(
-                                                  icon: isImage 
-                                                      ? HugeIcons.strokeRoundedImage01 
-                                                      : HugeIcons.strokeRoundedFile01, 
+                                                  icon: isImage
+                                                      ? HugeIcons
+                                                            .strokeRoundedImage01
+                                                      : HugeIcons
+                                                            .strokeRoundedFile01,
                                                   size: 18,
-                                                  color: Theme.of(context).colorScheme.primary,
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary,
                                                 ),
                                                 const SizedBox(width: 12),
                                                 Expanded(
                                                   child: Text(
-                                                    name.length > 30 ? '${name.substring(0, 30)}...' : name,
-                                                    style: const TextStyle(fontSize: 12),
-                                                    overflow: TextOverflow.ellipsis,
+                                                    name.length > 30
+                                                        ? '${name.substring(0, 30)}...'
+                                                        : name,
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                    ),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
                                                 ),
                                               ],
@@ -806,7 +946,7 @@ class TaskOptionsSheet extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  
+
                   // Actions List
                   Column(
                     children: [
@@ -821,10 +961,8 @@ class TaskOptionsSheet extends ConsumerWidget {
                             isScrollControlled: true,
                             useSafeArea: true,
                             backgroundColor: Colors.transparent,
-                            builder: (context) => AddTaskScreen(
-                              task: task,
-                              initialDate: date,
-                            ),
+                            builder: (context) =>
+                                AddTaskScreen(task: task, initialDate: date),
                           );
                         },
                       ),
@@ -875,19 +1013,24 @@ class TaskOptionsSheet extends ConsumerWidget {
                       ),
                     ],
                   ),
-                                  const SizedBox(height: 20),
+                  const SizedBox(height: 20),
                 ],
               ),
-            )        
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildParenthesesStyledText(String text, TextStyle baseStyle, {TextAlign textAlign = TextAlign.right, TextDirection textDirection = TextDirection.rtl}) {
+  Widget _buildParenthesesStyledText(
+    String text,
+    TextStyle baseStyle, {
+    TextAlign textAlign = TextAlign.right,
+    TextDirection textDirection = TextDirection.rtl,
+  }) {
     final List<TextSpan> spans = [];
-    
+
     // Pattern to match labels ending with colon OR text inside parentheses
     // Group 1: Label with colon (e.g., "تاریخ شروع:")
     // Group 2: Text inside parentheses (e.g., "(امروز)")
@@ -897,24 +1040,28 @@ class TaskOptionsSheet extends ConsumerWidget {
     for (final Match match in regExp.allMatches(text)) {
       // Add text before the match
       if (match.start > lastIndex) {
-        spans.add(TextSpan(
-          text: text.substring(lastIndex, match.start),
-          style: baseStyle,
-        ));
+        spans.add(
+          TextSpan(
+            text: text.substring(lastIndex, match.start),
+            style: baseStyle,
+          ),
+        );
       }
-      
+
       final labelMatch = match.group(1);
       final parenContentMatch = match.group(2);
 
       if (labelMatch != null) {
         // Style for label with colon
-        spans.add(TextSpan(
-          text: labelMatch,
-          style: baseStyle.copyWith(
-            color: baseStyle.color?.withValues(alpha: 0.6),
-            fontWeight: FontWeight.w500,
+        spans.add(
+          TextSpan(
+            text: labelMatch,
+            style: baseStyle.copyWith(
+              color: baseStyle.color?.withValues(alpha: 0.6),
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ));
+        );
       } else if (match.group(0)!.startsWith('(')) {
         // Style for parentheses
         final styledParenStyle = baseStyle.copyWith(
@@ -927,15 +1074,12 @@ class TaskOptionsSheet extends ConsumerWidget {
         spans.add(TextSpan(text: parenContentMatch, style: styledParenStyle));
         spans.add(TextSpan(text: ')', style: styledParenStyle));
       }
-      
+
       lastIndex = match.end;
     }
 
     if (lastIndex < text.length) {
-      spans.add(TextSpan(
-        text: text.substring(lastIndex),
-        style: baseStyle,
-      ));
+      spans.add(TextSpan(text: text.substring(lastIndex), style: baseStyle));
     }
 
     if (spans.isEmpty) {
@@ -977,13 +1121,17 @@ class TaskOptionsSheet extends ConsumerWidget {
   String _formatDate(DateTime date) {
     final jDate = Jalali.fromDateTime(date);
     final now = Jalali.now();
-    
-    if (jDate.year == now.year && jDate.month == now.month && jDate.day == now.day) {
+
+    if (jDate.year == now.year &&
+        jDate.month == now.month &&
+        jDate.day == now.day) {
       return 'امروز (${_formatJalali(jDate)})';
     }
-    
+
     final tomorrow = now.addDays(1);
-    if (jDate.year == tomorrow.year && jDate.month == tomorrow.month && jDate.day == tomorrow.day) {
+    if (jDate.year == tomorrow.year &&
+        jDate.month == tomorrow.month &&
+        jDate.day == tomorrow.day) {
       return 'فردا (${_formatJalali(jDate)})';
     }
 
@@ -997,43 +1145,63 @@ class TaskOptionsSheet extends ConsumerWidget {
   String _getRecurrenceText(RecurrenceConfig recurrence) {
     String typeText = '';
     switch (recurrence.type) {
-      case RecurrenceType.hourly: typeText = 'ساعتی'; break;
-      case RecurrenceType.daily: 
+      case RecurrenceType.hourly:
+        typeText = 'ساعتی';
+        break;
+      case RecurrenceType.daily:
         if (recurrence.interval != null && recurrence.interval! > 1) {
           typeText = 'هر ${recurrence.interval} روز';
         } else {
           typeText = 'روزانه';
         }
         break;
-      case RecurrenceType.weekly: typeText = 'هفتگی'; break;
-      case RecurrenceType.monthly: typeText = 'ماهانه'; break;
-      case RecurrenceType.yearly: typeText = 'سالانه'; break;
-      case RecurrenceType.custom: typeText = 'هر ${recurrence.interval} روز'; break;
-      case RecurrenceType.specificDays: 
-        final days = recurrence.daysOfWeek?.map((d) => _getDayName(d)).join('، ') ?? '';
-        typeText = 'روزهای $days'; 
+      case RecurrenceType.weekly:
+        typeText = 'هفتگی';
         break;
-      default: typeText = 'سفارشی';
+      case RecurrenceType.monthly:
+        typeText = 'ماهانه';
+        break;
+      case RecurrenceType.yearly:
+        typeText = 'سالانه';
+        break;
+      case RecurrenceType.custom:
+        typeText = 'هر ${recurrence.interval} روز';
+        break;
+      case RecurrenceType.specificDays:
+        final days =
+            recurrence.daysOfWeek?.map((d) => _getDayName(d)).join('، ') ?? '';
+        typeText = 'روزهای $days';
+        break;
+      default:
+        typeText = 'سفارشی';
     }
-    
+
     if (recurrence.endDate != null) {
       final jEndDate = Jalali.fromDateTime(recurrence.endDate!);
       typeText += ' (تا ${jEndDate.year}/${jEndDate.month}/${jEndDate.day})';
     }
-    
+
     return typeText;
   }
 
   String _getDayName(int weekday) {
     switch (weekday) {
-      case DateTime.saturday: return 'شنبه';
-      case DateTime.sunday: return '۱شنبه';
-      case DateTime.monday: return '۲شنبه';
-      case DateTime.tuesday: return '۳شنبه';
-      case DateTime.wednesday: return '۴شنبه';
-      case DateTime.thursday: return '۵شنبه';
-      case DateTime.friday: return 'جمعه';
-      default: return '';
+      case DateTime.saturday:
+        return 'شنبه';
+      case DateTime.sunday:
+        return '۱شنبه';
+      case DateTime.monday:
+        return '۲شنبه';
+      case DateTime.tuesday:
+        return '۳شنبه';
+      case DateTime.wednesday:
+        return '۴شنبه';
+      case DateTime.thursday:
+        return '۵شنبه';
+      case DateTime.friday:
+        return 'جمعه';
+      default:
+        return '';
     }
   }
 
@@ -1041,7 +1209,7 @@ class TaskOptionsSheet extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     Color color;
     String label;
-    
+
     switch (priority) {
       case TaskPriority.high:
         color = Colors.red;
@@ -1056,7 +1224,7 @@ class TaskOptionsSheet extends ConsumerWidget {
         label = 'فرعی';
         break;
     }
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -1094,11 +1262,7 @@ class TaskOptionsSheet extends ConsumerWidget {
           color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: HugeIcon(
-          icon: icon,
-          size: 20,
-          color: color,
-        ),
+        child: HugeIcon(icon: icon, size: 20, color: color),
       ),
       title: Text(
         label,
@@ -1117,7 +1281,11 @@ class TaskOptionsSheet extends ConsumerWidget {
     );
   }
 
-  void _showAttachmentOptions(BuildContext context, String filePath, String fileName) {
+  void _showAttachmentOptions(
+    BuildContext context,
+    String filePath,
+    String fileName,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -1147,7 +1315,9 @@ class TaskOptionsSheet extends ConsumerWidget {
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: HugeIcon(
@@ -1180,25 +1350,29 @@ class TaskOptionsSheet extends ConsumerWidget {
     );
   }
 
-  Future<void> _downloadAttachment(BuildContext context, String filePath, String fileName) async {
+  Future<void> _downloadAttachment(
+    BuildContext context,
+    String filePath,
+    String fileName,
+  ) async {
     try {
       final file = File(filePath);
       if (!await file.exists()) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('فایل یافت نشد')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('فایل یافت نشد')));
         }
         return;
       }
 
       final bytes = await file.readAsBytes();
-      
+
       // Get file extension
       final extension = fileName.split('.').last;
-      
+
       String? savedPath;
-      
+
       if (Platform.isAndroid || Platform.isIOS) {
         // On mobile, use saveFile with bytes
         savedPath = await FilePicker.platform.saveFile(
@@ -1214,7 +1388,7 @@ class TaskOptionsSheet extends ConsumerWidget {
           type: FileType.custom,
           allowedExtensions: [extension],
         );
-        
+
         if (savedPath != null) {
           final savedFile = File(savedPath);
           await savedFile.writeAsBytes(bytes);
@@ -1228,9 +1402,9 @@ class TaskOptionsSheet extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطا در دانلود فایل: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطا در دانلود فایل: $e')));
       }
     }
   }

@@ -15,6 +15,8 @@ import '../models/task.dart';
 import '../models/category_data.dart';
 import '../widgets/task_sheets.dart';
 import '../widgets/animations.dart';
+import 'package:go_router/go_router.dart';
+import '../utils/route_builder.dart';
 // Removed unused import: add_task_screen.dart as it is handled in TaskSheets
 
 class PlanningScreen extends ConsumerStatefulWidget {
@@ -58,8 +60,12 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   void _selectAll(List<Task> tasks) {
     setState(() {
       // Filter out tasks without ID just in case
-      final validTaskIds = tasks.map((t) => t.id).where((id) => id != null).cast<int>().toSet();
-      
+      final validTaskIds = tasks
+          .map((t) => t.id)
+          .where((id) => id != null)
+          .cast<int>()
+          .toSet();
+
       if (_selectedTaskIds.length >= validTaskIds.length) {
         _selectedTaskIds.clear();
       } else {
@@ -98,11 +104,14 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         ref.read(tasksProvider.notifier).deleteTask(id);
       }
       _toggleSelectionMode(false);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('تسک‌های انتخاب شده حذف شدند', textAlign: TextAlign.right),
+            content: Text(
+              'تسک‌های انتخاب شده حذف شدند',
+              textAlign: TextAlign.right,
+            ),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -112,7 +121,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
   void _changeStatusSelected() async {
     if (_selectedTaskIds.isEmpty) return;
-    
+
     await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -131,23 +140,39 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         children: [
           IconButton(
             onPressed: () => _toggleSelectionMode(false),
-            icon: HugeIcon(icon: HugeIcons.strokeRoundedCancel01, size: 24, color: Theme.of(context).colorScheme.primary),
+            icon: HugeIcon(
+              icon: HugeIcons.strokeRoundedCancel01,
+              size: 24,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             tooltip: 'لغو',
           ),
           const Spacer(),
           IconButton(
             onPressed: () => _deleteSelected(visibleTasks),
-            icon: const HugeIcon(icon: HugeIcons.strokeRoundedDelete02, size: 24, color: Colors.grey),
+            icon: const HugeIcon(
+              icon: HugeIcons.strokeRoundedDelete02,
+              size: 24,
+              color: Colors.grey,
+            ),
             tooltip: 'حذف گروهی',
           ),
           IconButton(
             onPressed: _changeStatusSelected,
-            icon: const HugeIcon(icon: HugeIcons.strokeRoundedEdit02, size: 24, color: Colors.grey),
+            icon: const HugeIcon(
+              icon: HugeIcons.strokeRoundedEdit02,
+              size: 24,
+              color: Colors.grey,
+            ),
             tooltip: 'تغییر وضعیت گروهی',
           ),
           IconButton(
             onPressed: () => _selectAll(visibleTasks),
-            icon: const HugeIcon(icon: HugeIcons.strokeRoundedFullScreen, size: 24, color: Colors.grey),
+            icon: const HugeIcon(
+              icon: HugeIcons.strokeRoundedFullScreen,
+              size: 24,
+              color: Colors.grey,
+            ),
             tooltip: 'انتخاب همه',
           ),
         ],
@@ -200,9 +225,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     if (viewMode == 0) {
       return intl.DateFormat('d MMMM yyyy', 'en_US').format(dt);
     } else if (viewMode == 1) {
-      final startOfWeek = dt.subtract(
-        Duration(days: (dt.weekday + 1) % 7),
-      );
+      final startOfWeek = dt.subtract(Duration(days: (dt.weekday + 1) % 7));
       final endOfWeek = startOfWeek.add(const Duration(days: 6));
       if (startOfWeek.year == endOfWeek.year) {
         return '${intl.DateFormat('d MMM', 'en_US').format(startOfWeek)} - ${intl.DateFormat('d MMM yyyy', 'en_US').format(endOfWeek)}';
@@ -288,7 +311,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     final allTasks = ref.watch(tasksProvider);
     // Watch activeTasksProvider for the selected date (daily view)
     final dailyTasks = ref.watch(activeTasksProvider(_selectedDate));
-    
+
     final categories = ref.watch(categoryProvider).value ?? [];
 
     // Calculate visible tasks for selection mode
@@ -308,115 +331,113 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         }
       },
       child: Scaffold(
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              Expanded(
-                child: _buildMainContent(allTasks, dailyTasks, categories),
-              ),
-            ],
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Theme.of(context).colorScheme.surface,
-                    Theme.of(
-                      context,
-                    ).colorScheme.surface.withValues(alpha: 0.8),
-                    Theme.of(
-                      context,
-                    ).colorScheme.surface.withValues(alpha: 0),
-                  ],
-                  stops: const [0, 0.6, 1.0],
+        body: Stack(
+          children: [
+            Column(
+              children: [
+                Expanded(
+                  child: _buildMainContent(allTasks, dailyTasks, categories),
                 ),
-              ),
-              child: _buildRangePicker(),
+              ],
             ),
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Theme.of(context).colorScheme.surface,
-                    Theme.of(
-                      context,
-                    ).colorScheme.surface.withValues(alpha: 0.8),
-                    Theme.of(
-                      context,
-                    ).colorScheme.surface.withValues(alpha: 0),
-                  ],
-                  stops: const [0, 0.6, 1.0],
-                ),
-              ),
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  child: _isSelectionMode
-                      ? _buildSelectionHeader(visibleTasks)
-                      : SegmentedButton<int>(
-                    segments: const [
-                      ButtonSegment(
-                        value: 0,
-                        label: Text('روزانه'),
-                        icon: HugeIcon(
-                          icon: HugeIcons.strokeRoundedCalendar03,
-                          size: 18,
-                        ),
-                      ),
-                      ButtonSegment(
-                        value: 1,
-                        label: Text('هفتگی'),
-                        icon: HugeIcon(
-                          icon: HugeIcons.strokeRoundedCalendar02,
-                          size: 18,
-                        ),
-                      ),
-                      ButtonSegment(
-                        value: 2,
-                        label: Text('ماهانه'),
-                        icon: HugeIcon(
-                          icon: HugeIcons.strokeRoundedCalendar01,
-                          size: 18,
-                        ),
-                      ),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Theme.of(context).colorScheme.surface,
+                      Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: 0.8),
+                      Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: 0),
                     ],
-                    selected: {_viewMode},
-                    onSelectionChanged: (Set<int> newSelection) {
-                      setState(() {
-                        _animatedKeys.clear();
-                        _viewMode = newSelection.first;
-                      });
-                    },
+                    stops: const [0, 0.6, 1.0],
+                  ),
+                ),
+                child: _buildRangePicker(),
+              ),
+            ),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Theme.of(context).colorScheme.surface,
+                      Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: 0.8),
+                      Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: 0),
+                    ],
+                    stops: const [0, 0.6, 1.0],
+                  ),
+                ),
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: _isSelectionMode
+                        ? _buildSelectionHeader(visibleTasks)
+                        : SegmentedButton<int>(
+                            segments: const [
+                              ButtonSegment(
+                                value: 0,
+                                label: Text('روزانه'),
+                                icon: HugeIcon(
+                                  icon: HugeIcons.strokeRoundedCalendar03,
+                                  size: 18,
+                                ),
+                              ),
+                              ButtonSegment(
+                                value: 1,
+                                label: Text('هفتگی'),
+                                icon: HugeIcon(
+                                  icon: HugeIcons.strokeRoundedCalendar02,
+                                  size: 18,
+                                ),
+                              ),
+                              ButtonSegment(
+                                value: 2,
+                                label: Text('ماهانه'),
+                                icon: HugeIcon(
+                                  icon: HugeIcons.strokeRoundedCalendar01,
+                                  size: 18,
+                                ),
+                              ),
+                            ],
+                            selected: {_viewMode},
+                            onSelectionChanged: (Set<int> newSelection) {
+                              setState(() {
+                                _animatedKeys.clear();
+                                _viewMode = newSelection.first;
+                              });
+                            },
+                          ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
     );
   }
-
-  
 
   Widget _buildMainContent(
     List<Task> allTasks,
@@ -485,9 +506,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
-      decoration: const BoxDecoration(
-        color: Colors.transparent,
-      ),
+      decoration: const BoxDecoration(color: Colors.transparent),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -565,9 +584,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         padding: EdgeInsets.only(
           top: MediaQuery.of(context).padding.top + 80,
           left: 12,
-        right: 12,
-        bottom: 110,
-      ),
+          right: 12,
+          bottom: 110,
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -595,9 +614,10 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       return _buildEmptyState('برای این روز برنامه‌ای نداری!');
     }
 
-    final groups = _getGroupedAndSortedTasks(dailyTasks, statusDateOverride: _selectedDate)
-        .entries
-        .toList();
+    final groups = _getGroupedAndSortedTasks(
+      dailyTasks,
+      statusDateOverride: _selectedDate,
+    ).entries.toList();
 
     return ListView(
       padding: EdgeInsets.only(
@@ -609,23 +629,24 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       children: [
         // Task Groups
         ...groups.asMap().entries.map((entry) {
-             final index = entry.key;
-             final group = entry.value;
-             final key = 'daily_group_${group.key}_${_selectedDate.toIso8601String()}';
-             final shouldAnimate = !_animatedKeys.contains(key);
-             if (shouldAnimate) _animatedKeys.add(key);
+          final index = entry.key;
+          final group = entry.value;
+          final key =
+              'daily_group_${group.key}_${_selectedDate.toIso8601String()}';
+          final shouldAnimate = !_animatedKeys.contains(key);
+          if (shouldAnimate) _animatedKeys.add(key);
 
-             return FadeInOnce(
-               key: ValueKey(key),
-               delay: (index * 100).ms, // sequential delay based on index
-               animate: shouldAnimate,
-               child: _buildTaskGroup(
-                 group.key,
-                 group.value,
-                 categories,
-                 dateOverride: _selectedDate,
-               ),
-             );
+          return FadeInOnce(
+            key: ValueKey(key),
+            delay: (index * 100).ms, // sequential delay based on index
+            animate: shouldAnimate,
+            child: _buildTaskGroup(
+              group.key,
+              group.value,
+              categories,
+              dateOverride: _selectedDate,
+            ),
+          );
         }),
       ],
     );
@@ -647,7 +668,11 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     final isSelected = _selectedTaskIds.contains(task.id);
 
     return Container(
-      color: isSelected ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.4) : Colors.transparent,
+      color: isSelected
+          ? Theme.of(
+              context,
+            ).colorScheme.primaryContainer.withValues(alpha: 0.4)
+          : Colors.transparent,
       padding: const EdgeInsets.symmetric(horizontal: 10.5, vertical: 5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -669,10 +694,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                         style: TextStyle(
                           fontSize: 8,
                           fontWeight: FontWeight.bold,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant
-                              .withValues(alpha: 0.6),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                         ),
                       ),
                     );
@@ -704,10 +728,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   );
                 }).toList(),
               ),
-              if (weekLabel != null) ...[
-                const SizedBox(width: 6),
-                weekLabel,
-              ],
+              if (weekLabel != null) ...[const SizedBox(width: 6), weekLabel],
               const SizedBox(width: 10),
               if (!hideTitle)
                 Expanded(
@@ -739,14 +760,19 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                       textDirection: TextDirection.rtl,
                       children: [
                         if (task.taskEmoji != null) ...[
-                          Text(task.taskEmoji!, style: const TextStyle(fontSize: 14)),
+                          Text(
+                            task.taskEmoji!,
+                            style: const TextStyle(fontSize: 14),
+                          ),
                           const SizedBox(width: 6),
                         ],
                         Expanded(
                           child: TextScroll(
                             task.title,
                             mode: TextScrollMode.endless,
-                            velocity: const Velocity(pixelsPerSecond: Offset(30, 0)),
+                            velocity: const Velocity(
+                              pixelsPerSecond: Offset(30, 0),
+                            ),
                             delayBefore: const Duration(seconds: 2),
                             pauseBetween: const Duration(seconds: 2),
                             textDirection: TextDirection.rtl,
@@ -796,10 +822,16 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     }
 
     final recurringTasks = tasks
-        .where((t) => t.recurrence != null && t.recurrence!.type != RecurrenceType.none)
+        .where(
+          (t) =>
+              t.recurrence != null && t.recurrence!.type != RecurrenceType.none,
+        )
         .toList();
     final regularTasks = tasks
-        .where((t) => t.recurrence == null || t.recurrence!.type == RecurrenceType.none)
+        .where(
+          (t) =>
+              t.recurrence == null || t.recurrence!.type == RecurrenceType.none,
+        )
         .toList();
 
     final tasksNotifier = ref.read(tasksProvider.notifier);
@@ -813,7 +845,8 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         if (!t.isActiveOnDate(date)) continue;
 
         final status = tasksNotifier.getStatusForDate(t.id!, date);
-        if (status == TaskStatus.cancelled || status == TaskStatus.deferred) continue;
+        if (status == TaskStatus.cancelled || status == TaskStatus.deferred)
+          continue;
         total++;
         if (status == TaskStatus.success) completed++;
       }
@@ -821,7 +854,8 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
     for (var t in regularTasks) {
       final status = tasksNotifier.getStatusForDate(t.id!, t.dueDate);
-      if (status == TaskStatus.cancelled || status == TaskStatus.deferred) continue;
+      if (status == TaskStatus.cancelled || status == TaskStatus.deferred)
+        continue;
       total++;
       if (status == TaskStatus.success) completed++;
     }
@@ -835,7 +869,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         color: Theme.of(context).colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
           width: 1.2,
         ),
       ),
@@ -847,21 +883,57 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             child: Row(
               textDirection: TextDirection.rtl,
               children: [
-                LottieCategoryIcon(assetPath: emoji, width: 24, height: 24, repeat: false),
-                const SizedBox(width: 6),
                 Expanded(
-                  child: TextScroll(
-                    title,
-                    mode: TextScrollMode.endless,
-                    velocity: const Velocity(pixelsPerSecond: Offset(12, 0)),
-                    delayBefore: const Duration(seconds: 2),
-                    pauseBetween: const Duration(seconds: 2),
-                    textDirection: TextDirection.rtl,
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: color,
+                  child: InkWell(
+                    onTap: () {
+                      if (key != 'combined' && key != 'uncategorized') {
+                        context.push(
+                          SearchRouteBuilder.buildSearchUrl(
+                            categories: [key],
+                            dateFrom: startOfWeek,
+                            dateTo: startOfWeek.add(const Duration(days: 6)),
+                          ),
+                        );
+                      } else {
+                        context.push(
+                          SearchRouteBuilder.buildSearchUrl(
+                            dateFrom: startOfWeek,
+                            dateTo: startOfWeek.add(const Duration(days: 6)),
+                          ),
+                        );
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Row(
+                      textDirection: TextDirection.rtl,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        LottieCategoryIcon(
+                          assetPath: emoji,
+                          width: 24,
+                          height: 24,
+                          repeat: false,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: TextScroll(
+                            title,
+                            mode: TextScrollMode.endless,
+                            velocity: const Velocity(
+                              pixelsPerSecond: Offset(12, 0),
+                            ),
+                            delayBefore: const Duration(seconds: 2),
+                            pauseBetween: const Duration(seconds: 2),
+                            textDirection: TextDirection.rtl,
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: color,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -873,7 +945,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             child: Divider(
               height: 1,
               thickness: 0.5,
-              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+              color: Theme.of(
+                context,
+              ).colorScheme.outlineVariant.withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(height: 8),
@@ -882,12 +956,11 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
               final index = entry.key;
               final t = entry.value;
               return _buildWeeklyRecurringTaskRow(
-                t, 
+                t,
                 startOfWeek,
                 showDayHints: index == 0,
               );
             }),
-            
           ],
           if (regularTasks.isNotEmpty)
             ListView.builder(
@@ -949,10 +1022,16 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     }
 
     final recurringTasks = tasks
-        .where((t) => t.recurrence != null && t.recurrence!.type != RecurrenceType.none)
+        .where(
+          (t) =>
+              t.recurrence != null && t.recurrence!.type != RecurrenceType.none,
+        )
         .toList();
     final regularTasks = tasks
-        .where((t) => t.recurrence == null || t.recurrence!.type == RecurrenceType.none)
+        .where(
+          (t) =>
+              t.recurrence == null || t.recurrence!.type == RecurrenceType.none,
+        )
         .toList();
 
     final tasksNotifier = ref.read(tasksProvider.notifier);
@@ -965,7 +1044,8 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           if (Jalali.fromDateTime(d).month != currentMonth) continue;
           if (!t.isActiveOnDate(d)) continue;
           final status = tasksNotifier.getStatusForDate(t.id!, d);
-          if (status == TaskStatus.cancelled || status == TaskStatus.deferred) continue;
+          if (status == TaskStatus.cancelled || status == TaskStatus.deferred)
+            continue;
           total++;
           if (status == TaskStatus.success) completed++;
         }
@@ -974,7 +1054,8 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
     for (var t in regularTasks) {
       final status = tasksNotifier.getStatusForDate(t.id!, t.dueDate);
-      if (status == TaskStatus.cancelled || status == TaskStatus.deferred) continue;
+      if (status == TaskStatus.cancelled || status == TaskStatus.deferred)
+        continue;
       total++;
       if (status == TaskStatus.success) completed++;
     }
@@ -988,7 +1069,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         color: Theme.of(context).colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
           width: 1.2,
         ),
       ),
@@ -1000,21 +1083,63 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             child: Row(
               textDirection: TextDirection.rtl,
               children: [
-                LottieCategoryIcon(assetPath: emoji, width: 24, height: 24, repeat: false),
-                const SizedBox(width: 6),
                 Expanded(
-                  child: TextScroll(
-                    title,
-                    mode: TextScrollMode.endless,
-                    velocity: const Velocity(pixelsPerSecond: Offset(12, 0)),
-                    delayBefore: const Duration(seconds: 2),
-                    pauseBetween: const Duration(seconds: 2),
-                    textDirection: TextDirection.rtl,
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: color,
+                  child: InkWell(
+                    onTap: () {
+                      final jSelected = Jalali.fromDateTime(_selectedDate);
+                      final jStart = jSelected.copy(day: 1);
+                      final jEnd = jSelected.copy(day: jStart.monthLength);
+                      final dateFrom = jStart.toDateTime();
+                      final dateTo = jEnd.toDateTime();
+
+                      if (key != 'combined' && key != 'uncategorized') {
+                        context.push(
+                          SearchRouteBuilder.buildSearchUrl(
+                            categories: [key],
+                            dateFrom: dateFrom,
+                            dateTo: dateTo,
+                          ),
+                        );
+                      } else {
+                        context.push(
+                          SearchRouteBuilder.buildSearchUrl(
+                            dateFrom: dateFrom,
+                            dateTo: dateTo,
+                          ),
+                        );
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Row(
+                      textDirection: TextDirection.rtl,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        LottieCategoryIcon(
+                          assetPath: emoji,
+                          width: 24,
+                          height: 24,
+                          repeat: false,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: TextScroll(
+                            title,
+                            mode: TextScrollMode.endless,
+                            velocity: const Velocity(
+                              pixelsPerSecond: Offset(12, 0),
+                            ),
+                            delayBefore: const Duration(seconds: 2),
+                            pauseBetween: const Duration(seconds: 2),
+                            textDirection: TextDirection.rtl,
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: color,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -1026,27 +1151,30 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             child: Divider(
               height: 1,
               thickness: 0.5,
-              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+              color: Theme.of(
+                context,
+              ).colorScheme.outlineVariant.withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(height: 8),
-          
+
           // Recurring Tasks Grouped by Task
           ...recurringTasks.map((t) {
             final taskWeeks = <int, List<DateTime>>{};
             for (int i = 0; i < weeks.length; i++) {
-               final weekDays = weeks[i];
-               bool isActive = false;
-               for (var d in weekDays) {
-                 if (Jalali.fromDateTime(d).month != currentMonth) continue;
-                 if (t.isActiveOnDate(d) || t.statusHistory.containsKey(getDateKey(d))) {
-                   isActive = true;
-                   break;
-                 }
-               }
-               if (isActive) taskWeeks[i] = weekDays;
+              final weekDays = weeks[i];
+              bool isActive = false;
+              for (var d in weekDays) {
+                if (Jalali.fromDateTime(d).month != currentMonth) continue;
+                if (t.isActiveOnDate(d) ||
+                    t.statusHistory.containsKey(getDateKey(d))) {
+                  isActive = true;
+                  break;
+                }
+              }
+              if (isActive) taskWeeks[i] = weekDays;
             }
-            
+
             if (taskWeeks.isEmpty) return const SizedBox.shrink();
 
             return Container(
@@ -1058,16 +1186,22 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                     final index = entry.key;
                     final weekDays = entry.value;
                     final isFirst = index == taskWeeks.keys.first;
-                    
+
                     return _buildWeeklyRecurringTaskRow(
                       t,
                       weekDays.first,
                       currentMonth: currentMonth,
                       weekLabel: Container(
                         width: 50,
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .secondaryContainer
+                              .withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Center(
@@ -1084,9 +1218,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                       showDayHints: isFirst,
                       hideTitle: !isFirst,
                     );
-                  })
-                ]
-              )
+                  }),
+                ],
+              ),
             );
           }),
 
@@ -1102,7 +1236,11 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                 return Padding(
                   key: ValueKey(task.id ?? 'temp_${task.hashCode}_$index'),
                   padding: EdgeInsets.zero,
-                  child: _buildCompactTaskRow(task, alignWithWeekly: true, additionalOffset: 56),
+                  child: _buildCompactTaskRow(
+                    task,
+                    alignWithWeekly: true,
+                    additionalOffset: 56,
+                  ),
                 );
               },
             ),
@@ -1136,7 +1274,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
     final tasksForWeek = <Task>[];
     for (var task in tasks) {
-      final hasRecurrence = task.recurrence != null && task.recurrence!.type != RecurrenceType.none;
+      final hasRecurrence =
+          task.recurrence != null &&
+          task.recurrence!.type != RecurrenceType.none;
 
       if (hasRecurrence) {
         bool isActiveInWeek = false;
@@ -1152,13 +1292,26 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         if (isActiveInWeek) tasksForWeek.add(task);
       } else {
         // Normalize task dueDate to date-only for comparison
-        final taskDueDateOnly = DateTime(task.dueDate.year, task.dueDate.month, task.dueDate.day);
-        final startOfWeekOnly = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-        final endOfWeekOnly = DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day);
-        
+        final taskDueDateOnly = DateTime(
+          task.dueDate.year,
+          task.dueDate.month,
+          task.dueDate.day,
+        );
+        final startOfWeekOnly = DateTime(
+          startOfWeek.year,
+          startOfWeek.month,
+          startOfWeek.day,
+        );
+        final endOfWeekOnly = DateTime(
+          endOfWeek.year,
+          endOfWeek.month,
+          endOfWeek.day,
+        );
+
         // Check if task is within the week (inclusive of both start and end)
-        final isInRange = !taskDueDateOnly.isBefore(startOfWeekOnly) && 
-                         !taskDueDateOnly.isAfter(endOfWeekOnly);
+        final isInRange =
+            !taskDueDateOnly.isBefore(startOfWeekOnly) &&
+            !taskDueDateOnly.isAfter(endOfWeekOnly);
 
         if (isInRange) {
           tasksForWeek.add(task);
@@ -1171,9 +1324,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       return _buildEmptyState('برای این هفته برنامه‌ای نداری!');
     }
 
-    final groups = _getGroupedAndSortedTasks(tasksForWeek)
-        .entries
-        .toList();
+    final groups = _getGroupedAndSortedTasks(tasksForWeek).entries.toList();
 
     return ListView(
       padding: EdgeInsets.only(
@@ -1184,18 +1335,24 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       ),
       children: [
         ...groups.asMap().entries.map((entry) {
-              final index = entry.key;
-              final group = entry.value;
-              final key = 'weekly_group_${group.key}_${startOfWeek.toIso8601String()}';
-              final shouldAnimate = !_animatedKeys.contains(key);
-              if (shouldAnimate) _animatedKeys.add(key);
-              return FadeInOnce(
-                key: ValueKey(key),
-                delay: (index * 100).ms, // sequential delay based on index
-                animate: shouldAnimate,
-                child: _buildWeeklyTaskGroup(group.key, group.value, categories, startOfWeek),
-              );
-            }),
+          final index = entry.key;
+          final group = entry.value;
+          final key =
+              'weekly_group_${group.key}_${startOfWeek.toIso8601String()}';
+          final shouldAnimate = !_animatedKeys.contains(key);
+          if (shouldAnimate) _animatedKeys.add(key);
+          return FadeInOnce(
+            key: ValueKey(key),
+            delay: (index * 100).ms, // sequential delay based on index
+            animate: shouldAnimate,
+            child: _buildWeeklyTaskGroup(
+              group.key,
+              group.value,
+              categories,
+              startOfWeek,
+            ),
+          );
+        }),
       ],
     );
   }
@@ -1218,8 +1375,10 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       // Continue until we have covered the entire month
       while (weekStart.isBefore(endOfMonth.add(const Duration(seconds: 1))) ||
           weekCount < 5) {
-        final weekDays =
-            List.generate(7, (i) => weekStart.add(Duration(days: i)));
+        final weekDays = List.generate(
+          7,
+          (i) => weekStart.add(Duration(days: i)),
+        );
         // Only add the week if it contains at least one day from the current month
         if (weekDays.any(
           (d) => Jalali.fromDateTime(d).month == jalaliDate.month,
@@ -1236,14 +1395,17 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
       final tasksForMonth = <Task>[];
       for (var task in tasks) {
-        final hasRecurrence = task.recurrence != null && task.recurrence!.type != RecurrenceType.none;
+        final hasRecurrence =
+            task.recurrence != null &&
+            task.recurrence!.type != RecurrenceType.none;
 
         if (hasRecurrence) {
           bool isActiveOrHasStatusInMonth = false;
           for (var week in weeks) {
             for (var d in week) {
               if (Jalali.fromDateTime(d).month != jalaliDate.month) continue;
-              if (task.isActiveOnDate(d) || task.statusHistory.containsKey(getDateKey(d))) {
+              if (task.isActiveOnDate(d) ||
+                  task.statusHistory.containsKey(getDateKey(d))) {
                 isActiveOrHasStatusInMonth = true;
                 break;
               }
@@ -1253,7 +1415,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           if (isActiveOrHasStatusInMonth) tasksForMonth.add(task);
         } else {
           final tJalali = Jalali.fromDateTime(task.dueDate);
-          final isInMonth = (tJalali.year == jalaliDate.year && tJalali.month == jalaliDate.month);
+          final isInMonth =
+              (tJalali.year == jalaliDate.year &&
+              tJalali.month == jalaliDate.month);
 
           if (isInMonth) {
             tasksForMonth.add(task);
@@ -1278,9 +1442,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         return _buildEmptyState('برای این ماه برنامه‌ای نداری!');
       }
 
-      final groups = _getGroupedAndSortedTasks(tasksForMonth)
-          .entries
-          .toList();
+      final groups = _getGroupedAndSortedTasks(tasksForMonth).entries.toList();
 
       return ListView(
         padding: EdgeInsets.only(
@@ -1291,19 +1453,26 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         ),
         children: [
           ...groups.asMap().entries.map((entry) {
-                final index = entry.key;
-                final group = entry.value;
-                final key = 'monthly_group_${group.key}_${jalaliDate.year}_${jalaliDate.month}';
-                final shouldAnimate = !_animatedKeys.contains(key);
-                if (shouldAnimate) _animatedKeys.add(key);
+            final index = entry.key;
+            final group = entry.value;
+            final key =
+                'monthly_group_${group.key}_${jalaliDate.year}_${jalaliDate.month}';
+            final shouldAnimate = !_animatedKeys.contains(key);
+            if (shouldAnimate) _animatedKeys.add(key);
 
-                return FadeInOnce(
-                  key: ValueKey(key),
-                  delay: (index * 100).ms, // sequential delay based on index
-                  animate: shouldAnimate,
-                  child: _buildMonthlyTaskGroup(group.key, group.value, categories, weeks, jalaliDate.month),
-                );
-              }),
+            return FadeInOnce(
+              key: ValueKey(key),
+              delay: (index * 100).ms, // sequential delay based on index
+              animate: shouldAnimate,
+              child: _buildMonthlyTaskGroup(
+                group.key,
+                group.value,
+                categories,
+                weeks,
+                jalaliDate.month,
+              ),
+            );
+          }),
         ],
       );
     } catch (e, stack) {
@@ -1358,8 +1527,16 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       final list = grouped[key]!;
       // Sort tasks within category: High priority first, then move cancelled to bottom
       list.sort((a, b) {
-        final dateA = statusDateOverride ?? ((a.recurrence != null && a.recurrence!.type != RecurrenceType.none) ? _selectedDate : a.dueDate);
-        final dateB = statusDateOverride ?? ((b.recurrence != null && b.recurrence!.type != RecurrenceType.none) ? _selectedDate : b.dueDate);
+        final dateA =
+            statusDateOverride ??
+            ((a.recurrence != null && a.recurrence!.type != RecurrenceType.none)
+                ? _selectedDate
+                : a.dueDate);
+        final dateB =
+            statusDateOverride ??
+            ((b.recurrence != null && b.recurrence!.type != RecurrenceType.none)
+                ? _selectedDate
+                : b.dueDate);
 
         final statusA = a.id != null
             ? tasksNotifier.getStatusForDate(a.id!, dateA)
@@ -1421,7 +1598,11 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     int completed = 0;
 
     for (var t in tasks) {
-      final date = dateOverride ?? ((t.recurrence != null && t.recurrence!.type != RecurrenceType.none) ? _selectedDate : t.dueDate);
+      final date =
+          dateOverride ??
+          ((t.recurrence != null && t.recurrence!.type != RecurrenceType.none)
+              ? _selectedDate
+              : t.dueDate);
       final status = tasksNotifier.getStatusForDate(t.id!, date);
 
       if (status != TaskStatus.cancelled && status != TaskStatus.deferred) {
@@ -1455,39 +1636,75 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             child: Row(
               textDirection: TextDirection.rtl,
               children: [
-                LottieCategoryIcon(assetPath: emoji, width: 24, height: 24, repeat: false),
-                const SizedBox(width: 6),
                 Expanded(
-                  child: TextScroll(
-                    title,
-                    mode: TextScrollMode.endless,
-                    velocity: const Velocity(pixelsPerSecond: Offset(12, 0)),
-                    delayBefore: const Duration(seconds: 2),
-                    pauseBetween: const Duration(seconds: 2),
-                    textDirection: TextDirection.rtl,
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: color, // Title keeps category color
+                  child: InkWell(
+                    onTap: () {
+                      if (key != 'combined' && key != 'uncategorized') {
+                        context.push(
+                          SearchRouteBuilder.buildSearchUrl(
+                            categories: [key],
+                            specificDate: dateOverride ?? _selectedDate,
+                          ),
+                        );
+                      } else {
+                        context.push(
+                          SearchRouteBuilder.buildSearchUrl(
+                            specificDate: dateOverride ?? _selectedDate,
+                          ),
+                        );
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Row(
+                      textDirection: TextDirection.rtl,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        LottieCategoryIcon(
+                          assetPath: emoji,
+                          width: 24,
+                          height: 24,
+                          repeat: false,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: TextScroll(
+                            title,
+                            mode: TextScrollMode.endless,
+                            velocity: const Velocity(
+                              pixelsPerSecond: Offset(12, 0),
+                            ),
+                            delayBefore: const Duration(seconds: 2),
+                            pauseBetween: const Duration(seconds: 2),
+                            textDirection: TextDirection.rtl,
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: color,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          
+
           // Thin divider line
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10.5),
             child: Divider(
               height: 1,
               thickness: 0.5,
-              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+              color: Theme.of(
+                context,
+              ).colorScheme.outlineVariant.withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(height: 4),
-          
+
           // Tasks List
           if (tasks.isNotEmpty)
             ListView.builder(
@@ -1525,20 +1742,36 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     );
   }
 
-  Widget _buildCompactTaskRow(Task task, {DateTime? dateOverride, bool alignWithWeekly = false, double additionalOffset = 0}) {
-    final date = dateOverride ?? ((task.recurrence != null && task.recurrence!.type != RecurrenceType.none) ? _selectedDate : task.dueDate);
-    final status = ref.read(tasksProvider.notifier).getStatusForDate(task.id!, date);
+  Widget _buildCompactTaskRow(
+    Task task, {
+    DateTime? dateOverride,
+    bool alignWithWeekly = false,
+    double additionalOffset = 0,
+  }) {
+    final date =
+        dateOverride ??
+        ((task.recurrence != null &&
+                task.recurrence!.type != RecurrenceType.none)
+            ? _selectedDate
+            : task.dueDate);
+    final status = ref
+        .read(tasksProvider.notifier)
+        .getStatusForDate(task.id!, date);
 
     final isCancelled = status == TaskStatus.cancelled;
     final isSuccess = status == TaskStatus.success;
-    
+
     final isSelected = _selectedTaskIds.contains(task.id);
 
     final row = Opacity(
       opacity: isCancelled ? 0.6 : 1.0,
       child: Container(
         // Add transparent background to catch drag gestures effectively
-        color: isSelected ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.4) : Colors.transparent,
+        color: isSelected
+            ? Theme.of(
+                context,
+              ).colorScheme.primaryContainer.withValues(alpha: 0.4)
+            : Colors.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 10.5, vertical: 5),
         child: Row(
           textDirection: TextDirection.ltr,
@@ -1573,7 +1806,10 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   textDirection: TextDirection.rtl,
                   children: [
                     if (task.taskEmoji != null) ...[
-                      Text(task.taskEmoji!, style: const TextStyle(fontSize: 14)),
+                      Text(
+                        task.taskEmoji!,
+                        style: const TextStyle(fontSize: 14),
+                      ),
                       const SizedBox(width: 6),
                     ],
                     Expanded(
@@ -1617,10 +1853,8 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => TaskOptionsSheet(
-        task: task,
-        date: date ?? task.dueDate,
-      ),
+      builder: (context) =>
+          TaskOptionsSheet(task: task, date: date ?? task.dueDate),
     );
   }
 
@@ -1628,10 +1862,13 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     if (task.id == null) return;
 
     // Always use getStatusForDate for accurate per-date status
-    final status = ref.read(tasksProvider.notifier).getStatusForDate(task.id!, date);
+    final status = ref
+        .read(tasksProvider.notifier)
+        .getStatusForDate(task.id!, date);
 
-    final nextStatus =
-        status == TaskStatus.success ? TaskStatus.pending : TaskStatus.success;
+    final nextStatus = status == TaskStatus.success
+        ? TaskStatus.pending
+        : TaskStatus.success;
 
     // Always provide the date to updateStatus to ensure specific day tracking
     ref
@@ -1649,10 +1886,11 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     bool preventSelectionMode = false,
   }) {
     final tasksNotifier = ref.read(tasksProvider.notifier);
-    
-    final hasRecurrence = task.recurrence != null && task.recurrence!.type != RecurrenceType.none;
+
+    final hasRecurrence =
+        task.recurrence != null && task.recurrence!.type != RecurrenceType.none;
     TaskStatus status = hasRecurrence ? TaskStatus.pending : task.status;
-    
+
     if (task.id != null) {
       status = tasksNotifier.getStatusForDate(task.id!, date);
     }
@@ -1679,10 +1917,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         break;
       case TaskStatus.pending:
         icon = HugeIcons.strokeRoundedCircle;
-        color = Theme.of(context)
-            .colorScheme
-            .onSurfaceVariant
-            .withValues(alpha: 0.4);
+        color = Theme.of(
+          context,
+        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4);
         break;
     }
 
@@ -1701,10 +1938,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           width: 4,
           height: 4,
           decoration: BoxDecoration(
-            color: Theme.of(context)
-                .colorScheme
-                .outlineVariant
-                .withValues(alpha: isCurrentMonth ? 1.0 : 0.3),
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(
+              alpha: isCurrentMonth ? 1.0 : 0.3,
+            ),
             shape: BoxShape.circle,
           ),
         ),
@@ -1736,12 +1972,15 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           ),
           builder: (context) => TaskStatusPickerSheet(
             task: task,
-            recurringDate: (task.recurrence != null && task.recurrence!.type != RecurrenceType.none) ? date : null,
+            recurringDate:
+                (task.recurrence != null &&
+                    task.recurrence!.type != RecurrenceType.none)
+                ? date
+                : null,
           ),
         );
       },
       child: HugeIcon(icon: icon, size: size, color: color),
     );
   }
-
 }
