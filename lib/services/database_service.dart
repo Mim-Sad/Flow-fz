@@ -624,10 +624,45 @@ class DatabaseService {
     }
 
     // Convert task maps and resolve media IDs to file paths
+    // Also fetch status events for all tasks to populate statusLogs
+    final List<int> taskIds = maps.map((m) => m['id'] as int).toList();
+    final Map<int, List<Map<String, dynamic>>> taskStatusLogs = {};
+
+    if (taskIds.isNotEmpty) {
+      final placeholders = taskIds.map((_) => '?').join(',');
+      final eventMaps = await db.query(
+        'task_events',
+        where: 'taskId IN ($placeholders) AND type = ?',
+        whereArgs: [...taskIds, 'status_update'],
+        orderBy: 'occurredAt ASC',
+      );
+
+      for (var eventMap in eventMaps) {
+        final taskId = eventMap['taskId'] as int;
+        final logs = taskStatusLogs[taskId] ?? [];
+
+        // Decode payload if it's a string
+        var processedEvent = Map<String, dynamic>.from(eventMap);
+        if (processedEvent['payload'] is String) {
+          try {
+            processedEvent['payload'] = json.decode(
+              processedEvent['payload'] as String,
+            );
+          } catch (_) {}
+        }
+
+        logs.add(processedEvent);
+        taskStatusLogs[taskId] = logs;
+      }
+    }
+
     List<Task> tasks = [];
     for (var i = 0; i < maps.length; i++) {
       try {
         final taskMap = Map<String, dynamic>.from(maps[i]);
+        final taskId = taskMap['id'] as int;
+
+        // Resolve media attachments
         final attachmentsJson = taskMap['attachments'] as String?;
         if (attachmentsJson != null && attachmentsJson.isNotEmpty) {
           try {
@@ -652,16 +687,18 @@ class DatabaseService {
             debugPrint(
               'Error converting media IDs to file paths for task ${taskMap['id']}: $e',
             );
-            // Keep original attachments on error
           }
         }
+
+        // Add status logs
+        final logs = taskStatusLogs[taskId] ?? [];
+        taskMap['statusLogs'] = json.encode(logs);
 
         tasks.add(Task.fromMap(taskMap));
       } catch (e) {
         debugPrint(
           "❌ Error parsing task at index $i (ID: ${maps[i]['id']}): $e",
         );
-        // debugPrint("   Raw Data: ${maps[i]}");
       }
     }
 
@@ -1597,10 +1634,11 @@ class DatabaseService {
         logMessage = 'وضعیت تسک به "$statusName" تغییر کرد';
         break;
       case 'completion':
+      case 'status_update':
         final statusIndex = payload?['status'] as int?;
         final date = payload?['date'] as String?;
         String statusName = 'نامشخص';
-        if (statusIndex != null) {
+        if (statusIndex != null && statusIndex < TaskStatus.values.length) {
           switch (TaskStatus.values[statusIndex]) {
             case TaskStatus.pending:
               statusName = 'در انتظار';
@@ -1619,7 +1657,11 @@ class DatabaseService {
               break;
           }
         }
-        logMessage = 'تسک در تاریخ $date به وضعیت "$statusName" تغییر یافت';
+        if (date != null) {
+          logMessage = 'تسک در تاریخ $date به وضعیت "$statusName" تغییر یافت';
+        } else {
+          logMessage = 'وضعیت تسک به "$statusName" تغییر کرد';
+        }
         break;
       case 'delete':
         logMessage = 'تسک حذف شد';

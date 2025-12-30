@@ -94,6 +94,7 @@ class Task {
   final RecurrenceConfig? recurrence;
   final Map<String, int> statusHistory;
   final Map<String, dynamic> metadata;
+  final List<Map<String, dynamic>> statusLogs;
 
   Task({
     this.id,
@@ -109,15 +110,19 @@ class Task {
     this.deletedAt,
     this.position = 0,
     this.taskEmoji,
-    this.attachments = const [],
+    List<String>? attachments,
     this.recurrence,
     Map<String, int>? statusHistory,
-    this.metadata = const {},
+    Map<String, dynamic>? metadata,
+    List<Map<String, dynamic>>? statusLogs,
   }) : createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? (createdAt ?? DateTime.now()),
        categories = categories ?? [],
        tags = tags ?? const [],
-       statusHistory = statusHistory ?? {};
+       attachments = attachments ?? [],
+       statusHistory = statusHistory ?? {},
+       metadata = metadata ?? {},
+       statusLogs = statusLogs ?? [];
 
   // Helper to get status for a specific date
   TaskStatus getStatusForDate(DateTime date) {
@@ -127,11 +132,46 @@ class Task {
 
     final key =
         "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+
+    // 1. Prioritize explicitly set status in statusHistory
     final statusIndex = statusHistory[key];
     if (statusIndex != null) {
       return TaskStatus.values[statusIndex];
     }
+
+    // 2. Fallback to latest status from logs for this specific date
+    if (statusLogs.isNotEmpty) {
+      // Find the latest log entry for this date
+      Map<String, dynamic>? latestLog;
+      for (final log in statusLogs) {
+        final payload = log['payload'];
+        if (payload is Map && payload['date'] == key) {
+          if (latestLog == null ||
+              DateTime.parse(
+                log['occurredAt'],
+              ).isAfter(DateTime.parse(latestLog['occurredAt']))) {
+            latestLog = log;
+          }
+        }
+      }
+
+      if (latestLog != null) {
+        final statusIndexFromLog = latestLog['payload']['status'] as int?;
+        if (statusIndexFromLog != null &&
+            statusIndexFromLog < TaskStatus.values.length) {
+          return TaskStatus.values[statusIndexFromLog];
+        }
+      }
+    }
+
     return TaskStatus.pending;
+  }
+
+  /// Checks if the status for a given date was explicitly recorded in history.
+  bool hasExplicitStatusForDate(DateTime date) {
+    final key =
+        "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    return statusHistory.containsKey(key);
   }
 
   bool isActiveOnDate(DateTime date) {
@@ -377,6 +417,7 @@ class Task {
       'recurrence': recurrence?.toJson(),
       'statusHistory': json.encode(statusHistory),
       'metadata': json.encode(metadata),
+      'statusLogs': json.encode(statusLogs),
     };
   }
 
@@ -465,6 +506,9 @@ class Task {
           : null,
       statusHistory: loadedStatusHistory,
       metadata: loadedMetadata,
+      statusLogs: map['statusLogs'] != null
+          ? List<Map<String, dynamic>>.from(json.decode(map['statusLogs']))
+          : [],
     );
   }
 
@@ -486,6 +530,7 @@ class Task {
     RecurrenceConfig? recurrence,
     Map<String, int>? statusHistory,
     Map<String, dynamic>? metadata,
+    List<Map<String, dynamic>>? statusLogs,
   }) {
     return Task(
       id: id ?? this.id,
@@ -505,6 +550,7 @@ class Task {
       recurrence: recurrence ?? this.recurrence,
       statusHistory: statusHistory ?? this.statusHistory,
       metadata: metadata ?? this.metadata,
+      statusLogs: statusLogs ?? this.statusLogs,
     );
   }
 }
