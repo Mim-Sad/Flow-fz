@@ -672,19 +672,80 @@ class TaskListTile extends ConsumerWidget {
               ),
               const SizedBox(width: 4),
               isSelectionMode
-                  ? ReorderableDragStartListener(
-                      index: index,
-                      child: IconButton(
-                        icon: const HugeIcon(
-                          icon: HugeIcons.strokeRoundedMove,
-                          size: 24,
-                          color: Colors.grey,
-                        ),
-                        padding: const EdgeInsets.all(10),
-                        constraints: const BoxConstraints(),
-                        onPressed: null, // Drag handle, not clickable
-                      ),
-                    )
+                  ? (isReorderEnabled
+                        ? ReorderableDragStartListener(
+                            index: index,
+                            child: IconButton(
+                              icon: const HugeIcon(
+                                icon: HugeIcons.strokeRoundedMove,
+                                size: 24,
+                                color: Colors.grey,
+                              ),
+                              padding: const EdgeInsets.all(10),
+                              constraints: const BoxConstraints(),
+                              onPressed: null, // Drag handle, not clickable
+                            ),
+                          )
+                        : IconButton(
+                            icon: const HugeIcon(
+                              icon: HugeIcons.strokeRoundedMove,
+                              size: 24,
+                              color: Colors.grey,
+                            ),
+                            padding: const EdgeInsets.all(10),
+                            constraints: const BoxConstraints(),
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              ScaffoldMessenger.of(context).clearSnackBars();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    textDirection: TextDirection.rtl,
+                                    children: [
+                                      HugeIcon(
+                                        icon: HugeIcons
+                                            .strokeRoundedInformationCircle,
+                                        size: 18,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'برای جابه‌جایی دستی باید در حالت مرتب‌سازی دستی قرار داشته باشید',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
+                                          ),
+                                          textDirection: TextDirection.rtl,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    side: BorderSide(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .outlineVariant
+                                          .withValues(alpha: 0.5),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  margin: const EdgeInsets.all(16),
+                                  elevation: 0,
+                                ),
+                              );
+                            },
+                          ))
                   : IconButton(
                       icon: const HugeIcon(
                         icon: HugeIcons.strokeRoundedMoreVertical,

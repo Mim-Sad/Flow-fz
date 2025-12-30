@@ -417,7 +417,6 @@ class Task {
       'recurrence': recurrence?.toJson(),
       'statusHistory': json.encode(statusHistory),
       'metadata': json.encode(metadata),
-      'statusLogs': json.encode(statusLogs),
     };
   }
 
