@@ -16,6 +16,7 @@ import '../widgets/animations.dart';
 import 'package:go_router/go_router.dart';
 import '../utils/route_builder.dart';
 import 'add_task_screen.dart';
+import '../widgets/flow_toast.dart';
 
 enum SortMode { manual, defaultSort }
 
@@ -695,54 +696,11 @@ class TaskListTile extends ConsumerWidget {
                             padding: const EdgeInsets.all(10),
                             constraints: const BoxConstraints(),
                             onPressed: () {
-                              HapticFeedback.lightImpact();
-                              ScaffoldMessenger.of(context).clearSnackBars();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Row(
-                                    textDirection: TextDirection.rtl,
-                                    children: [
-                                      HugeIcon(
-                                        icon: HugeIcons
-                                            .strokeRoundedInformationCircle,
-                                        size: 18,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          'برای جابه‌جایی دستی باید در حالت مرتب‌سازی دستی قرار داشته باشید',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onSurface,
-                                          ),
-                                          textDirection: TextDirection.rtl,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  backgroundColor: Theme.of(
-                                    context,
-                                  ).colorScheme.surfaceContainerHighest,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    side: BorderSide(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .outlineVariant
-                                          .withValues(alpha: 0.5),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  margin: const EdgeInsets.all(16),
-                                  elevation: 0,
-                                ),
+                              FlowToast.show(
+                                context,
+                                message:
+                                    'برای جابه‌جایی دستی باید در حالت مرتب‌سازی دستی قرار داشته باشید',
+                                type: FlowToastType.info,
                               );
                             },
                           ))

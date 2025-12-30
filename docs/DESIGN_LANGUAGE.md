@@ -60,6 +60,17 @@ The app uses a dynamic color system seeded from a primary brand color.
 - **Design**: Pill-shaped with a background alpha of `0.15` and a 1.5px border of `0.5` alpha.
 - **Auto-Scroll**: Long labels or multiple categories in cards auto-scroll horizontally using a linear animation to prevent UI breakage.
 
+### FlowToast (Smart Notifications)
+- **Purpose**: To provide non-intrusive feedback for actions or errors.
+- **Design**: 
+  - **Shape**: Rounded corners with a radius of **20.0**.
+  - **Background**: `surfaceContainerHighest` with `0.95` alpha and a subtle `0.8` alpha border.
+  - **Elevation**: Shadow with `0.1` alpha black, 20 blur, and (0, 8) offset.
+- **Animations**: 
+  - **Entrance**: Sequential animation using `FadeIn`, `SlideY` (from bottom), and a subtle `Shimmer`.
+  - **Micro-interaction**: Icons use an `ElasticOut` scale animation to feel "alive."
+- **Behavior**: Global usage via `FlowToast.show(context, message: '...', type: FlowToastType.info)`.
+
 ### Navigation
 - **Top Bar**:
   - Height: `60.0`.
