@@ -81,6 +81,7 @@ class Task {
   final String title;
   final String? description;
   final DateTime dueDate;
+  final DateTime? endTime;
   final TaskPriority priority;
   final List<String> categories;
   final DateTime createdAt;
@@ -102,6 +103,7 @@ class Task {
     required this.title,
     this.description,
     required this.dueDate,
+    this.endTime,
     this.priority = TaskPriority.medium,
     List<String>? categories,
     List<String>? tags,
@@ -384,11 +386,14 @@ class Task {
     final newMetadata = Map<String, dynamic>.from(metadata);
     newMetadata['duplicatedAt'] = DateTime.now().toIso8601String();
     newMetadata['duplicatedFromId'] = id;
+    
+    final hasTime = newMetadata['hasTime'] ?? false;
 
     return Task(
       title: title,
       description: description,
       dueDate: dueDate,
+      endTime: hasTime ? endTime : null,
       priority: priority,
       categories: List.from(categories),
       tags: List.from(tags),
@@ -402,6 +407,7 @@ class Task {
   }
 
   int get deferCount => metadata['deferCount'] ?? 0;
+  bool get hasTime => metadata['hasTime'] ?? true;
 
   Map<String, dynamic> toMap() {
     return {
@@ -409,6 +415,7 @@ class Task {
       'title': title,
       'description': description,
       'dueDate': dueDate.toIso8601String(),
+      'endTime': endTime?.toIso8601String(),
       'priority': priority.index,
       'categories': json.encode(categories),
       'tags': json.encode(tags),
@@ -499,6 +506,9 @@ class Task {
       title: map['title'],
       description: map['description'],
       dueDate: DateTime.parse(map['dueDate']),
+      endTime: (loadedMetadata['hasTime'] == true && map['endTime'] != null)
+          ? DateTime.parse(map['endTime'])
+          : null,
       priority: loadedPriority,
       categories: loadedCategories,
       tags: loadedTags,
@@ -532,6 +542,7 @@ class Task {
     String? title,
     String? description,
     DateTime? dueDate,
+    DateTime? endTime,
     TaskPriority? priority,
     List<String>? categories,
     List<String>? tags,
@@ -548,11 +559,15 @@ class Task {
     Map<String, dynamic>? metadata,
     List<Map<String, dynamic>>? statusLogs,
   }) {
+    final finalMetadata = metadata ?? this.metadata;
+    final hasTime = finalMetadata['hasTime'] == true;
+
     return Task(
       id: id ?? this.id,
       title: title ?? this.title,
       description: description ?? this.description,
       dueDate: dueDate ?? this.dueDate,
+      endTime: hasTime ? (endTime ?? this.endTime) : null,
       priority: priority ?? this.priority,
       categories: categories ?? this.categories,
       tags: tags ?? this.tags,
@@ -566,7 +581,7 @@ class Task {
       attachments: attachments ?? this.attachments,
       recurrence: recurrence ?? this.recurrence,
       statusHistory: statusHistory ?? this.statusHistory,
-      metadata: metadata ?? this.metadata,
+      metadata: finalMetadata,
       statusLogs: statusLogs ?? this.statusLogs,
     );
   }

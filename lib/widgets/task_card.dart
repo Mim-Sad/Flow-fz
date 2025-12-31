@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:intl/intl.dart' as intl;
+import '../utils/string_utils.dart';
 import 'lottie_category_icon.dart';
 import '../models/task.dart';
 import '../models/goal.dart';
@@ -44,7 +46,8 @@ class TaskCard extends ConsumerWidget {
       onCardColor = Theme.of(context).colorScheme.onSurfaceVariant;
     }
 
-    final hasCapsules = task.priority != TaskPriority.medium || 
+    final hasCapsules = (task.metadata['hasTime'] ?? false) ||
+                        task.priority != TaskPriority.medium || 
                         task.categories.isNotEmpty ||
                         task.goalIds.isNotEmpty;
 
@@ -174,6 +177,9 @@ class TaskCard extends ConsumerWidget {
                   height: 24,
                   child: _AutoScrollCapsules(
                     children: [
+                      _buildTimeCapsule(context, onCardColor),
+                      if ((task.metadata['hasTime'] ?? false) && (task.priority != TaskPriority.medium || task.categories.isNotEmpty || task.goalIds.isNotEmpty))
+                        const SizedBox(width: 6),
                       _buildPriorityCapsule(context, onCardColor),
                       if (task.priority != TaskPriority.medium && (task.categories.isNotEmpty || task.goalIds.isNotEmpty))
                         const SizedBox(width: 6),
@@ -190,6 +196,41 @@ class TaskCard extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTimeCapsule(BuildContext context, Color onCardColor) {
+    if (!task.hasTime) return const SizedBox.shrink();
+
+    final timeStr = StringUtils.toPersianDigit(intl.DateFormat('HH:mm').format(task.dueDate));
+    String label = timeStr;
+    if (task.endTime != null) {
+      final endTimeStr = StringUtils.toPersianDigit(intl.DateFormat('HH:mm').format(task.endTime!));
+      label = '$timeStr - $endTimeStr';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: onCardColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: onCardColor.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          HugeIcon(icon: HugeIcons.strokeRoundedClock01, size: 10, color: onCardColor),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: onCardColor,
+            ),
+          ),
+        ],
       ),
     );
   }

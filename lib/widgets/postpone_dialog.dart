@@ -290,6 +290,9 @@ class PostponeDialog extends ConsumerWidget {
                           title: task.title,
                           description: task.description,
                           dueDate: newDate,
+                          endTime: hasTime && task.endTime != null 
+                              ? DateTime(newDate.year, newDate.month, newDate.day, task.endTime!.hour, task.endTime!.minute)
+                              : null,
                           priority: task.priority,
                           categories: List.from(task.categories),
                           tags: List.from(task.tags),

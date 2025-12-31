@@ -6,6 +6,8 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:lottie/lottie.dart';
 import '../widgets/lottie_category_icon.dart';
 import 'package:text_scroll/text_scroll.dart';
+import 'package:intl/intl.dart' as intl;
+import '../utils/string_utils.dart';
 import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
 import '../providers/goal_provider.dart';
@@ -821,6 +823,42 @@ class TaskListTile extends ConsumerWidget {
     );
   }
 
+  Widget _buildTimeCapsule(BuildContext context) {
+    if (!task.hasTime) return const SizedBox.shrink();
+
+    final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
+    final timeStr = StringUtils.toPersianDigit(intl.DateFormat('HH:mm').format(task.dueDate));
+    String label = timeStr;
+    if (task.endTime != null) {
+      final endTimeStr = StringUtils.toPersianDigit(intl.DateFormat('HH:mm').format(task.endTime!));
+      label = '$timeStr - $endTimeStr';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: onSurfaceVariant.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: onSurfaceVariant.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          HugeIcon(icon: HugeIcons.strokeRoundedClock01, size: 10, color: onSurfaceVariant),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _toPersianDigit(String input) {
     const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
     const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
@@ -865,6 +903,9 @@ class TaskListTile extends ConsumerWidget {
         ),
       );
     }
+
+    // 5. Time
+    capsules.add(_buildTimeCapsule(context));
 
     // Filter out empty widgets and join with spacing
     final visibleCapsules = capsules.where((w) {

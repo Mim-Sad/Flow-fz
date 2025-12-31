@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
+import '../utils/string_utils.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:lottie/lottie.dart';
@@ -794,6 +795,21 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                             ),
                           ),
                         ),
+                        if (task.hasTime) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            StringUtils.toPersianDigit(
+                              task.endTime != null
+                                  ? "${intl.DateFormat('HH:mm').format(task.dueDate)} - ${intl.DateFormat('HH:mm').format(task.endTime!)}"
+                                  : intl.DateFormat('HH:mm').format(task.dueDate),
+                            ),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -1850,6 +1866,21 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                         ),
                       ),
                     ),
+                    if (task.hasTime) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        StringUtils.toPersianDigit(
+                          task.endTime != null
+                              ? "${intl.DateFormat('HH:mm').format(task.dueDate)} - ${intl.DateFormat('HH:mm').format(task.endTime!)}"
+                              : intl.DateFormat('HH:mm').format(task.dueDate),
+                        ),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

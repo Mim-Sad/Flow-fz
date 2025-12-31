@@ -31,7 +31,7 @@ class DatabaseService {
     try {
       db = await openDatabase(
         path,
-        version: 20,
+        version: 21,
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       );
@@ -434,6 +434,15 @@ class DatabaseService {
       // Version 20: Maintenance update to ensure migration stability
       debugPrint('✅ Database migrated to version 20');
     }
+    if (oldVersion < 21) {
+      // Version 21: Add endTime to tasks table
+      try {
+        await db.execute('ALTER TABLE tasks ADD COLUMN endTime TEXT');
+        debugPrint('✅ Added endTime column to tasks table');
+      } catch (e) {
+        debugPrint('Error adding endTime column to tasks: $e');
+      }
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -443,6 +452,7 @@ class DatabaseService {
         title TEXT NOT NULL,
         description TEXT,
         dueDate TEXT NOT NULL,
+        endTime TEXT,
         priority INTEGER NOT NULL,
         categories TEXT,
         tags TEXT,

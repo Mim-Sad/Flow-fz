@@ -636,7 +636,7 @@ class TaskOptionsSheet extends ConsumerWidget {
                         ),
 
                         // Time Row (New Line)
-                        if (task.metadata['hasTime'] ?? true) ...[
+                        if (task.hasTime) ...[
                           const SizedBox(height: 12),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -650,7 +650,9 @@ class TaskOptionsSheet extends ConsumerWidget {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: _buildParenthesesStyledText(
-                                  "زمان: ${_toPersianDigit(_formatTime(displayDate))}",
+                                  task.endTime != null
+                                      ? "زمان: ${_toPersianDigit(_formatTime(displayDate))} تا ${_toPersianDigit(_formatTime(task.endTime!))}"
+                                      : "زمان: ${_toPersianDigit(_formatTime(displayDate))}",
                                   TextStyle(
                                     fontSize: 13,
                                     color: Theme.of(
