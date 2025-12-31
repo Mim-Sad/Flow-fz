@@ -59,6 +59,14 @@ class SearchNotifier extends StateNotifier<SearchState> {
     );
   }
 
+  void setGoals(List<int>? goals) {
+    state = state.copyWith(
+      filters: state.filters.copyWith(
+        goals: goals?.isEmpty ?? true ? null : goals,
+      ),
+    );
+  }
+
   void setDateRange(DateTime? dateFrom, DateTime? dateTo) {
     state = state.copyWith(
       filters: state.filters.copyWith(
@@ -112,8 +120,8 @@ class SearchNotifier extends StateNotifier<SearchState> {
   }
 
   void updateSearchState({
-    required String query,
-    required SearchFilters filters,
+    String? query,
+    SearchFilters? filters,
     SortOption? sortOption,
     ViewStyle? viewStyle,
   }) {
@@ -123,6 +131,16 @@ class SearchNotifier extends StateNotifier<SearchState> {
       sortOption: sortOption,
       viewStyle: viewStyle,
     );
+  }
+
+  void toggleGoal(int goalId) {
+    final current = List<int>.from(state.filters.goals ?? []);
+    if (current.contains(goalId)) {
+      current.remove(goalId);
+    } else {
+      current.add(goalId);
+    }
+    setGoals(current.isEmpty ? null : current);
   }
 
   void setSortOption(SortOption sortOption) {

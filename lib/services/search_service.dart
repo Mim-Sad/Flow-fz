@@ -17,6 +17,7 @@ class SearchFilters {
   final String? query;
   final List<String>? categories;
   final List<String>? tags;
+  final List<int>? goals;
   final DateTime? dateFrom;
   final DateTime? dateTo;
   final DateTime? specificDate;
@@ -28,6 +29,7 @@ class SearchFilters {
     this.query,
     this.categories,
     this.tags,
+    this.goals,
     this.dateFrom,
     this.dateTo,
     this.specificDate,
@@ -40,6 +42,7 @@ class SearchFilters {
     Object? query = _sentinel,
     Object? categories = _sentinel,
     Object? tags = _sentinel,
+    Object? goals = _sentinel,
     Object? dateFrom = _sentinel,
     Object? dateTo = _sentinel,
     Object? specificDate = _sentinel,
@@ -53,6 +56,7 @@ class SearchFilters {
           ? this.categories
           : categories as List<String>?,
       tags: tags == _sentinel ? this.tags : tags as List<String>?,
+      goals: goals == _sentinel ? this.goals : goals as List<int>?,
       dateFrom: dateFrom == _sentinel ? this.dateFrom : dateFrom as DateTime?,
       dateTo: dateTo == _sentinel ? this.dateTo : dateTo as DateTime?,
       specificDate: specificDate == _sentinel
@@ -72,10 +76,39 @@ class SearchFilters {
 
   static const _sentinel = Object();
 
+  Map<String, String> toQueryParams() {
+    final params = <String, String>{};
+    if (query != null && query!.isNotEmpty) params['q'] = query!;
+    if (categories != null && categories!.isNotEmpty) {
+      params['cat'] = categories!.join(',');
+    }
+    if (tags != null && tags!.isNotEmpty) params['tag'] = tags!.join(',');
+    if (goals != null && goals!.isNotEmpty) params['goal'] = goals!.join(',');
+    if (dateFrom != null) {
+      params['dateFrom'] =
+          '${dateFrom!.year}-${dateFrom!.month.toString().padLeft(2, '0')}-${dateFrom!.day.toString().padLeft(2, '0')}';
+    }
+    if (dateTo != null) {
+      params['dateTo'] =
+          '${dateTo!.year}-${dateTo!.month.toString().padLeft(2, '0')}-${dateTo!.day.toString().padLeft(2, '0')}';
+    }
+    if (specificDate != null) {
+      params['specificDate'] =
+          '${specificDate!.year}-${specificDate!.month.toString().padLeft(2, '0')}-${specificDate!.day.toString().padLeft(2, '0')}';
+    }
+    if (priority != null) params['priority'] = priority!.name;
+    if (statuses != null && statuses!.isNotEmpty) {
+      params['statuses'] = statuses!.map((s) => s.name).join(',');
+    }
+    if (isRecurring != null) params['recurring'] = isRecurring!.toString();
+    return params;
+  }
+
   bool get hasFilters {
     return query != null && query!.isNotEmpty ||
         (categories != null && categories!.isNotEmpty) ||
         (tags != null && tags!.isNotEmpty) ||
+        (goals != null && goals!.isNotEmpty) ||
         dateFrom != null ||
         dateTo != null ||
         specificDate != null ||
@@ -132,6 +165,13 @@ class SearchService {
         return task.tags.any(
           (tag) => normalizedFiltersTags.contains(StringUtils.normalize(tag)),
         );
+      }).toList();
+    }
+
+    // Apply goal filter
+    if (filters.goals != null && filters.goals!.isNotEmpty) {
+      results = results.where((task) {
+        return task.goalIds.any((goalId) => filters.goals!.contains(goalId));
       }).toList();
     }
 

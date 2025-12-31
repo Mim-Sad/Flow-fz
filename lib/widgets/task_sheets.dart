@@ -786,44 +786,54 @@ class TaskOptionsSheet extends ConsumerWidget {
                             runSpacing: 8,
                             textDirection: TextDirection.rtl,
                             children: taskGoals.map((goalId) {
-                              final goal = allGoals.cast<Goal?>().firstWhere(
-                                (g) => g?.id == goalId,
-                                orElse: () => null,
+                              final goal = allGoals.firstWhere(
+                                (g) => g.id == goalId,
+                                orElse: () => Goal(id: goalId, title: 'نامشخص', emoji: '🎯', position: 0),
                               );
-                              if (goal == null) return const SizedBox.shrink();
                               
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.primary.withValues(
-                                    alpha: 0.1,
+                              return InkWell(
+                                onTap: () {
+                                  context.push(
+                                    SearchRouteBuilder.buildSearchUrl(
+                                      goals: [goalId],
+                                      specificDate: date,
+                                    ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(14),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 8,
                                   ),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
+                                  decoration: BoxDecoration(
                                     color: Theme.of(context).colorScheme.primary.withValues(
-                                      alpha: 0.3,
+                                      alpha: 0.1,
                                     ),
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  textDirection: TextDirection.rtl,
-                                  children: [
-                                    Text(goal.emoji, style: const TextStyle(fontSize: 16)),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      goal.title,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Theme.of(context).colorScheme.primary,
-                                        fontWeight: FontWeight.bold,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: Theme.of(context).colorScheme.primary.withValues(
+                                        alpha: 0.3,
                                       ),
+                                      width: 1.5,
                                     ),
-                                  ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    textDirection: TextDirection.rtl,
+                                    children: [
+                                      Text(goal.emoji, style: const TextStyle(fontSize: 16)),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        goal.title,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(context).colorScheme.primary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               );
                             }).toList(),

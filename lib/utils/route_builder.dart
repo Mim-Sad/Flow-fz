@@ -104,6 +104,12 @@ class SearchRouteBuilder {
           .where((s) => s.isNotEmpty)
           .toList(),
       tags: queryParams['tag']?.split(',').where((s) => s.isNotEmpty).toList(),
+      goals: queryParams['goal']
+          ?.split(',')
+          .where((s) => s.isNotEmpty)
+          .map((s) => int.tryParse(s))
+          .whereType<int>()
+          .toList(),
       dateFrom:
           queryParams['specificDate'] == null && queryParams['dateFrom'] != null
           ? _parseDate(queryParams['dateFrom']!)
@@ -261,12 +267,13 @@ class SearchParams {
   final String? query;
   final List<String>? categories;
   final List<String>? tags;
+  final List<int>? goals;
   final DateTime? dateFrom;
   final DateTime? dateTo;
   final DateTime? specificDate;
   final TaskPriority? priority;
   final List<TaskStatus>? statuses;
-  final TaskStatus? status; // Legacy support
+  final TaskStatus? status;
   final bool? isRecurring;
   final SortOption? sortOption;
   final ViewStyle? viewStyle;
@@ -275,6 +282,7 @@ class SearchParams {
     this.query,
     this.categories,
     this.tags,
+    this.goals,
     this.dateFrom,
     this.dateTo,
     this.specificDate,

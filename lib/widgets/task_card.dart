@@ -9,7 +9,8 @@ import '../models/category_data.dart';
 import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
 import '../providers/goal_provider.dart';
-  // Removed unused import
+import '../utils/route_builder.dart';
+import 'package:go_router/go_router.dart';
 import '../widgets/task_sheets.dart';
 import '../screens/add_task_screen.dart';
 
@@ -288,40 +289,49 @@ class TaskCard extends ConsumerWidget {
       children: goalIds.asMap().entries.map((entry) {
         final index = entry.key;
         final goalId = entry.value;
-        final goalData = allGoals.cast<Goal?>().firstWhere(
-          (g) => g?.id == goalId,
-          orElse: () => null,
+        final goalData = allGoals.firstWhere(
+          (g) => g.id == goalId,
+          orElse: () => Goal(id: goalId, title: 'نامشخص', emoji: '🎯', position: 0),
         );
-        
-        if (goalData == null) return const SizedBox.shrink();
 
-        return Container(
-          margin: EdgeInsetsDirectional.only(start: index == 0 ? 0 : 6),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: onCardColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
+        return InkWell(
+          onTap: () {
+            ref.context.push(
+              SearchRouteBuilder.buildSearchUrl(
+                goals: [goalId],
+                specificDate: task.dueDate,
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            margin: EdgeInsetsDirectional.only(start: index == 0 ? 0 : 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
               color: onCardColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: onCardColor.withValues(alpha: 0.1),
+              ),
             ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                goalData.emoji,
-                style: const TextStyle(fontSize: 10),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                goalData.title,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: onCardColor,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  goalData.emoji,
+                  style: const TextStyle(fontSize: 10),
                 ),
-              ),
-            ],
+                const SizedBox(width: 4),
+                Text(
+                  goalData.title,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: onCardColor,
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       }).toList(),

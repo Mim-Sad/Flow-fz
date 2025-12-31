@@ -953,31 +953,42 @@ class TaskListTile extends ConsumerWidget {
 
       if (goalData == null) return const SizedBox.shrink();
 
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(goalData.emoji, style: const TextStyle(fontSize: 10)),
-            const SizedBox(width: 4),
-            Text(
-              goalData.title,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
+      return InkWell(
+            onTap: () {
+              context.push(
+                SearchRouteBuilder.buildSearchUrl(
+                  goals: [goalId],
+                  specificDate: task.dueDate,
+                ),
+              );
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(goalData.emoji, style: const TextStyle(fontSize: 10)),
+                  const SizedBox(width: 4),
+                  Text(
+                    goalData.title,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      );
+          );
     }).toList();
   }
 

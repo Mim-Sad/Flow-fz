@@ -8,11 +8,13 @@ import 'package:text_scroll/text_scroll.dart';
 import 'package:lottie/lottie.dart';
 
 import '../models/task.dart';
+import '../models/goal.dart';
 import '../models/category_data.dart';
 import '../providers/search_provider.dart';
 import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
 import '../providers/tag_provider.dart';
+import '../providers/goal_provider.dart';
 import '../services/search_service.dart';
 import '../widgets/lottie_category_icon.dart';
 import '../screens/home_screen.dart';
@@ -69,6 +71,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       query: parsed.query,
       categories: parsed.categories,
       tags: parsed.tags,
+      goals: parsed.goals,
       dateFrom: parsed.dateFrom,
       dateTo: parsed.dateTo,
       specificDate: parsed.specificDate,
@@ -503,6 +506,42 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     },
                                     onSelected: (_) =>
                                         _showFilterSheet('categories'),
+                                  ),
+                                );
+                              }),
+                            if (searchState.filters.goals != null &&
+                                searchState.filters.goals!.isNotEmpty)
+                              ...searchState.filters.goals!.map((goalId) {
+                                final allGoals = ref.watch(goalsProvider);
+                                final goal = allGoals.firstWhere(
+                                  (g) => g.id == goalId,
+                                  orElse: () => Goal(
+                                    id: goalId,
+                                    title: 'نامشخص',
+                                    emoji: '🎯',
+                                    position: 0,
+                                  ),
+                                );
+                                return Padding(
+                                  padding: const EdgeInsets.only(left: 6),
+                                  child: _buildHeaderFilterChip(
+                                    label: goal.title,
+                                    avatar: Text(
+                                      goal.emoji,
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                    onDeleted: () {
+                                      final newGoals = List<int>.from(
+                                        searchState.filters.goals ?? [],
+                                      )..remove(goalId);
+                                      ref
+                                          .read(searchProvider.notifier)
+                                          .setGoals(
+                                            newGoals.isEmpty ? null : newGoals,
+                                          );
+                                    },
+                                    onSelected: (_) =>
+                                        _showFilterSheet('goals'),
                                   ),
                                 );
                               }),
@@ -991,6 +1030,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
   final ScrollController _scrollController = ScrollController();
 
   final Map<String, GlobalKey> _sectionKeys = {
+    'goals': GlobalKey(),
     'categories': GlobalKey(),
     'tags': GlobalKey(),
     'priority': GlobalKey(),
@@ -1179,8 +1219,135 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Goals section
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final goals = ref.watch(goalsProvider);
+                          if (goals.isEmpty) return const SizedBox.shrink();
+                          return Column(
+                            key: _sectionKeys['goals'],
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                'اهداف',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                width: double.infinity,
+                                child: Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  alignment: WrapAlignment.center,
+                                  children: goals.map((goal) {
+                                    final isSelected =
+                                        _filters.goals?.contains(
+                                          goal.id,
+                                        ) ??
+                                        false;
+                                    
+                                    Color goalColor;
+                                    switch (goal.priority) {
+                                      case TaskPriority.high:
+                                        goalColor = Colors.red;
+                                        break;
+                                      case TaskPriority.medium:
+                                        goalColor = Theme.of(context).colorScheme.primary;
+                                        break;
+                                      case TaskPriority.low:
+                                        goalColor = Colors.green;
+                                        break;
+                                    }
+
+                                    return GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          final current = List<int>.from(
+                                            _filters.goals ?? [],
+                                          );
+                                          if (isSelected) {
+                                            current.remove(goal.id);
+                                          } else {
+                                            if (goal.id != null) {
+                                              current.add(goal.id!);
+                                            }
+                                          }
+                                          _filters = _filters.copyWith(
+                                            goals: current.isEmpty
+                                                ? null
+                                                : current,
+                                          );
+                                        });
+                                      },
+                                      child: AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 200,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? goalColor.withValues(
+                                                  alpha: 0.15,
+                                                )
+                                              : Theme.of(context)
+                                                    .colorScheme
+                                                    .surfaceContainerHighest
+                                                    .withValues(alpha: 0.3),
+                                          borderRadius:
+                                              BorderRadius.circular(14),
+                                          border: Border.all(
+                                            color: isSelected
+                                                ? goalColor.withValues(
+                                                    alpha: 0.5,
+                                                  )
+                                                : Colors.transparent,
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              goal.emoji,
+                                              style: const TextStyle(fontSize: 16),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              goal.title,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: isSelected
+                                                    ? FontWeight.bold
+                                                    : FontWeight.w500,
+                                                color: isSelected
+                                                    ? goalColor
+                                                    : Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                            ],
+                          );
+                        },
+                      ),
                       // Categories - Similar to add_task_screen
                       Consumer(
+                        key: _sectionKeys['categories'],
                         builder: (context, ref, child) {
                           final categoriesAsync = ref.watch(categoryProvider);
                           return categoriesAsync.when(
