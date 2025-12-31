@@ -138,8 +138,8 @@ class MidnightTaskUpdater {
     }
 
     try {
-      // دریافت تمام تسک‌ها (شامل حذف شده‌ها برای بررسی کامل)
-      final allTasks = await _dbService!.getAllTasks(includeDeleted: true);
+      // دریافت تمام تسک‌های فعال (غیر حذفی)
+      final allTasks = await _dbService!.getAllTasks(includeDeleted: false);
 
       final targetDateOnly = DateTime(
         targetDate.year,
@@ -151,6 +151,11 @@ class MidnightTaskUpdater {
       int updatedCount = 0;
 
       for (final task in allTasks) {
+        // نادیده گرفتن تسک‌های حذف شده (احتیاط بیشتر)
+        if (task.isDeleted) {
+          continue;
+        }
+
         // فقط تسک‌های فعال در تاریخ هدف را بررسی می‌کنیم
         if (!task.isActiveOnDate(targetDateOnly)) {
           continue;
@@ -159,7 +164,8 @@ class MidnightTaskUpdater {
         // بررسی وضعیت تسک در تاریخ هدف
         final status = task.getStatusForDate(targetDateOnly);
 
-        // اگر وضعیت pending است، آن را به failed تبدیل می‌کنیم
+        // فقط تسک‌های "در جریان" (pending) را به "ناموفق" (failed) تبدیل می‌کنیم
+        // بقیه وضعیت‌ها مثل "تعویق شده" یا "لغو شده" نباید تغییر کنند
         if (status == TaskStatus.pending) {
           // به‌روزرسانی متادیتا برای ثبت لاگ تغییر وضعیت خودکار
           final Map<String, dynamic> newMetadata = Map<String, dynamic>.from(
