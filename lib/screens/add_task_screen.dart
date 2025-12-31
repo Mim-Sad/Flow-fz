@@ -1,4 +1,5 @@
 import '../widgets/lottie_category_icon.dart';
+import '../widgets/flow_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -236,15 +237,19 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
       final result = await OpenFilex.open(path);
       if (result.type != ResultType.done) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطا در باز کردن فایل: ${result.message}')),
+        FlowToast.show(
+          context,
+          message: 'خطا در باز کردن فایل: ${result.message}',
+          type: FlowToastType.error,
         );
       }
     } catch (e) {
       debugPrint('Error opening file: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('خطا در باز کردن فایل')),
+      FlowToast.show(
+        context,
+        message: 'خطا در باز کردن فایل',
+        type: FlowToastType.error,
       );
     }
   }
@@ -271,11 +276,10 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     } else if (trimmedTag.isNotEmpty) {
       // Clear if it's a duplicate to give feedback it wasn't added
       _tagController.clear();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('این تگ قبلاً اضافه شده است', style: TextStyle(fontFamily: 'IRANSansX')),
-          duration: Duration(seconds: 2),
-        ),
+      FlowToast.show(
+        context,
+        message: 'این تگ قبلاً اضافه شده است',
+        type: FlowToastType.warning,
       );
     }
   }
@@ -1659,8 +1663,10 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     } catch (e) {
       debugPrint('Error saving task: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطا در ذخیره تسک: $e')),
+        FlowToast.show(
+          context,
+          message: 'خطا در ذخیره تسک: $e',
+          type: FlowToastType.error,
         );
       }
     }

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import '../widgets/flow_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -58,16 +59,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         }
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('پشتیبان‌گیری با موفقیت انجام شد')),
+          FlowToast.show(
+            context,
+            message: 'پشتیبان‌گیری با موفقیت انجام شد',
+            type: FlowToastType.success,
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        FlowToast.show(
           context,
-        ).showSnackBar(SnackBar(content: Text('خطا در پشتیبان‌گیری: $e')));
+          message: 'خطا در پشتیبان‌گیری: $e',
+          type: FlowToastType.error,
+        );
       }
     }
   }
@@ -75,8 +80,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _exportFullData() async {
     try {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('در حال ایجاد پشتیبان کامل...')),
+        FlowToast.show(
+          context,
+          message: 'در حال ایجاد پشتیبان کامل...',
+          type: FlowToastType.info,
         );
       }
 
@@ -100,18 +107,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         }
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('پشتیبان‌گیری کامل با موفقیت انجام شد'),
-            ),
+          FlowToast.show(
+            context,
+            message: 'پشتیبان‌گیری کامل با موفقیت انجام شد',
+            type: FlowToastType.success,
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        FlowToast.show(
           context,
-        ).showSnackBar(SnackBar(content: Text('خطا در پشتیبان‌گیری کامل: $e')));
+          message: 'خطا در پشتیبان‌گیری کامل: $e',
+          type: FlowToastType.error,
+        );
       }
     }
   }
@@ -169,21 +178,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ); // Also invalidate theme to load imported settings
 
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('اطلاعات با موفقیت درون‌ریزی و ادغام شد.'),
-              ),
+            FlowToast.show(
+              context,
+              message: 'اطلاعات با موفقیت درون‌ریزی و ادغام شد.',
+              type: FlowToastType.success,
             );
           }
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطا در درون‌ریزی اطلاعات: $e'),
-            backgroundColor: Colors.red.shade800,
-          ),
+        FlowToast.show(
+          context,
+          message: 'خطا در درون‌ریزی اطلاعات: $e',
+          type: FlowToastType.error,
         );
       }
     }
@@ -219,18 +227,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         await ref.read(tasksProvider.notifier).reloadTasks();
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('فایل‌های مدیا با موفقیت حذف شدند')),
+          FlowToast.show(
+            context,
+            message: 'فایل‌های مدیا با موفقیت حذف شدند',
+            type: FlowToastType.success,
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطا در حذف فایل‌های مدیا: $e'),
-            backgroundColor: Colors.red.shade800,
-          ),
+        FlowToast.show(
+          context,
+          message: 'خطا در حذف فایل‌های مدیا: $e',
+          type: FlowToastType.error,
         );
       }
     }
@@ -274,18 +283,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ref.invalidate(themeProvider);
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('تمامی اطلاعات با موفقیت حذف شد')),
+          FlowToast.show(
+            context,
+            message: 'تمامی اطلاعات با موفقیت حذف شد',
+            type: FlowToastType.success,
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطا در حذف اطلاعات: $e'),
-            backgroundColor: Colors.red.shade800,
-          ),
+        FlowToast.show(
+          context,
+          message: 'خطا در حذف اطلاعات: $e',
+          type: FlowToastType.error,
         );
       }
     }

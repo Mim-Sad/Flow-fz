@@ -1,3 +1,4 @@
+import '../widgets/flow_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1081,11 +1082,10 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
       });
     } else if (trimmedTag.isNotEmpty) {
       _tagController.clear();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('این تگ قبلاً اضافه شده است'),
-          duration: Duration(seconds: 2),
-        ),
+      FlowToast.show(
+        context,
+        message: 'این تگ قبلاً اضافه شده است',
+        type: FlowToastType.warning,
       );
     }
   }

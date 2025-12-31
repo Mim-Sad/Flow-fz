@@ -1,3 +1,4 @@
+import 'flow_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1498,15 +1499,19 @@ class TaskOptionsSheet extends ConsumerWidget {
       }
 
       if (savedPath != null && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('فایل با موفقیت ذخیره شد')),
+        FlowToast.show(
+          context,
+          message: 'فایل با موفقیت ذخیره شد',
+          type: FlowToastType.success,
         );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
+        FlowToast.show(
           context,
-        ).showSnackBar(SnackBar(content: Text('خطا در دانلود فایل: $e')));
+          message: 'خطا در دانلود فایل: $e',
+          type: FlowToastType.error,
+        );
       }
     }
   }

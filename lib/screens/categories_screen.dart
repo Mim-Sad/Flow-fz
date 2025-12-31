@@ -1,3 +1,4 @@
+import '../widgets/flow_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -286,11 +287,10 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                                 final errorMessage = e.toString().contains('دسته‌بندی با این نام')
                                     ? 'دسته‌بندی با این نام از قبل وجود دارد'
                                     : 'خطا: ${e.toString()}';
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(errorMessage),
-                                    backgroundColor: Colors.red,
-                                  ),
+                                FlowToast.show(
+                                  context,
+                                  message: errorMessage,
+                                  type: FlowToastType.error,
                                 );
                               }
                             }

@@ -1,3 +1,4 @@
+import '../widgets/flow_toast.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -172,14 +173,10 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
               });
             } else if (trimmedTag.isNotEmpty) {
               tagController.clear();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'این تگ قبلاً اضافه شده است',
-                    style: TextStyle(fontFamily: 'IRANSansX'),
-                  ),
-                  duration: Duration(seconds: 2),
-                ),
+              FlowToast.show(
+                context,
+                message: 'این تگ قبلاً اضافه شده است',
+                type: FlowToastType.warning,
               );
             }
           }

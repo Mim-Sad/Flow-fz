@@ -1,3 +1,4 @@
+import '../widgets/flow_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -106,14 +107,10 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
       _toggleSelectionMode(false);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'تسک‌های انتخاب شده حذف شدند',
-              textAlign: TextAlign.right,
-            ),
-            behavior: SnackBarBehavior.floating,
-          ),
+        FlowToast.show(
+          context,
+          message: 'تسک‌های انتخاب شده حذف شدند',
+          type: FlowToastType.success,
         );
       }
     }
