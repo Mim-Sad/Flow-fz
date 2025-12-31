@@ -2427,6 +2427,8 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setSheetState) {
+          final bool isRecurring = _recurrence != null &&
+              _recurrence!.type != RecurrenceType.none;
           return Container(
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
@@ -2575,38 +2577,44 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                     ),
                   ],
 
-                  // Today Options (Morning, Noon, Night)
+                  // Time-based options (Morning, Noon, Night)
                   _buildReminderOption(
-                    'امروز صبح (۰۹:۰۰)',
+                    isRecurring
+                        ? 'روزهای انجام صبح (۰۹:۰۰)'
+                        : 'روز انجام صبح (۰۹:۰۰)',
                     HugeIcons.strokeRoundedSun03,
                     DateTime(
-                      DateTime.now().year,
-                      DateTime.now().month,
-                      DateTime.now().day,
+                      _selectedDate.year,
+                      _selectedDate.month,
+                      _selectedDate.day,
                       9,
                       0,
                     ),
                     setSheetState,
                   ),
                   _buildReminderOption(
-                    'امروز ظهر (۱۳:۰۰)',
+                    isRecurring
+                        ? 'روزهای انجام ظهر (۱۳:۰۰)'
+                        : 'روز انجام ظهر (۱۳:۰۰)',
                     HugeIcons.strokeRoundedSun01,
                     DateTime(
-                      DateTime.now().year,
-                      DateTime.now().month,
-                      DateTime.now().day,
+                      _selectedDate.year,
+                      _selectedDate.month,
+                      _selectedDate.day,
                       13,
                       0,
                     ),
                     setSheetState,
                   ),
                   _buildReminderOption(
-                    'امروز شب (۲۱:۰۰)',
+                    isRecurring
+                        ? 'روزهای انجام شب (۲۱:۰۰)'
+                        : 'روز انجام شب (۲۱:۰۰)',
                     HugeIcons.strokeRoundedMoon02,
                     DateTime(
-                      DateTime.now().year,
-                      DateTime.now().month,
-                      DateTime.now().day,
+                      _selectedDate.year,
+                      _selectedDate.month,
+                      _selectedDate.day,
                       21,
                       0,
                     ),
