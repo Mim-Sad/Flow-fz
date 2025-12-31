@@ -666,6 +666,33 @@ class TaskOptionsSheet extends ConsumerWidget {
                           ),
                         ],
 
+                        // Reminder Info
+                        if (task.reminderDateTime != null) ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            textDirection: TextDirection.rtl,
+                            children: [
+                              const HugeIcon(
+                                icon: HugeIcons.strokeRoundedNotification03,
+                                size: 18,
+                                color: Colors.blue,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildParenthesesStyledText(
+                                  "یادآور: ${_toPersianDigit(_formatTime(task.reminderDateTime!))}",
+                                  const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.blue,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+
                         // Recurrence Info
                         if (task.recurrence != null &&
                             task.recurrence!.type != RecurrenceType.none) ...[

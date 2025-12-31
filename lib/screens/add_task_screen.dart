@@ -19,6 +19,7 @@ import '../providers/tag_provider.dart';
 import '../providers/goal_provider.dart';
 import '../utils/string_utils.dart';
 import '../utils/emoji_suggester.dart';
+import '../services/notification_service.dart';
 import '../widgets/audio_waveform_player.dart';
 import 'package:intl/intl.dart' as intl;
 import 'goals_screen.dart';
@@ -49,6 +50,8 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   bool _hasTime = false;
   bool _hasEndTime = false;
   DateTime? _endTime;
+  DateTime? _reminderDateTime;
+  bool _hasReminder = false;
 
   // Audio Recording
   final AudioRecorder _audioRecorder = AudioRecorder();
@@ -98,9 +101,12 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
       _hasTime = widget.task!.metadata['hasTime'] ?? true;
       _endTime = widget.task!.endTime;
       _hasEndTime = _hasTime && _endTime != null;
+      _reminderDateTime = widget.task!.reminderDateTime;
+      _hasReminder = _reminderDateTime != null;
     } else {
       _hasTime = false;
       _hasEndTime = false;
+      _hasReminder = false;
     }
 
     // Logic for date:
@@ -950,6 +956,105 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                     ),
                                   ),
 
+                                // Reminder
+                                ListTile(
+                                  onTap: _showReminderPickerSheet,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
+                                  leading: Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: HugeIcon(
+                                      icon: HugeIcons.strokeRoundedNotification03,
+                                      size: 20,
+                                      color: Colors.blue,
+                                    ),
+                                  ),
+                                  title: const Text(
+                                    'یادآور',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    _hasReminder && _reminderDateTime != null
+                                        ? _toPersianDigit(
+                                            intl.DateFormat(
+                                              'HH:mm',
+                                            ).format(_reminderDateTime!),
+                                          )
+                                        : 'بدون یادآور',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: _hasReminder
+                                          ? Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant
+                                          : Colors.grey,
+                                    ),
+                                  ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (_hasReminder)
+                                        GestureDetector(
+                                          onTap: () => setState(
+                                            () => _hasReminder = false,
+                                          ),
+                                          child: Container(
+                                            margin: const EdgeInsets.only(
+                                              left: 12,
+                                            ),
+                                            padding:
+                                                const EdgeInsets.symmetric(
+                                                  horizontal: 12,
+                                                  vertical: 6,
+                                                ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.red.withValues(
+                                                alpha: 0.15,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(25),
+                                              border: Border.all(
+                                                color: Colors.red.withValues(
+                                                  alpha: 0.1,
+                                                ),
+                                              ),
+                                            ),
+                                            child: const Text(
+                                              'حذف یادآور',
+                                              style: TextStyle(
+                                                color: Colors.red,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w700,
+                                                letterSpacing: -0.2,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      Icon(
+                                        Icons.chevron_right,
+                                        size: 20,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant
+                                            .withValues(alpha: 0.5),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
                                 // Recurrence
                                 ListTile(
                                   onTap: _showRecurrencePicker,
@@ -1152,8 +1257,9 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                           .take(5)
                                           .toList();
 
-                                      if (filteredSuggestions.isEmpty)
+                                      if (filteredSuggestions.isEmpty) {
                                         return const SizedBox.shrink();
+                                      }
 
                                       return Padding(
                                         padding: const EdgeInsets.fromLTRB(
@@ -2332,6 +2438,346 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     );
   }
 
+  void _showReminderPickerSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          return Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle Line
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+
+                // Header
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const HugeIcon(
+                        icon: HugeIcons.strokeRoundedNotification03,
+                        size: 20,
+                        color: Colors.blue,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Text(
+                      'تنظیم یادآور',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const HugeIcon(
+                        icon: HugeIcons.strokeRoundedCancel01,
+                        size: 22,
+                        color: Colors.grey,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Permission Warning
+                FutureBuilder<bool>(
+                  future: NotificationService().requestPermissions(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data == false) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 20),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.amber.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const HugeIcon(
+                              icon: HugeIcons.strokeRoundedAlert02,
+                              color: Colors.amber,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'دسترسی اعلان‌ها غیرفعال است. برای دریافت یادآور، لطفا دسترسی را تایید کنید.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                await NotificationService().requestPermissions();
+                                setSheetState(() {});
+                              },
+                              child: const Text('تایید'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+
+                // Predefined Options
+                _buildReminderOption(
+                  'بدون یادآور',
+                  HugeIcons.strokeRoundedNotification01,
+                  null,
+                  setSheetState,
+                ),
+
+                if (_hasTime) ...[
+                  _buildReminderOption(
+                    'در زمان انجام تسک',
+                    HugeIcons.strokeRoundedClock01,
+                    _selectedDate,
+                    setSheetState,
+                  ),
+                  _buildReminderOption(
+                    '۵ دقیقه قبل',
+                    HugeIcons.strokeRoundedClock02,
+                    _selectedDate.subtract(const Duration(minutes: 5)),
+                    setSheetState,
+                  ),
+                  _buildReminderOption(
+                    '۳۰ دقیقه قبل',
+                    HugeIcons.strokeRoundedClock05,
+                    _selectedDate.subtract(const Duration(minutes: 30)),
+                    setSheetState,
+                  ),
+                  _buildReminderOption(
+                    '۱ ساعت قبل',
+                    HugeIcons.strokeRoundedClock04,
+                    _selectedDate.subtract(const Duration(hours: 1)),
+                    setSheetState,
+                  ),
+                ],
+
+                // Today/Tomorrow Options
+                _buildReminderOption(
+                  'امروز ساعت ۰۹:۰۰',
+                  HugeIcons.strokeRoundedCalendar03,
+                  DateTime(
+                    DateTime.now().year,
+                    DateTime.now().month,
+                    DateTime.now().day,
+                    9,
+                    0,
+                  ),
+                  setSheetState,
+                ),
+                _buildReminderOption(
+                  'فردا ساعت ۰۹:۰۰',
+                  HugeIcons.strokeRoundedCalendar01,
+                  DateTime(
+                    DateTime.now().year,
+                    DateTime.now().month,
+                    DateTime.now().day,
+                    9,
+                    0,
+                  ).add(const Duration(days: 1)),
+                  setSheetState,
+                ),
+
+                const Divider(height: 32),
+
+                // Custom Option
+                InkWell(
+                  onTap: () async {
+                    final pickedDate = await showPersianDatePicker(
+                      context: context,
+                      initialDate: Jalali.fromDateTime(
+                        _reminderDateTime ?? _selectedDate,
+                      ),
+                      firstDate: Jalali.now(),
+                      lastDate: Jalali(1500, 1, 1),
+                    );
+
+                    if (pickedDate != null) {
+                      if (!context.mounted) return;
+                      final pickedTime = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.fromDateTime(
+                          _reminderDateTime ?? _selectedDate,
+                        ),
+                        builder: (context, child) => Directionality(
+                          textDirection: TextDirection.rtl,
+                          child: child!,
+                        ),
+                      );
+
+                      if (pickedTime != null) {
+                        if (!context.mounted) return;
+                        final finalDateTime = DateTime(
+                          pickedDate.toDateTime().year,
+                          pickedDate.toDateTime().month,
+                          pickedDate.toDateTime().day,
+                          pickedTime.hour,
+                          pickedTime.minute,
+                        );
+
+                        setState(() {
+                          _hasReminder = true;
+                          _reminderDateTime = finalDateTime;
+                        });
+                        Navigator.pop(context);
+                      }
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 8,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: HugeIcon(
+                            icon: HugeIcons.strokeRoundedCalendar03,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Text(
+                            'انتخاب دستی تاریخ و ساعت',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const HugeIcon(
+                          icon: HugeIcons.strokeRoundedArrowLeft01,
+                          size: 20,
+                          color: Colors.grey,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildReminderOption(
+    String label,
+    dynamic icon,
+    DateTime? dateTime,
+    StateSetter setSheetState,
+  ) {
+    // For "No Reminder", dateTime is null and _hasReminder is false
+    final bool isSelected = (dateTime == null && !_hasReminder) ||
+        (dateTime != null &&
+            _hasReminder &&
+            _reminderDateTime?.year == dateTime.year &&
+            _reminderDateTime?.month == dateTime.month &&
+            _reminderDateTime?.day == dateTime.day &&
+            _reminderDateTime?.hour == dateTime.hour &&
+            _reminderDateTime?.minute == dateTime.minute);
+
+    final color = isSelected ? Colors.blue : Theme.of(context).colorScheme.onSurface;
+
+    return InkWell(
+      onTap: () {
+        setState(() {
+          if (dateTime == null) {
+            _hasReminder = false;
+          } else {
+            _hasReminder = true;
+            _reminderDateTime = dateTime;
+          }
+        });
+        Navigator.pop(context);
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        margin: const EdgeInsets.only(bottom: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.blue.withValues(alpha: 0.05) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            HugeIcon(
+              icon: icon,
+              color: isSelected
+                  ? Colors.blue
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
+              size: 22,
+            ),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: color,
+              ),
+            ),
+            const Spacer(),
+            if (isSelected)
+              const HugeIcon(
+                icon: HugeIcons.strokeRoundedCheckmarkCircle02,
+                color: Colors.blue,
+                size: 20,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
 
@@ -2394,8 +2840,39 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
         attachments: _attachments,
         tags: _tags,
         recurrence: _recurrence,
+        reminderDateTime: _hasReminder ? _reminderDateTime : null,
         metadata: metadata,
       );
+
+      // Check if reminder is set but permissions are missing
+      if (_hasReminder) {
+        final notificationService = ref.read(notificationServiceProvider);
+        final hasPermission = await notificationService.requestPermissions();
+        if (!hasPermission && mounted) {
+          final proceed = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('دسترسی به اعلان‌ها'),
+              content: const Text(
+                'برای ارسال یادآور، نیاز به دسترسی به اعلان‌ها داریم. آیا می‌خواهید تسک بدون یادآور ذخیره شود؟',
+                textDirection: TextDirection.rtl,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('خیر، تنظیم دسترسی'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('بله، ذخیره بدون یادآور'),
+                ),
+              ],
+            ),
+          );
+          
+          if (!mounted || proceed == false) return;
+        }
+      }
 
       if (task.id == null) {
         final isDuplicated = widget.task != null && widget.task!.id == null;

@@ -31,7 +31,7 @@ class DatabaseService {
     try {
       db = await openDatabase(
         path,
-        version: 21,
+        version: 22,
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       );
@@ -443,6 +443,15 @@ class DatabaseService {
         debugPrint('Error adding endTime column to tasks: $e');
       }
     }
+    if (oldVersion < 22) {
+      // Version 22: Add reminderDateTime to tasks table
+      try {
+        await db.execute('ALTER TABLE tasks ADD COLUMN reminderDateTime TEXT');
+        debugPrint('✅ Added reminderDateTime column to tasks table');
+      } catch (e) {
+        debugPrint('Error adding reminderDateTime column to tasks: $e');
+      }
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -466,6 +475,7 @@ class DatabaseService {
         deletedAt TEXT,
         isDeleted INTEGER NOT NULL DEFAULT 0,
         position INTEGER NOT NULL DEFAULT 0,
+        reminderDateTime TEXT,
         metadata TEXT
       )
     ''');

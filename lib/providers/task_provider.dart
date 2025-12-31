@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/task.dart';
 import '../services/database_service.dart';
+import '../services/notification_service.dart';
 
 final databaseServiceProvider = Provider((ref) => DatabaseService());
+final notificationServiceProvider = Provider((ref) => NotificationService());
 
 final tasksLoadingProvider = StateProvider<bool>((ref) => true);
 
@@ -16,8 +18,12 @@ final allTasksIncludingDeletedProvider = FutureProvider<List<Task>>((ref) async 
 class TasksNotifier extends StateNotifier<List<Task>> {
   final Ref _ref;
   final DatabaseService _dbService;
+  final NotificationService _notificationService;
 
-  TasksNotifier(this._ref) : _dbService = _ref.read(databaseServiceProvider), super([]) {
+  TasksNotifier(this._ref) 
+      : _dbService = _ref.read(databaseServiceProvider),
+        _notificationService = _ref.read(notificationServiceProvider),
+        super([]) {
     _loadTasks();
   }
 
@@ -46,6 +52,12 @@ class TasksNotifier extends StateNotifier<List<Task>> {
       );
     }
     final newTask = task.copyWith(id: id);
+    
+    // Schedule notification if reminder is set
+    if (newTask.reminderDateTime != null) {
+      await _notificationService.scheduleTaskReminder(newTask);
+    }
+
     state = [...state, newTask];
     _ref.invalidate(allTasksIncludingDeletedProvider);
   }
@@ -56,6 +68,16 @@ class TasksNotifier extends StateNotifier<List<Task>> {
       id: newId, 
       updatedAt: DateTime.now(),
     );
+
+    // Update notification
+    if (newTask.id != null) {
+      if (newTask.reminderDateTime != null) {
+        await _notificationService.scheduleTaskReminder(newTask);
+      } else {
+        await _notificationService.cancelTaskReminder(newTask.id!);
+      }
+    }
+
     state = state.map((t) => t.id == task.id ? newTask : t).toList();
     // Also refresh the allTasksIncludingDeletedProvider to include the new version and archived old version
     _ref.invalidate(allTasksIncludingDeletedProvider);
@@ -63,6 +85,10 @@ class TasksNotifier extends StateNotifier<List<Task>> {
 
   Future<void> deleteTask(int id) async {
     await _dbService.softDeleteTask(id);
+    
+    // Cancel notification
+    await _notificationService.cancelTaskReminder(id);
+
     state = state.where((t) => t.id != id).toList();
     _ref.invalidate(allTasksIncludingDeletedProvider);
   }
@@ -83,7 +109,12 @@ class TasksNotifier extends StateNotifier<List<Task>> {
       // 1. Update status and history in database
       await _dbService.updateTaskStatus(id, status, dateKey: dateStr);
       
-      // 2. Update local state
+      // Update notification based on status
+      if (status == TaskStatus.success || status == TaskStatus.cancelled) {
+        await _notificationService.cancelTaskReminder(id);
+      } else if (task.reminderDateTime != null) {
+        await _notificationService.scheduleTaskReminder(task);
+      }
       final updatedHistory = Map<String, int>.from(task.statusHistory);
       updatedHistory[dateStr] = status.index;
       

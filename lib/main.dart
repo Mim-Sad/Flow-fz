@@ -13,11 +13,15 @@ import 'widgets/navigation_wrapper.dart';
 import 'providers/theme_provider.dart';
 import 'providers/task_provider.dart';
 import 'services/midnight_task_updater.dart';
+import 'services/notification_service.dart';
 import 'utils/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
+
+  // Initialize Notification Service
+  await NotificationService().init();
   
   runApp(
     ProviderScope(

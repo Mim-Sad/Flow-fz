@@ -94,6 +94,7 @@ class Task {
   final List<String> tags;
   final List<int> goalIds;
   final RecurrenceConfig? recurrence;
+  final DateTime? reminderDateTime;
   final Map<String, int> statusHistory;
   final Map<String, dynamic> metadata;
   final List<Map<String, dynamic>> statusLogs;
@@ -116,6 +117,7 @@ class Task {
     this.taskEmoji,
     List<String>? attachments,
     this.recurrence,
+    this.reminderDateTime,
     Map<String, int>? statusHistory,
     Map<String, dynamic>? metadata,
     List<Map<String, dynamic>>? statusLogs,
@@ -428,6 +430,7 @@ class Task {
       'taskEmoji': taskEmoji,
       'attachments': json.encode(attachments),
       'recurrence': recurrence?.toJson(),
+      'reminderDateTime': reminderDateTime?.toIso8601String(),
       'statusHistory': json.encode(statusHistory),
       'metadata': json.encode(metadata),
     };
@@ -529,6 +532,9 @@ class Task {
       recurrence: map['recurrence'] != null
           ? RecurrenceConfig.fromJson(map['recurrence'])
           : null,
+      reminderDateTime: map['reminderDateTime'] != null
+          ? DateTime.parse(map['reminderDateTime'])
+          : null,
       statusHistory: loadedStatusHistory,
       metadata: loadedMetadata,
       statusLogs: map['statusLogs'] != null
@@ -555,6 +561,7 @@ class Task {
     String? taskEmoji,
     List<String>? attachments,
     RecurrenceConfig? recurrence,
+    DateTime? reminderDateTime,
     Map<String, int>? statusHistory,
     Map<String, dynamic>? metadata,
     List<Map<String, dynamic>>? statusLogs,
@@ -580,6 +587,7 @@ class Task {
       taskEmoji: taskEmoji ?? this.taskEmoji,
       attachments: attachments ?? this.attachments,
       recurrence: recurrence ?? this.recurrence,
+      reminderDateTime: reminderDateTime ?? this.reminderDateTime,
       statusHistory: statusHistory ?? this.statusHistory,
       metadata: finalMetadata,
       statusLogs: statusLogs ?? this.statusLogs,

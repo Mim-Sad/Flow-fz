@@ -151,6 +151,17 @@ Unlike traditional apps that have a single `status` field, Project Flow treats s
 ### Event Logging
 - **Immutable History**: Every significant action (status change, postpone, duplicate) is logged in the `task_events` table with a human-readable Persian message. This ensures the app's history is auditable and recoverable.
 
+### Notifications & Reminders
+- **Service**: Powered by `flutter_local_notifications` with timezone-aware scheduling.
+- **Behavior**:
+  - Reminders are automatically scheduled when a task is created or updated with a `reminderDateTime`.
+  - Notifications are automatically cancelled when a task is marked as "Done" or "Cancelled".
+  - If a task is uncompleted, the reminder is automatically rescheduled.
+  - Notifications are cancelled when a task is soft-deleted.
+- **Visuals**:
+  - Uses the app icon for notification small icon.
+  - Channels are categorized for importance (e.g., Task Reminders).
+
 ### Localization Strategy
 - **Centralized Logic**: Persian digit conversion and Jalali formatting are centralized in `string_utils.dart` and `reports_screen.dart` to ensure the entire UI remains consistent. Avoid hardcoding English digits in user-facing strings.
 - **RTL Integrity**: Layouts are tested specifically for RTL overflow. Avoid using `Padding.left/right`; always use `Padding.start/end` (or `paddingDirectional`).

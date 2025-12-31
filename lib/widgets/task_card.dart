@@ -178,7 +178,10 @@ class TaskCard extends ConsumerWidget {
                   child: _AutoScrollCapsules(
                     children: [
                       _buildTimeCapsule(context, onCardColor),
-                      if ((task.metadata['hasTime'] ?? false) && (task.priority != TaskPriority.medium || task.categories.isNotEmpty || task.goalIds.isNotEmpty))
+                      if (task.hasTime && (task.reminderDateTime != null || task.priority != TaskPriority.medium || task.categories.isNotEmpty || task.goalIds.isNotEmpty))
+                        const SizedBox(width: 6),
+                      _buildReminderCapsule(context, onCardColor),
+                      if (task.reminderDateTime != null && (task.priority != TaskPriority.medium || task.categories.isNotEmpty || task.goalIds.isNotEmpty))
                         const SizedBox(width: 6),
                       _buildPriorityCapsule(context, onCardColor),
                       if (task.priority != TaskPriority.medium && (task.categories.isNotEmpty || task.goalIds.isNotEmpty))
@@ -203,6 +206,7 @@ class TaskCard extends ConsumerWidget {
   Widget _buildTimeCapsule(BuildContext context, Color onCardColor) {
     if (!task.hasTime) return const SizedBox.shrink();
 
+    // Use task.dueDate for the time, as it's modified in activeTasksProvider to the occurrence date
     final timeStr = StringUtils.toPersianDigit(intl.DateFormat('HH:mm').format(task.dueDate));
     String label = timeStr;
     if (task.endTime != null) {
@@ -228,6 +232,36 @@ class TaskCard extends ConsumerWidget {
               fontSize: 10,
               fontWeight: FontWeight.bold,
               color: onCardColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReminderCapsule(BuildContext context, Color onCardColor) {
+    if (task.reminderDateTime == null) return const SizedBox.shrink();
+
+    final reminderStr = StringUtils.toPersianDigit(intl.DateFormat('HH:mm').format(task.reminderDateTime!));
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.blue.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const HugeIcon(icon: HugeIcons.strokeRoundedNotification03, size: 10, color: Colors.blue),
+          const SizedBox(width: 4),
+          Text(
+            reminderStr,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
             ),
           ),
         ],
