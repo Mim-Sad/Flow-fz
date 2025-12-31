@@ -26,15 +26,29 @@ class DatabaseService {
 
   Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'flow_database.db');
-    final db = await openDatabase(
-      path,
-      version: 19,
-      onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
-    );
+    
+    Database? db;
+    try {
+      db = await openDatabase(
+        path,
+        version: 20,
+        onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
+      );
+    } catch (e) {
+      debugPrint('Error opening database: $e');
+      // If database opening fails (e.g. corruption), try to recover or at least not crash
+      // We DON'T delete the database here to prevent data loss, 
+      // instead we let the app handle the null or throw.
+      rethrow;
+    }
 
     // Migrate old attachments to media table on startup
-    await _migrateOldAttachments(db);
+    try {
+      await _migrateOldAttachments(db);
+    } catch (e) {
+      debugPrint('Error in initial migration of attachments: $e');
+    }
 
     return db;
   }
@@ -331,13 +345,17 @@ class DatabaseService {
                         .reduce((a, b) => a > b ? a : b) +
                     1);
 
-          await db.insert('categories', {
-            'id': 'academic',
-            'label': 'تحصیلی',
-            'emoji': DuckEmojis.academic,
-            'color': 0xFF9C27B0,
-            'position': maxPosition,
-          });
+          await db.insert(
+            'categories',
+            {
+              'id': 'academic',
+              'label': 'تحصیلی',
+              'emoji': DuckEmojis.academic,
+              'color': 0xFF9C27B0,
+              'position': maxPosition,
+            },
+            conflictAlgorithm: ConflictAlgorithm.ignore,
+          );
         } else {
           // Update existing academic category to use correct emoji
           final academicCategory = allCategories.firstWhere(
@@ -411,6 +429,10 @@ class DatabaseService {
       } catch (e) {
         debugPrint('Error migrating goals to version 19: $e');
       }
+    }
+    if (oldVersion < 20) {
+      // Version 20: Maintenance update to ensure migration stability
+      debugPrint('✅ Database migrated to version 20');
     }
   }
 
@@ -561,7 +583,11 @@ class DatabaseService {
     // Insert default categories
     final batch = db.batch();
     for (var cat in defaultCategories) {
-      batch.insert('categories', cat.toMap());
+      batch.insert(
+        'categories',
+        cat.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
     }
     await batch.commit();
   }
