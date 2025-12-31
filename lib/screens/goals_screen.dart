@@ -27,7 +27,7 @@ class GoalsScreen extends ConsumerStatefulWidget {
 class _GoalsScreenState extends ConsumerState<GoalsScreen> {
   final AudioRecorder _audioRecorder = AudioRecorder();
   bool _isRecording = false;
-  
+
   // Emoji Suggestion
   Timer? _emojiSuggestionTimer;
   String? _lastTitleForEmoji;
@@ -64,33 +64,44 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
       await OpenFilex.open(path);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطا در باز کردن فایل: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطا در باز کردن فایل: $e')));
       }
     }
   }
 
-  Future<void> _pickFiles(List<String> currentAttachments, Function(List<String>) onUpdate) async {
+  Future<void> _pickFiles(
+    List<String> currentAttachments,
+    Function(List<String>) onUpdate,
+  ) async {
     final result = await FilePicker.platform.pickFiles();
     if (result != null && result.files.single.path != null) {
       onUpdate([...currentAttachments, result.files.single.path!]);
     }
   }
 
-  Future<void> _toggleRecording(String? currentAudioPath, Function(String?, List<String>) onUpdate, List<String> currentAttachments) async {
+  Future<void> _toggleRecording(
+    String? currentAudioPath,
+    Function(String?, List<String>) onUpdate,
+    List<String> currentAttachments, [
+    VoidCallback? onStateChanged,
+  ]) async {
     if (_isRecording) {
       final path = await _audioRecorder.stop();
       setState(() => _isRecording = false);
+      onStateChanged?.call();
       if (path != null) {
         onUpdate(path, [...currentAttachments, path]);
       }
     } else {
       if (await _audioRecorder.hasPermission()) {
         final directory = await getApplicationDocumentsDirectory();
-        final path = '${directory.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+        final path =
+            '${directory.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
         await _audioRecorder.start(const RecordConfig(), path: path);
         setState(() => _isRecording = true);
+        onStateChanged?.call();
       }
     }
   }
@@ -101,7 +112,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
     final descController = TextEditingController(text: goal?.description ?? '');
     final emojiController = TextEditingController(text: goal?.emoji ?? '🎯');
     final tagController = TextEditingController();
-    
+
     String selectedEmoji = goal?.emoji ?? '🎯';
     List<String> selectedCategoryIds = List.from(goal?.categoryIds ?? []);
     DateTime? selectedDeadline = goal?.deadline;
@@ -116,14 +127,14 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         _emojiSuggestionTimer?.cancel();
         return;
       }
-      
+
       bool shouldSuggest = false;
       if (selectedEmoji == '🎯') {
         shouldSuggest = true;
       } else if (_lastTitleForEmoji != null && _lastTitleForEmoji != title) {
         shouldSuggest = true;
       }
-      
+
       if (shouldSuggest) {
         _emojiSuggestionTimer?.cancel();
         _emojiSuggestionTimer = Timer(const Duration(milliseconds: 600), () {
@@ -153,7 +164,8 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
 
           void addTag(String tag) {
             final trimmedTag = tag.trim();
-            if (trimmedTag.isNotEmpty && !StringUtils.containsTag(tags, trimmedTag)) {
+            if (trimmedTag.isNotEmpty &&
+                !StringUtils.containsTag(tags, trimmedTag)) {
               setModalState(() {
                 tags.add(trimmedTag);
                 tagController.clear();
@@ -162,7 +174,10 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
               tagController.clear();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('این تگ قبلاً اضافه شده است', style: TextStyle(fontFamily: 'IRANSansX')),
+                  content: Text(
+                    'این تگ قبلاً اضافه شده است',
+                    style: TextStyle(fontFamily: 'IRANSansX'),
+                  ),
                   duration: Duration(seconds: 2),
                 ),
               );
@@ -172,10 +187,14 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
           return Container(
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
             ),
             child: Padding(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -206,11 +225,13 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: HugeIcon(
-                                  icon: HugeIcons.strokeRoundedTarget02, 
+                                  icon: HugeIcons.strokeRoundedTarget02,
                                   size: 20,
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
@@ -218,9 +239,8 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                               const SizedBox(width: 14),
                               Text(
                                 isEditing ? 'ویرایش هدف' : 'هدف جدید',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
                               ),
                               const Spacer(),
                               IconButton(
@@ -233,7 +253,8 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
                                 style: const ButtonStyle(
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                 ),
                               ),
                             ],
@@ -247,7 +268,10 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                                 width: 52,
                                 height: 52,
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainerHighest
+                                      .withValues(alpha: 0.3),
                                   borderRadius: BorderRadius.circular(18),
                                 ),
                                 alignment: Alignment.center,
@@ -269,9 +293,13 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                                       if (value.characters.isNotEmpty) {
                                         final char = value.characters.last;
                                         emojiController.text = char;
-                                        emojiController.selection = TextSelection.fromPosition(
-                                          TextPosition(offset: emojiController.text.length),
-                                        );
+                                        emojiController.selection =
+                                            TextSelection.fromPosition(
+                                              TextPosition(
+                                                offset:
+                                                    emojiController.text.length,
+                                              ),
+                                            );
                                         selectedEmoji = char;
                                       } else {
                                         selectedEmoji = '🎯';
@@ -284,7 +312,10 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                               Expanded(
                                 child: TextField(
                                   controller: titleController,
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                   decoration: InputDecoration(
                                     hintText: 'عنوان هدف',
                                     hintStyle: const TextStyle(fontSize: 14),
@@ -293,8 +324,14 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                                       borderSide: BorderSide.none,
                                     ),
                                     filled: true,
-                                    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                                    fillColor: Theme.of(context)
+                                        .colorScheme
+                                        .surfaceContainerHighest
+                                        .withValues(alpha: 0.3),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 18,
+                                      vertical: 14,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -310,16 +347,32 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                             style: const TextStyle(fontSize: 13),
                             decoration: InputDecoration(
                               hintText: 'توضیحات هدف...',
-                              hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                              hintStyle: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
-                                borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                                borderSide: BorderSide(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .outlineVariant
+                                      .withValues(alpha: 0.5),
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
-                                borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                                borderSide: BorderSide(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .outlineVariant
+                                      .withValues(alpha: 0.5),
+                                ),
                               ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 20),
@@ -327,7 +380,9 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                           // Categories
                           categoriesAsync.when(
                             data: (categories) {
-                              if (categories.isEmpty) return const SizedBox.shrink();
+                              if (categories.isEmpty) {
+                                return const SizedBox.shrink();
+                              }
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -338,28 +393,44 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                                       runSpacing: 8,
                                       alignment: WrapAlignment.center,
                                       children: categories.map((cat) {
-                                        final isSelected = selectedCategoryIds.contains(cat.id);
+                                        final isSelected = selectedCategoryIds
+                                            .contains(cat.id);
                                         return GestureDetector(
                                           onTap: () {
                                             setModalState(() {
                                               if (isSelected) {
-                                                selectedCategoryIds.remove(cat.id);
+                                                selectedCategoryIds.remove(
+                                                  cat.id,
+                                                );
                                               } else {
                                                 selectedCategoryIds.add(cat.id);
                                               }
                                             });
                                           },
                                           child: AnimatedContainer(
-                                            duration: const Duration(milliseconds: 200),
-                                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                            duration: const Duration(
+                                              milliseconds: 200,
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 8,
+                                            ),
                                             decoration: BoxDecoration(
-                                              color: isSelected 
-                                                  ? cat.color.withValues(alpha: 0.15) 
-                                                  : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                                              borderRadius: BorderRadius.circular(14),
+                                              color: isSelected
+                                                  ? cat.color.withValues(
+                                                      alpha: 0.15,
+                                                    )
+                                                  : Theme.of(context)
+                                                        .colorScheme
+                                                        .surfaceContainerHighest
+                                                        .withValues(alpha: 0.3),
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
                                               border: Border.all(
-                                                color: isSelected 
-                                                    ? cat.color.withValues(alpha: 0.5)
+                                                color: isSelected
+                                                    ? cat.color.withValues(
+                                                        alpha: 0.5,
+                                                      )
                                                     : Colors.transparent,
                                                 width: 1.5,
                                               ),
@@ -367,14 +438,25 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                                             child: Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                LottieCategoryIcon(assetPath: cat.emoji, width: 22, height: 22, repeat: false),
+                                                LottieCategoryIcon(
+                                                  assetPath: cat.emoji,
+                                                  width: 22,
+                                                  height: 22,
+                                                  repeat: false,
+                                                ),
                                                 const SizedBox(width: 8),
                                                 Text(
                                                   cat.label,
                                                   style: TextStyle(
                                                     fontSize: 12,
-                                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                                    color: isSelected ? cat.color : Theme.of(context).colorScheme.onSurface,
+                                                    fontWeight: isSelected
+                                                        ? FontWeight.bold
+                                                        : FontWeight.w500,
+                                                    color: isSelected
+                                                        ? cat.color
+                                                        : Theme.of(context)
+                                                              .colorScheme
+                                                              .onSurface,
                                                   ),
                                                 ),
                                               ],
@@ -387,7 +469,9 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                                 ],
                               );
                             },
-                            loading: () => const Center(child: CircularProgressIndicator()),
+                            loading: () => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
                             error: (_, __) => const SizedBox.shrink(),
                           ),
                           const SizedBox(height: 20),
@@ -397,7 +481,9 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                             onTap: () async {
                               final pickedDate = await showPersianDatePicker(
                                 context: context,
-                                initialDate: selectedDeadline != null ? Jalali.fromDateTime(selectedDeadline!) : Jalali.now(),
+                                initialDate: selectedDeadline != null
+                                    ? Jalali.fromDateTime(selectedDeadline!)
+                                    : Jalali.now(),
                                 firstDate: Jalali.now(),
                                 lastDate: Jalali.now().addYears(10),
                               );
@@ -406,67 +492,111 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                                 setModalState(() => selectedDeadline = dt);
                               }
                             },
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                            ),
                             leading: Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer
+                                    .withValues(alpha: 0.5),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const HugeIcon(icon: HugeIcons.strokeRoundedCalendar03, size: 20),
+                              child: const HugeIcon(
+                                icon: HugeIcons.strokeRoundedCalendar03,
+                                size: 20,
+                              ),
                             ),
                             title: const Text(
                               'تاریخ رسیدن به هدف',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             subtitle: Text(
-                              selectedDeadline != null 
-                                  ? _formatJalali(Jalali.fromDateTime(selectedDeadline!))
+                              selectedDeadline != null
+                                  ? _formatJalali(
+                                      Jalali.fromDateTime(selectedDeadline!),
+                                    )
                                   : 'تاریخی انتخاب نشده',
-                              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
                             ),
                             trailing: Icon(
-                              Icons.chevron_right, 
-                              size: 20, 
-                              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
+                              Icons.chevron_right,
+                              size: 20,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant
+                                  .withValues(alpha: 0.5),
                             ),
                           ),
                           const SizedBox(height: 20),
 
                           // Priority
-                          SizedBox(
-                            width: double.infinity,
-                            child: SegmentedButton<TaskPriority>(
-                              segments: const [
-                                ButtonSegment(
-                                  value: TaskPriority.low, 
-                                  label: Text('فرعی'), 
-                                  icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowDown01, color: Colors.green, size: 18)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 0),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: SegmentedButton<TaskPriority>(
+                                segments: const [
+                                  ButtonSegment(
+                                    value: TaskPriority.low,
+                                    label: Text('فرعی'),
+                                    icon: HugeIcon(
+                                      icon: HugeIcons.strokeRoundedArrowDown01,
+                                      color: Colors.green,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  ButtonSegment(
+                                    value: TaskPriority.medium,
+                                    label: Text('عادی'),
+                                    icon: HugeIcon(
+                                      icon: HugeIcons.strokeRoundedMinusSign,
+                                      color: Colors.grey,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  ButtonSegment(
+                                    value: TaskPriority.high,
+                                    label: Text('فوری'),
+                                    icon: HugeIcon(
+                                      icon: HugeIcons.strokeRoundedAlertCircle,
+                                      color: Colors.red,
+                                      size: 18,
+                                    ),
+                                  ),
+                                ],
+                                selected: {selectedPriority},
+                                onSelectionChanged: (val) {
+                                    setModalState(() => selectedPriority = val.first);
+                                  },
+                                style: SegmentedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  side: BorderSide(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .outlineVariant
+                                        .withValues(alpha: 0.5),
+                                  ),
                                 ),
-                                ButtonSegment(
-                                  value: TaskPriority.medium, 
-                                  label: Text('عادی'),
-                                  icon: HugeIcon(icon: HugeIcons.strokeRoundedMinusSign, color: Colors.grey, size: 18)
-                                ),
-                                ButtonSegment(
-                                  value: TaskPriority.high, 
-                                  label: Text('مهم'), 
-                                  icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowUp01, color: Colors.red, size: 18)
-                                ),
-                              ],
-                              selected: {selectedPriority},
-                              onSelectionChanged: (newSelection) {
-                                setModalState(() => selectedPriority = newSelection.first);
-                              },
-                              style: SegmentedButton.styleFrom(
-                                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                                selectedBackgroundColor: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                                side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
-                                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                               ),
-                              showSelectedIcon: false,
                             ),
                           ),
                           const SizedBox(height: 20),
@@ -481,11 +611,16 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                                 hintText: 'افزودن تگ جدید...',
                                 hintStyle: const TextStyle(fontSize: 12),
                                 prefixIcon: Container(
-                                  margin: const EdgeInsetsDirectional.only(start: 14, end: 10),
+                                  margin: const EdgeInsetsDirectional.only(
+                                    start: 14,
+                                    end: 10,
+                                  ),
                                   child: HugeIcon(
-                                    icon: HugeIcons.strokeRoundedTag01, 
+                                    icon: HugeIcons.strokeRoundedTag01,
                                     size: 20,
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
                                   ),
                                 ),
                                 prefixIconConstraints: const BoxConstraints(
@@ -494,20 +629,33 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                                 ),
                                 suffixIcon: IconButton(
                                   icon: const HugeIcon(
-                                    icon: HugeIcons.strokeRoundedAddCircle, 
-                                    size: 20
+                                    icon: HugeIcons.strokeRoundedAddCircle,
+                                    size: 20,
                                   ),
                                   onPressed: () => addTag(tagController.text),
                                 ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(15),
-                                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                                  borderSide: BorderSide(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .outlineVariant
+                                        .withValues(alpha: 0.5),
+                                  ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(15),
-                                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                                  borderSide: BorderSide(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .outlineVariant
+                                        .withValues(alpha: 0.5),
+                                  ),
                                 ),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
                               ),
                               onSubmitted: (val) => addTag(val),
                             ),
@@ -517,41 +665,81 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                           if (tagController.text.isNotEmpty) ...[
                             Consumer(
                               builder: (context, ref, child) {
-                                final suggestions = ref.watch(tagSuggestionsProvider(tagController.text));
+                                final suggestions = ref.watch(
+                                  tagSuggestionsProvider(tagController.text),
+                                );
                                 final filteredSuggestions = suggestions
-                                    .where((s) => !StringUtils.containsTag(tags, s))
+                                    .where(
+                                      (s) => !StringUtils.containsTag(tags, s),
+                                    )
                                     .take(5)
                                     .toList();
-                                
-                                if (filteredSuggestions.isEmpty) return const SizedBox.shrink();
-                                
+
+                                if (filteredSuggestions.isEmpty) {
+                                  return const SizedBox.shrink();
+                                }
+
                                 return Padding(
-                                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                                  padding: const EdgeInsets.fromLTRB(
+                                    12,
+                                    12,
+                                    12,
+                                    0,
+                                  ),
                                   child: Center(
                                     child: Wrap(
                                       alignment: WrapAlignment.center,
                                       spacing: 8,
                                       runSpacing: 8,
-                                      children: filteredSuggestions.map((suggestion) => ActionChip(
-                                        label: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(suggestion, style: const TextStyle(fontSize: 11)),
-                                            const SizedBox(width: 4),
-                                            Icon(
-                                              Icons.add, 
-                                              size: 14, 
-                                              color: Theme.of(context).colorScheme.primary
+                                      children: filteredSuggestions
+                                          .map(
+                                            (suggestion) => ActionChip(
+                                              label: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    suggestion,
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Icon(
+                                                    Icons.add,
+                                                    size: 14,
+                                                    color: Theme.of(
+                                                      context,
+                                                    ).colorScheme.primary,
+                                                  ),
+                                                ],
+                                              ),
+                                              onPressed: () =>
+                                                  addTag(suggestion),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              backgroundColor: Theme.of(context)
+                                                  .colorScheme
+                                                  .primaryContainer
+                                                  .withValues(alpha: 0.3),
+                                              side: BorderSide(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary
+                                                    .withValues(alpha: 0.2),
+                                              ),
+                                              materialTapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 0,
+                                                  ),
                                             ),
-                                          ],
-                                        ),
-                                        onPressed: () => addTag(suggestion),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                        backgroundColor: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
-                                        side: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
-                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                                      )).toList(),
+                                          )
+                                          .toList(),
                                     ),
                                   ),
                                 );
@@ -563,37 +751,68 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                           if (tags.isNotEmpty) ...[
                             const SizedBox(height: 12),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
                               child: Center(
                                 child: Wrap(
                                   alignment: WrapAlignment.center,
                                   spacing: 8,
                                   runSpacing: 8,
-                                  children: tags.map((tag) => ActionChip(
-                                    label: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(tag, style: const TextStyle(fontSize: 11)),
-                                        const SizedBox(width: 4),
-                                        Icon(
-                                          Icons.close, 
-                                          size: 14, 
-                                          color: Theme.of(context).colorScheme.secondary
+                                  children: tags
+                                      .map(
+                                        (tag) => ActionChip(
+                                          label: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                tag,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Icon(
+                                                Icons.close,
+                                                size: 14,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.secondary,
+                                              ),
+                                            ],
+                                          ),
+                                          onPressed: () => setModalState(
+                                            () => tags.remove(tag),
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                          ),
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer
+                                              .withValues(alpha: 0.3),
+                                          side: BorderSide(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .secondary
+                                                .withValues(alpha: 0.2),
+                                          ),
+                                          materialTapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 0,
+                                          ),
                                         ),
-                                      ],
-                                    ),
-                                    onPressed: () => setModalState(() => tags.remove(tag)),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                    backgroundColor: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
-                                    side: BorderSide(color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2)),
-                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                                  )).toList(),
+                                      )
+                                      .toList(),
                                 ),
                               ),
                             ),
                           ],
-                            const SizedBox(height: 20),
+                          const SizedBox(height: 20),
 
                           const SizedBox(height: 20),
 
@@ -602,39 +821,68 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               OutlinedButton.icon(
-                                onPressed: () => _pickFiles(attachments, (newAtts) {
+                                onPressed: () => _pickFiles(attachments, (
+                                  newAtts,
+                                ) {
                                   setModalState(() => attachments = newAtts);
                                 }),
-                                icon: const HugeIcon(icon: HugeIcons.strokeRoundedAttachment01, size: 18),
+                                icon: const HugeIcon(
+                                  icon: HugeIcons.strokeRoundedAttachment01,
+                                  size: 18,
+                                ),
                                 label: const Text('پیوست فایل'),
                                 style: OutlinedButton.styleFrom(
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  side: BorderSide(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .outlineVariant
+                                        .withValues(alpha: 0.5),
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 12),
                               OutlinedButton.icon(
                                 onPressed: () async {
-                                  await _toggleRecording(audioPath, (path, newAtts) {
-                                    setModalState(() {
-                                      audioPath = path;
-                                      attachments = newAtts;
-                                    });
-                                  }, attachments);
-                                  setModalState(() {});
+                                  await _toggleRecording(
+                                    audioPath,
+                                    (path, newAtts) {
+                                      setModalState(() {
+                                        audioPath = path;
+                                        attachments = newAtts;
+                                      });
+                                    },
+                                    attachments,
+                                    () => setModalState(() {}),
+                                  );
                                 },
                                 icon: HugeIcon(
-                                  icon: _isRecording ? HugeIcons.strokeRoundedStop : HugeIcons.strokeRoundedMic01, 
+                                  icon: _isRecording
+                                      ? HugeIcons.strokeRoundedStop
+                                      : HugeIcons.strokeRoundedMic01,
                                   size: 18,
                                   color: _isRecording ? Colors.red : null,
                                 ),
-                                label: Text(_isRecording ? 'توقف ضبط' : 'ضبط صدا'),
+                                label: Text(
+                                  _isRecording ? 'توقف ضبط' : 'ضبط صدا',
+                                ),
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: _isRecording ? Colors.red : null,
-                                  side: _isRecording 
-                                      ? const BorderSide(color: Colors.red) 
-                                      : BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  foregroundColor: _isRecording
+                                      ? Colors.red
+                                      : null,
+                                  side: _isRecording
+                                      ? const BorderSide(color: Colors.red)
+                                      : BorderSide(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .outlineVariant
+                                              .withValues(alpha: 0.5),
+                                        ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
                               ),
                             ],
@@ -645,13 +893,16 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                               child: Column(
                                 children: attachments.map((att) {
                                   final name = att.split('/').last;
-                                  final isVoice = name.startsWith('voice_') || att.endsWith('.m4a');
-                                  final isImage = name.toLowerCase().endsWith('.jpg') || 
-                                                 name.toLowerCase().endsWith('.jpeg') || 
-                                                 name.toLowerCase().endsWith('.png') || 
-                                                 name.toLowerCase().endsWith('.gif') || 
-                                                 name.toLowerCase().endsWith('.webp');
-                                  
+                                  final isVoice =
+                                      name.startsWith('voice_') ||
+                                      att.endsWith('.m4a');
+                                  final isImage =
+                                      name.toLowerCase().endsWith('.jpg') ||
+                                      name.toLowerCase().endsWith('.jpeg') ||
+                                      name.toLowerCase().endsWith('.png') ||
+                                      name.toLowerCase().endsWith('.gif') ||
+                                      name.toLowerCase().endsWith('.webp');
+
                                   if (isVoice) {
                                     return Padding(
                                       padding: const EdgeInsets.only(bottom: 8),
@@ -672,29 +923,49 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                                         borderRadius: BorderRadius.circular(12),
                                         child: Container(
                                           height: 48,
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 8,
+                                          ),
                                           decoration: BoxDecoration(
-                                            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                                            borderRadius: BorderRadius.circular(12),
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .surfaceContainerHighest
+                                                .withValues(alpha: 0.3),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
                                             border: Border.all(
-                                              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .outlineVariant
+                                                  .withValues(alpha: 0.3),
                                             ),
                                           ),
                                           child: Row(
                                             children: [
                                               HugeIcon(
-                                                icon: isImage 
-                                                    ? HugeIcons.strokeRoundedImage01 
-                                                    : HugeIcons.strokeRoundedFile01, 
+                                                icon: isImage
+                                                    ? HugeIcons
+                                                          .strokeRoundedImage01
+                                                    : HugeIcons
+                                                          .strokeRoundedFile01,
                                                 size: 18,
-                                                color: Theme.of(context).colorScheme.primary,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.primary,
                                               ),
                                               const SizedBox(width: 12),
                                               Expanded(
                                                 child: Text(
-                                                  name.length > 30 ? '${name.substring(0, 30)}...' : name,
-                                                  style: const TextStyle(fontSize: 12),
-                                                  overflow: TextOverflow.ellipsis,
+                                                  name.length > 30
+                                                      ? '${name.substring(0, 30)}...'
+                                                      : name,
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
                                               ),
                                               GestureDetector(
@@ -704,9 +975,12 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                                                   });
                                                 },
                                                 child: HugeIcon(
-                                                  icon: HugeIcons.strokeRoundedCancel01,
+                                                  icon: HugeIcons
+                                                      .strokeRoundedCancel01,
                                                   size: 18,
-                                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
                                                 ),
                                               ),
                                             ],
@@ -759,20 +1033,32 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                             position: goal?.position ?? 0,
                           );
                           if (isEditing) {
-                            ref.read(goalsProvider.notifier).updateGoal(newGoal);
+                            ref
+                                .read(goalsProvider.notifier)
+                                .updateGoal(newGoal);
                           } else {
                             ref.read(goalsProvider.notifier).addGoal(newGoal);
                           }
                           Navigator.pop(context);
                         },
                         icon: HugeIcon(
-                          icon: isEditing ? HugeIcons.strokeRoundedCheckmarkSquare04 : HugeIcons.strokeRoundedAddSquare,
+                          icon: isEditing
+                              ? HugeIcons.strokeRoundedCheckmarkSquare04
+                              : HugeIcons.strokeRoundedAddSquare,
                           size: 20,
                           color: Theme.of(context).colorScheme.onPrimary,
                         ),
-                        label: Text(isEditing ? 'بروزرسانی هدف' : 'ثبت هدف', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        label: Text(
+                          isEditing ? 'بروزرسانی هدف' : 'ثبت هدف',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         style: FilledButton.styleFrom(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
                         ),
                       ),
                     ),
@@ -818,7 +1104,10 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         ),
         actions: [
           IconButton(
-            icon: HugeIcon(icon: HugeIcons.strokeRoundedAdd01, color: theme.colorScheme.primary),
+            icon: HugeIcon(
+              icon: HugeIcons.strokeRoundedAdd01,
+              color: theme.colorScheme.primary,
+            ),
             onPressed: () => _showGoalDialog(),
           ),
         ],
@@ -828,151 +1117,205 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  HugeIcon(icon: HugeIcons.strokeRoundedTarget02, size: 64, color: theme.colorScheme.primary.withValues(alpha: 0.2)),
+                  HugeIcon(
+                    icon: HugeIcons.strokeRoundedTarget02,
+                    size: 64,
+                    color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                  ),
                   const SizedBox(height: 16),
-                  const Text('هنوز هدفی تعریف نکرده‌اید', style: TextStyle(color: Colors.grey)),
+                  const Text(
+                    'هنوز هدفی تعریف نکرده‌اید',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ],
               ),
             )
           : ReorderableListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: goals.length,
-            onReorder: (oldIndex, newIndex) {
-              if (newIndex > oldIndex) newIndex -= 1;
-              final items = List<Goal>.from(goals);
-              final item = items.removeAt(oldIndex);
-              items.insert(newIndex, item);
-              ref.read(goalsProvider.notifier).reorderGoals(items);
-            },
-            itemBuilder: (context, index) {
-              final goal = goals[index];
-              final progress = ref.watch(goalProgressProvider(goal.id!));
+              padding: const EdgeInsets.all(16),
+              itemCount: goals.length,
+              onReorder: (oldIndex, newIndex) {
+                if (newIndex > oldIndex) newIndex -= 1;
+                final items = List<Goal>.from(goals);
+                final item = items.removeAt(oldIndex);
+                items.insert(newIndex, item);
+                ref.read(goalsProvider.notifier).reorderGoals(items);
+              },
+              itemBuilder: (context, index) {
+                final goal = goals[index];
+                final progress = ref.watch(goalProgressProvider(goal.id!));
 
-              return Container(
-                key: ValueKey(goal.id),
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainer,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
+                return Container(
+                  key: ValueKey(goal.id),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainer,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.5,
+                      ),
                     ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      leading: Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                            width: 1.5,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        leading: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.1,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.3,
+                              ),
+                              width: 1.5,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            goal.emoji,
+                            style: const TextStyle(fontSize: 24),
                           ),
                         ),
-                        alignment: Alignment.center,
-                        child: Text(goal.emoji, style: const TextStyle(fontSize: 24)),
-                      ),
-                      title: Text(goal.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      subtitle: (goal.description != null && goal.description!.isNotEmpty)
-                          ? Text(
-                              goal.description!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
-                            )
-                          : null,
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: HugeIcon(icon: HugeIcons.strokeRoundedEdit02, size: 20, color: theme.colorScheme.primary),
-                            onPressed: () => _showGoalDialog(goal),
+                        title: Text(
+                          goal.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
-                          IconButton(
-                            icon: const HugeIcon(icon: HugeIcons.strokeRoundedDelete02, size: 20, color: Colors.red),
-                            onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('حذف هدف'),
-                                  content: Text('آیا از حذف "${goal.title}" مطمئن هستید؟'),
-                                  actions: [
-                                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('خیر')),
-                                    FilledButton(
-                                      style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                                      onPressed: () {
-                                        ref.read(goalsProvider.notifier).deleteGoal(goal.id!);
-                                        Navigator.pop(context);
-                                      },
-                                      child: const Text('بله'),
-                                    ),
-                                  ],
+                        ),
+                        subtitle:
+                            (goal.description != null &&
+                                goal.description!.isNotEmpty)
+                            ? Text(
+                                goal.description!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: theme.colorScheme.onSurfaceVariant,
                                 ),
-                              );
-                            },
-                          ),
-                          const SizedBox(width: 8),
-                          ReorderableDragStartListener(
-                            index: index,
-                            child: HugeIcon(
-                              icon: HugeIcons.strokeRoundedMove,
-                              color: theme.colorScheme.onSurfaceVariant,
-                              size: 20,
+                              )
+                            : null,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: HugeIcon(
+                                icon: HugeIcons.strokeRoundedEdit02,
+                                size: 20,
+                                color: theme.colorScheme.primary,
+                              ),
+                              onPressed: () => _showGoalDialog(goal),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Progress info
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'پیشرفت',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onSurfaceVariant,
+                            IconButton(
+                              icon: const HugeIcon(
+                                icon: HugeIcons.strokeRoundedDelete02,
+                                size: 20,
+                                color: Colors.red,
+                              ),
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('حذف هدف'),
+                                    content: Text(
+                                      'آیا از حذف "${goal.title}" مطمئن هستید؟',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('خیر'),
+                                      ),
+                                      FilledButton(
+                                        style: FilledButton.styleFrom(
+                                          backgroundColor: Colors.red,
+                                        ),
+                                        onPressed: () {
+                                          ref
+                                              .read(goalsProvider.notifier)
+                                              .deleteGoal(goal.id!);
+                                          Navigator.pop(context);
+                                        },
+                                        child: const Text('بله'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
                             ),
-                          ),
-                          Text(
-                            '${progress.toInt()}%',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.primary,
+                            const SizedBox(width: 8),
+                            ReorderableDragStartListener(
+                              index: index,
+                              child: HugeIcon(
+                                icon: HugeIcons.strokeRoundedMove,
+                                color: theme.colorScheme.onSurfaceVariant,
+                                size: 20,
+                              ),
                             ),
+                          ],
+                        ),
+                      ),
+                      // Progress info
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'پیشرفت',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            Text(
+                              '${progress.toInt()}%',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      // Full width bar at bottom
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          bottom: Radius.circular(16),
+                        ),
+                        child: LinearProgressIndicator(
+                          value: progress / 100,
+                          backgroundColor:
+                              theme.colorScheme.surfaceContainerHighest,
+                          minHeight: 10,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            theme.colorScheme.primary,
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    // Full width bar at bottom
-                    ClipRRect(
-                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
-                      child: LinearProgressIndicator(
-                        value: progress / 100,
-                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                        minHeight: 10,
-                        valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
+                    ],
+                  ),
+                );
+              },
+            ),
     );
   }
 }
