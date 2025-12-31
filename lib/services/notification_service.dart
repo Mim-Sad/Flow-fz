@@ -74,25 +74,27 @@ class NotificationService {
 
   Future<void> scheduleTaskReminder(Task task) async {
     if (task.reminderDateTime == null || task.id == null) return;
+    debugPrint('🔔 Scheduling reminder for task: ${task.title} (ID: ${task.id})');
 
     // First request permissions
     final hasPermission = await requestPermissions();
     if (!hasPermission) {
-      debugPrint('Notification permissions not granted. Cannot schedule reminder.');
+      debugPrint('❌ Notification permissions not granted. Cannot schedule reminder.');
       return;
     }
 
     DateTime reminderTime = task.reminderDateTime!;
     final now = DateTime.now();
 
-    // If it's a recurring task and the reminder is in the past,
-    // find the next occurrence's reminder time.
+    // If it's a recurring task, schedule multiple future reminders
     if (task.recurrence != null && task.recurrence!.type != RecurrenceType.none) {
+      debugPrint('🔄 Recurring task detected. Scheduling multiple reminders...');
       // Start searching from today
       DateTime searchDate = DateTime(now.year, now.month, now.day);
       
-      // We look ahead up to 366 days to find the next occurrence
-      for (int i = 0; i <= 366; i++) {
+      int scheduledCount = 0;
+      // Schedule up to 7 future occurrences
+      for (int i = 0; i <= 366 && scheduledCount < 7; i++) {
         final candidateDate = searchDate.add(Duration(days: i));
         if (task.isActiveOnDate(candidateDate)) {
           final candidateReminder = DateTime(
@@ -104,18 +106,51 @@ class NotificationService {
           );
           
           if (candidateReminder.isAfter(now)) {
-            reminderTime = candidateReminder;
-            break;
+            final notificationId = task.id! * 100 + scheduledCount;
+            final scheduledDate = tz.TZDateTime.from(candidateReminder, tz.local);
+            
+            debugPrint('📅 Scheduling occurrence $scheduledCount at $candidateReminder (ID: $notificationId)');
+            
+            await _notificationsPlugin.zonedSchedule(
+              notificationId,
+              task.title,
+              task.description ?? 'یادآور تسک',
+              scheduledDate,
+              const NotificationDetails(
+                android: AndroidNotificationDetails(
+                  'task_reminders',
+                  'یادآور تسک‌ها',
+                  channelDescription: 'اعلان‌های مربوط به یادآور تسک‌ها',
+                  importance: Importance.max,
+                  priority: Priority.high,
+                  showWhen: true,
+                ),
+                iOS: DarwinNotificationDetails(
+                  presentAlert: true,
+                  presentBadge: true,
+                  presentSound: true,
+                ),
+              ),
+              androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+                  payload: task.id.toString(),
+                );
+            scheduledCount++;
           }
         }
       }
+      debugPrint('✅ Scheduled $scheduledCount reminders for recurring task.');
+      return;
     }
 
+    // Non-recurring task logic
     final scheduledDate = tz.TZDateTime.from(reminderTime, tz.local);
     
-    // If the reminder time is still in the past (e.g., non-recurring task), don't schedule it
-    if (scheduledDate.isBefore(tz.TZDateTime.now(tz.local))) return;
+    if (scheduledDate.isBefore(tz.TZDateTime.now(tz.local))) {
+      debugPrint('⚠️ Reminder time is in the past: $reminderTime. Skipping.');
+      return;
+    }
 
+    debugPrint('📅 Scheduling single reminder at $reminderTime (ID: ${task.id})');
     await _notificationsPlugin.zonedSchedule(
       task.id!,
       task.title,
@@ -128,6 +163,7 @@ class NotificationService {
           channelDescription: 'اعلان‌های مربوط به یادآور تسک‌ها',
           importance: Importance.max,
           priority: Priority.high,
+          showWhen: true,
         ),
         iOS: DarwinNotificationDetails(
           presentAlert: true,
@@ -138,10 +174,17 @@ class NotificationService {
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: task.id.toString(),
     );
+    debugPrint('✅ Single reminder scheduled successfully.');
   }
 
   Future<void> cancelTaskReminder(int taskId) async {
+    debugPrint('🔕 Cancelling reminders for task ID: $taskId');
     await _notificationsPlugin.cancel(taskId);
+    // Also cancel recurring occurrences
+    for (int i = 0; i < 7; i++) {
+      await _notificationsPlugin.cancel(taskId * 100 + i);
+    }
+    debugPrint('✅ All reminders for task ID $taskId cancelled.');
   }
 
   Future<void> cancelAllNotifications() async {

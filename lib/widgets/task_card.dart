@@ -208,6 +208,11 @@ class TaskCard extends ConsumerWidget {
 
     // Use task.dueDate for the time, as it's modified in activeTasksProvider to the occurrence date
     final timeStr = StringUtils.toPersianDigit(intl.DateFormat('HH:mm').format(task.dueDate));
+    
+    // Safety check for 00:00 - if it's 00:00 and metadata says hasTime is true, 
+    // it might be a parsing issue or default value. 
+    // But if hasTime is false, this function wouldn't be called.
+    
     String label = timeStr;
     if (task.endTime != null) {
       final endTimeStr = StringUtils.toPersianDigit(intl.DateFormat('HH:mm').format(task.endTime!));

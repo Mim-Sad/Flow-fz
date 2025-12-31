@@ -979,28 +979,22 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                       color: Colors.blue,
                                     ),
                                   ),
-                                  title: const Text(
-                                    'یادآور',
-                                    style: TextStyle(
+                                  title: Text(
+                                    _getReminderLabel(),
+                                    style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                   subtitle: Text(
-                                    _hasReminder && _reminderDateTime != null
-                                        ? _toPersianDigit(
-                                            intl.DateFormat(
-                                              'HH:mm',
-                                            ).format(_reminderDateTime!),
-                                          )
-                                        : 'بدون یادآور',
+                                    _hasReminder ? 'فعال' : 'بدون یادآور',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: _hasReminder
-                                          ? Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant
-                                          : Colors.grey,
+                                          ? Colors.blue
+                                          : Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
                                     ),
                                   ),
                                   trailing: Row(
@@ -2588,10 +2582,10 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                   ),
                 ],
 
-                // Today/Tomorrow Options
+                // Today Options (Morning, Noon, Night)
                 _buildReminderOption(
-                  'امروز ساعت ۰۹:۰۰',
-                  HugeIcons.strokeRoundedCalendar03,
+                  'امروز صبح (۰۹:۰۰)',
+                  HugeIcons.strokeRoundedSun03,
                   DateTime(
                     DateTime.now().year,
                     DateTime.now().month,
@@ -2602,15 +2596,27 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                   setSheetState,
                 ),
                 _buildReminderOption(
-                  'فردا ساعت ۰۹:۰۰',
-                  HugeIcons.strokeRoundedCalendar01,
+                  'امروز ظهر (۱۳:۰۰)',
+                  HugeIcons.strokeRoundedSun01,
                   DateTime(
                     DateTime.now().year,
                     DateTime.now().month,
                     DateTime.now().day,
-                    9,
+                    13,
                     0,
-                  ).add(const Duration(days: 1)),
+                  ),
+                  setSheetState,
+                ),
+                _buildReminderOption(
+                  'امروز شب (۲۱:۰۰)',
+                  HugeIcons.strokeRoundedMoon02,
+                  DateTime(
+                    DateTime.now().year,
+                    DateTime.now().month,
+                    DateTime.now().day,
+                    21,
+                    0,
+                  ),
                   setSheetState,
                 ),
 
@@ -2707,6 +2713,35 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
         },
       ),
     );
+  }
+
+  String _getReminderLabel() {
+    if (!_hasReminder || _reminderDateTime == null) return 'یادآور';
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final reminderDate = DateTime(
+      _reminderDateTime!.year,
+      _reminderDateTime!.month,
+      _reminderDateTime!.day,
+    );
+
+    final timeStr = StringUtils.toPersianDigit(
+      intl.DateFormat('HH:mm').format(_reminderDateTime!),
+    );
+
+    if (reminderDate == today) {
+      return 'یادآور: امروز ساعت $timeStr';
+    } else if (reminderDate == tomorrow) {
+      return 'یادآور: فردا ساعت $timeStr';
+    } else {
+      final jalali = Jalali.fromDateTime(_reminderDateTime!);
+      final dateStr = StringUtils.toPersianDigit(
+        '${jalali.day} ${jalali.formatter.mN}',
+      );
+      return 'یادآور: $dateStr ساعت $timeStr';
+    }
   }
 
   Widget _buildReminderOption(

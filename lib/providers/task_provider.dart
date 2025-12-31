@@ -187,7 +187,16 @@ final activeTasksProvider = Provider.family<List<Task>, DateTime>((ref, date) {
     // Only include task if it's active on this date
     // Status history entries are only valid if the task is active on that date
     if (task.isActiveOnDate(dateOnly)) {
-      activeTasks.add(task.copyWith(dueDate: dateOnly));
+      // Preserve time from original task's dueDate when copying for a specific date
+      final occurrenceDate = DateTime(
+        dateOnly.year,
+        dateOnly.month,
+        dateOnly.day,
+        task.dueDate.hour,
+        task.dueDate.minute,
+        task.dueDate.second,
+      );
+      activeTasks.add(task.copyWith(dueDate: occurrenceDate));
     }
   }
   
@@ -216,7 +225,16 @@ final historicalActiveTasksProvider = Provider.family<List<Task>, DateTime>((ref
           // If multiple versions are active on the same day, pick the latest one (highest ID)
           final existing = activeVersions[taskId];
           if (existing == null || (task.id ?? 0) > (existing.id ?? 0)) {
-            activeVersions[taskId] = task.copyWith(dueDate: dateOnly);
+            // Preserve time from original task's dueDate when copying for a specific date
+            final occurrenceDate = DateTime(
+              dateOnly.year,
+              dateOnly.month,
+              dateOnly.day,
+              task.dueDate.hour,
+              task.dueDate.minute,
+              task.dueDate.second,
+            );
+            activeVersions[taskId] = task.copyWith(dueDate: occurrenceDate);
           }
         }
       }
@@ -254,7 +272,16 @@ final tasksForRangeProvider = Provider.family<List<Task>, DateTimeRange>((ref, r
           if (task.isActiveOnDate(dateOnly)) {
             final existing = activeVersions[taskId];
             if (existing == null || (task.id ?? 0) > (existing.id ?? 0)) {
-              activeVersions[taskId] = task.copyWith(dueDate: dateOnly);
+              // Preserve time from original task's dueDate when copying for a specific date
+              final occurrenceDate = DateTime(
+                dateOnly.year,
+                dateOnly.month,
+                dateOnly.day,
+                task.dueDate.hour,
+                task.dueDate.minute,
+                task.dueDate.second,
+              );
+              activeVersions[taskId] = task.copyWith(dueDate: occurrenceDate);
             }
           }
         }

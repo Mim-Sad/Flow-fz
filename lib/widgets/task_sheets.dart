@@ -17,6 +17,7 @@ import '../providers/goal_provider.dart';
 import '../screens/add_task_screen.dart';
 import 'postpone_dialog.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart' as intl;
 import '../utils/route_builder.dart';
 import 'audio_waveform_player.dart';
 
@@ -681,7 +682,7 @@ class TaskOptionsSheet extends ConsumerWidget {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: _buildParenthesesStyledText(
-                                  "یادآور: ${_toPersianDigit(_formatTime(task.reminderDateTime!))}",
+                                  _getReminderText(task),
                                   const TextStyle(
                                     fontSize: 13,
                                     color: Colors.blue,
@@ -1334,6 +1335,28 @@ class TaskOptionsSheet extends ConsumerWidget {
         return 'جمعه';
       default:
         return '';
+    }
+  }
+
+  String _getReminderText(Task task) {
+    if (task.reminderDateTime == null) return "";
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final reminder = task.reminderDateTime!;
+    final reminderDate = DateTime(reminder.year, reminder.month, reminder.day);
+
+    final timeStr = _toPersianDigit(intl.DateFormat('HH:mm').format(reminder));
+
+    if (reminderDate == today) {
+      return "یادآور: امروز ساعت $timeStr";
+    } else if (reminderDate == tomorrow) {
+      return "یادآور: فردا ساعت $timeStr";
+    } else {
+      final jalali = Jalali.fromDateTime(reminder);
+      final dateStr = _toPersianDigit('${jalali.day} ${jalali.formatter.mN}');
+      return "یادآور: $dateStr ساعت $timeStr";
     }
   }
 
