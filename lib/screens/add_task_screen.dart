@@ -885,9 +885,11 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                     children: [
                                       GestureDetector(
                                         onTap: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(builder: (context) => const GoalsScreen()),
+                                          Navigator.of(context, rootNavigator: true).push(
+                                            MaterialPageRoute(
+                                              builder: (context) => const GoalsScreen(),
+                                              fullscreenDialog: true,
+                                            ),
                                           );
                                         },
                                         child: Container(

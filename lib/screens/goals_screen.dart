@@ -212,53 +212,55 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                   ),
                   const SizedBox(height: 8),
 
-                  Flexible(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Header
-                          Row(
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(24, 12, 24, 100),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.primary.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: HugeIcon(
-                                  icon: HugeIcons.strokeRoundedTarget02,
-                                  size: 20,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
+                              // Header
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: HugeIcon(
+                                      icon: HugeIcons.strokeRoundedTarget02,
+                                      size: 20,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Text(
+                                    isEditing ? 'ویرایش هدف' : 'هدف جدید',
+                                    style: Theme.of(context).textTheme.titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                  const Spacer(),
+                                  IconButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    icon: const HugeIcon(
+                                      icon: HugeIcons.strokeRoundedCancel01,
+                                      size: 22,
+                                      color: Colors.grey,
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    style: const ButtonStyle(
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 14),
-                              Text(
-                                isEditing ? 'ویرایش هدف' : 'هدف جدید',
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                              const Spacer(),
-                              IconButton(
-                                onPressed: () => Navigator.pop(context),
-                                icon: const HugeIcon(
-                                  icon: HugeIcons.strokeRoundedCancel01,
-                                  size: 22,
-                                  color: Colors.grey,
-                                ),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                style: const ButtonStyle(
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                              ),
-                            ],
-                          ),
                           const SizedBox(height: 24),
 
                           // Emoji & Title
@@ -996,78 +998,92 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                         ],
                       ),
                     ),
-                  ),
-
-                  // Action Button
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, -5),
-                        ),
-                      ],
-                    ),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: FilledButton.icon(
-                        onPressed: () {
-                          if (titleController.text.trim().isEmpty) return;
-                          final newGoal = Goal(
-                            id: goal?.id,
-                            title: titleController.text.trim(),
-                            description: descController.text.trim(),
-                            emoji: selectedEmoji,
-                            categoryIds: selectedCategoryIds,
-                            deadline: selectedDeadline,
-                            priority: selectedPriority,
-                            tags: tags,
-                            attachments: attachments,
-                            audioPath: audioPath,
-                            createdAt: goal?.createdAt ?? DateTime.now(),
-                            updatedAt: DateTime.now(),
-                            position: goal?.position ?? 0,
-                          );
-                          if (isEditing) {
-                            ref
-                                .read(goalsProvider.notifier)
-                                .updateGoal(newGoal);
-                          } else {
-                            ref.read(goalsProvider.notifier).addGoal(newGoal);
-                          }
-                          Navigator.pop(context);
-                        },
-                        icon: HugeIcon(
-                          icon: isEditing
-                              ? HugeIcons.strokeRoundedCheckmarkSquare04
-                              : HugeIcons.strokeRoundedAddSquare,
-                          size: 20,
-                          color: Theme.of(context).colorScheme.onPrimary,
-                        ),
-                        label: Text(
-                          isEditing ? 'بروزرسانی هدف' : 'ثبت هدف',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                    // Action Button (Sticky bottom with fade)
+                    Positioned(
+                      bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                                Theme.of(context).colorScheme.surface,
+                                Theme.of(context)
+                                    .colorScheme
+                                    .surface
+                                    .withValues(alpha: 0.8),
+                                Theme.of(context)
+                                    .colorScheme
+                                    .surface
+                                    .withValues(alpha: 0),
+                              ],
+                              stops: const [0, 0.6, 1.0],
+                            ),
                           ),
-                        ),
-                        style: FilledButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: FilledButton.icon(
+                              onPressed: () {
+                                if (titleController.text.trim().isEmpty) return;
+                                final newGoal = Goal(
+                                  id: goal?.id,
+                                  title: titleController.text.trim(),
+                                  description: descController.text.trim(),
+                                  emoji: selectedEmoji,
+                                  categoryIds: selectedCategoryIds,
+                                  deadline: selectedDeadline,
+                                  priority: selectedPriority,
+                                  tags: tags,
+                                  attachments: attachments,
+                                  audioPath: audioPath,
+                                  createdAt: goal?.createdAt ?? DateTime.now(),
+                                  updatedAt: DateTime.now(),
+                                  position: goal?.position ?? 0,
+                                );
+                                if (isEditing) {
+                                  ref
+                                      .read(goalsProvider.notifier)
+                                      .updateGoal(newGoal);
+                                } else {
+                                  ref.read(goalsProvider.notifier).addGoal(newGoal);
+                                }
+                                Navigator.pop(context);
+                              },
+                              icon: HugeIcon(
+                                icon: isEditing
+                                    ? HugeIcons.strokeRoundedTarget03
+                                    : HugeIcons.strokeRoundedTarget03,
+                                size: 20,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
+                              label: Text(
+                                isEditing ? 'بروزرسانی هدف' : 'ثبت هدف',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              style: FilledButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          );
-        },
+          ),
+        );
+      },
       ),
     ).then((_) => titleController.removeListener(onTitleChanged));
   }
@@ -1095,6 +1111,10 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         backgroundColor: navigationBarColor,
         surfaceTintColor: Colors.transparent,
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: Text(
           'مدیریت اهداف',
           style: theme.textTheme.titleLarge?.copyWith(
