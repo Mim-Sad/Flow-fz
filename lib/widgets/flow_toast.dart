@@ -151,14 +151,7 @@ class _FlowToastWidget extends StatelessWidget {
                       textDirection: TextDirection.rtl,
                     )
                         .animate()
-                        .fadeIn(delay: 200.ms, duration: 400.ms)
-                        .slideY(
-                          begin: 0.2,
-                          end: 0,
-                          delay: 200.ms,
-                          duration: 400.ms,
-                          curve: Curves.easeOutCubic,
-                        ),
+                        .fadeIn(delay: 200.ms, duration: 400.ms),
                   ),
                   const SizedBox(width: 8),
                   IconButton(
