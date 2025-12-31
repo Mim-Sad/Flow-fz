@@ -44,7 +44,8 @@ class TaskCard extends ConsumerWidget {
     }
 
     final hasCapsules = task.priority != TaskPriority.medium || 
-                        task.categories.isNotEmpty;
+                        task.categories.isNotEmpty ||
+                        task.goalIds.isNotEmpty;
 
     return Card(
       elevation: 0,

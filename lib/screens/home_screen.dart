@@ -630,6 +630,7 @@ class TaskListTile extends ConsumerWidget {
                     ),
                     if (task.priority != TaskPriority.medium ||
                         task.categories.isNotEmpty ||
+                        task.goalIds.isNotEmpty ||
                         (task.recurrence != null &&
                             task.recurrence!.type != RecurrenceType.none)) ...[
                       const SizedBox(height: 4),
@@ -637,40 +638,7 @@ class TaskListTile extends ConsumerWidget {
                         height: 24,
                         child: _AutoScrollCapsules(
                           children: [
-                            _buildPriorityCapsule(context),
-                            if (task.priority != TaskPriority.medium &&
-                                (task.categories.isNotEmpty || task.goalIds.isNotEmpty))
-                              const SizedBox(width: 6),
-                            _buildCategoryCapsules(context, ref),
-                            if (task.categories.isNotEmpty && task.goalIds.isNotEmpty)
-                              const SizedBox(width: 6),
-                            _buildGoalCapsules(context, ref, task),
-                            if (task.recurrence != null &&
-                                task.recurrence!.type !=
-                                    RecurrenceType.none) ...[
-                              if (task.priority != TaskPriority.medium ||
-                                  task.categories.isNotEmpty ||
-                                  task.goalIds.isNotEmpty)
-                                const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.primary.withValues(alpha: 0.1),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Theme.of(context).colorScheme.primary
-                                        .withValues(alpha: 0.2),
-                                  ),
-                                ),
-                                child: HugeIcon(
-                                  icon: HugeIcons.strokeRoundedRepeat,
-                                  size: 12,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                            ],
+                            ..._buildCapsules(context, ref),
                           ],
                         ),
                       ),
@@ -849,119 +817,168 @@ class TaskListTile extends ConsumerWidget {
     return result;
   }
 
-  Widget _buildCategoryCapsules(BuildContext context, WidgetRef ref) {
-    if (task.categories.isEmpty) return const SizedBox.shrink();
+  List<Widget> _buildCapsules(BuildContext context, WidgetRef ref) {
+    final List<Widget> capsules = [];
+
+    // 1. Priority
+    capsules.add(_buildPriorityCapsule(context));
+
+    // 2. Categories
+    capsules.addAll(_buildCategoryCapsuleList(context, ref));
+
+    // 3. Goals
+    capsules.addAll(_buildGoalCapsuleList(context, ref, task));
+
+    // 4. Recurrence
+    if (task.recurrence != null &&
+        task.recurrence!.type != RecurrenceType.none) {
+      capsules.add(
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+            ),
+          ),
+          child: HugeIcon(
+            icon: HugeIcons.strokeRoundedRepeat,
+            size: 12,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+      );
+    }
+
+    // Filter out empty widgets and join with spacing
+    final visibleCapsules = capsules.where((w) {
+      if (w is SizedBox) {
+        return w.child != null || (w.width != null && w.width! > 0);
+      }
+      return true;
+    }).toList();
+
+    final List<Widget> spacedCapsules = [];
+    for (int i = 0; i < visibleCapsules.length; i++) {
+      spacedCapsules.add(visibleCapsules[i]);
+      if (i < visibleCapsules.length - 1) {
+        spacedCapsules.add(const SizedBox(width: 6));
+      }
+    }
+
+    return spacedCapsules;
+  }
+
+  List<Widget> _buildCategoryCapsuleList(BuildContext context, WidgetRef ref) {
+    if (task.categories.isEmpty) return [];
 
     final categories = task.categories;
-
     final allCategories =
         ref.watch(categoryProvider).valueOrNull ?? defaultCategories;
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: categories.asMap().entries.map((entry) {
-        final index = entry.key;
-        final catId = entry.value;
-        final catData = getCategoryById(catId, allCategories);
-        final isDeleted = catData.isDeleted;
-        final displayColor = isDeleted ? Colors.grey : catData.color;
+    return categories.map((catId) {
+      final catData = getCategoryById(catId, allCategories);
+      final isDeleted = catData.isDeleted;
+      final displayColor = isDeleted ? Colors.grey : catData.color;
 
-        return InkWell(
-          onTap: () {
-            context.push(
-              SearchRouteBuilder.buildSearchUrl(
-                categories: [catId],
-                specificDate: task.dueDate,
-              ),
-            );
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            margin: EdgeInsetsDirectional.only(start: index == 0 ? 0 : 6),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: displayColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: displayColor.withValues(alpha: 0.3)),
+      return InkWell(
+        onTap: () {
+          context.push(
+            SearchRouteBuilder.buildSearchUrl(
+              categories: [catId],
+              specificDate: task.dueDate,
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Opacity(
-                  opacity: isDeleted ? 0.5 : 1.0,
-                  child: LottieCategoryIcon(
-                    assetPath: catData.emoji,
-                    width: 14,
-                    height: 14,
-                    repeat: false,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  _toPersianDigit(catData.label),
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: displayColor,
-                    decoration: isDeleted ? TextDecoration.lineThrough : null,
-                    decorationColor: Colors.grey,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildGoalCapsules(BuildContext context, WidgetRef ref, Task task) {
-    if (task.goalIds.isEmpty) return const SizedBox.shrink();
-
-    final goalIds = task.goalIds;
-    final allGoals = ref.watch(goalsProvider);
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: goalIds.asMap().entries.map((entry) {
-        final index = entry.key;
-        final goalId = entry.value;
-        final goalData = allGoals.cast<Goal?>().firstWhere(
-          (g) => g?.id == goalId,
-          orElse: () => null,
-        );
-        
-        if (goalData == null) return const SizedBox.shrink();
-
-        return Container(
-          margin: EdgeInsetsDirectional.only(start: index == 0 ? 0 : 6),
+          );
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+            color: displayColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
+            border: Border.all(color: displayColor.withValues(alpha: 0.3)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                goalData.emoji,
-                style: const TextStyle(fontSize: 10),
+              Opacity(
+                opacity: isDeleted ? 0.5 : 1.0,
+                child: LottieCategoryIcon(
+                  assetPath: catData.emoji,
+                  width: 14,
+                  height: 14,
+                  repeat: false,
+                ),
               ),
               const SizedBox(width: 4),
               Text(
-                goalData.title,
+                _toPersianDigit(catData.label),
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: displayColor,
+                  decoration: isDeleted ? TextDecoration.lineThrough : null,
+                  decorationColor: Colors.grey,
                 ),
               ),
             ],
           ),
+        ),
+      );
+    }).toList();
+  }
+
+  List<Widget> _buildGoalCapsuleList(
+    BuildContext context,
+    WidgetRef ref,
+    Task task,
+  ) {
+    if (task.goalIds.isEmpty) return [];
+
+    final goalIds = task.goalIds;
+    final allGoals = ref.watch(goalsProvider);
+
+    return goalIds.map((goalId) {
+      // Find the goal safely
+      Goal? goalData;
+      try {
+        goalData = allGoals.firstWhere(
+          (g) => g.id == goalId,
         );
-      }).toList(),
-    );
+      } catch (_) {
+        goalData = null;
+      }
+
+      if (goalData == null) return const SizedBox.shrink();
+
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(goalData.emoji, style: const TextStyle(fontSize: 10)),
+            const SizedBox(width: 4),
+            Text(
+              goalData.title,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
   }
 
   // Removed _showStatusPicker as it is replaced by direct call in _getStatusIconForTile
