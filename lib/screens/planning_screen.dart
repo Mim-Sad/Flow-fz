@@ -76,7 +76,14 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   }
 
   Future<void> _deleteSelected(List<Task> allTasks) async {
-    if (_selectedTaskIds.isEmpty) return;
+    if (_selectedTaskIds.isEmpty) {
+      FlowToast.show(
+        context,
+        message: 'هیچ تسکی انتخاب نشده است',
+        type: FlowToastType.warning,
+      );
+      return;
+    }
 
     final shouldDelete = await showDialog<bool>(
       context: context,
@@ -117,7 +124,14 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   }
 
   void _changeStatusSelected() async {
-    if (_selectedTaskIds.isEmpty) return;
+    if (_selectedTaskIds.isEmpty) {
+      FlowToast.show(
+        context,
+        message: 'هیچ تسکی انتخاب نشده است',
+        type: FlowToastType.warning,
+      );
+      return;
+    }
 
     await showModalBottomSheet(
       context: context,

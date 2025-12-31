@@ -1626,7 +1626,14 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   }
 
   Future<void> _saveTask() async {
-    if (_titleController.text.isEmpty) return;
+    if (_titleController.text.trim().isEmpty) {
+      FlowToast.show(
+        context,
+        message: 'لطفاً عنوان تسک را وارد کنید',
+        type: FlowToastType.warning,
+      );
+      return;
+    }
     
     try {
       final metadata = Map<String, dynamic>.from(widget.task?.metadata ?? {});

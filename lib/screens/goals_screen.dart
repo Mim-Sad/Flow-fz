@@ -1025,7 +1025,14 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                             height: 56,
                             child: FilledButton.icon(
                               onPressed: () {
-                                if (titleController.text.trim().isEmpty) return;
+                                if (titleController.text.trim().isEmpty) {
+                                  FlowToast.show(
+                                    context,
+                                    message: 'لطفاً عنوان هدف را وارد کنید',
+                                    type: FlowToastType.warning,
+                                  );
+                                  return;
+                                }
                                 final newGoal = Goal(
                                   id: goal?.id,
                                   title: titleController.text.trim(),

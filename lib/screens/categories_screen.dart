@@ -265,7 +265,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                       height: 56,
                       child: FilledButton.icon(
                         onPressed: () async {
-                          if (nameController.text.isNotEmpty) {
+                          if (nameController.text.trim().isNotEmpty) {
                             try {
                               final newCategory = CategoryData(
                                 id: isEditing ? category.id : const Uuid().v4(),
@@ -294,6 +294,12 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                                 );
                               }
                             }
+                          } else {
+                            FlowToast.show(
+                              context,
+                              message: 'لطفاً نام دسته‌بندی را وارد کنید',
+                              type: FlowToastType.warning,
+                            );
                           }
                         },
                         icon: HugeIcon(

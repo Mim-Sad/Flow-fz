@@ -75,7 +75,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _deleteSelected(List<Task> allTasks) {
-    if (_selectedTaskIds.isEmpty) return;
+    if (_selectedTaskIds.isEmpty) {
+      FlowToast.show(
+        context,
+        message: 'هیچ تسکی انتخاب نشده است',
+        type: FlowToastType.warning,
+      );
+      return;
+    }
 
     showDialog(
       context: context,
@@ -106,7 +113,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _changeStatusSelected(DateTime today) async {
-    if (_selectedTaskIds.isEmpty) return;
+    if (_selectedTaskIds.isEmpty) {
+      FlowToast.show(
+        context,
+        message: 'هیچ تسکی انتخاب نشده است',
+        type: FlowToastType.warning,
+      );
+      return;
+    }
 
     await showModalBottomSheet(
       context: context,
