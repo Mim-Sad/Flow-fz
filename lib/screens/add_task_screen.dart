@@ -2545,7 +2545,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                   // Predefined Options
                   _buildReminderOption(
                     'بدون یادآور',
-                    HugeIcons.strokeRoundedNotification01,
+                    HugeIcons.strokeRoundedNotificationOff01,
                     null,
                     setSheetState,
                   ),
