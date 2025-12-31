@@ -19,20 +19,28 @@ class NotificationService {
     String timeZoneName;
     try {
       final String? result = await FlutterTimezone.getLocalTimezone().then((info) => info.identifier);
-      timeZoneName = result ?? 'UTC';
+      timeZoneName = result ?? 'Asia/Tehran';
     } catch (e) {
-      timeZoneName = 'UTC';
+      debugPrint('Error getting timezone: $e');
+      timeZoneName = 'Asia/Tehran';
     }
-    tz.setLocalLocation(tz.getLocation(timeZoneName));
+    debugPrint('🌍 Local Timezone: $timeZoneName');
+    
+    try {
+      tz.setLocalLocation(tz.getLocation(timeZoneName));
+    } catch (e) {
+      debugPrint('⚠️ Error setting location for $timeZoneName, falling back to UTC');
+      tz.setLocalLocation(tz.getLocation('UTC'));
+    }
 
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/launcher_icon');
 
     const DarwinInitializationSettings initializationSettingsDarwin =
         DarwinInitializationSettings(
-      requestAlertPermission: false,
-      requestBadgePermission: false,
-      requestSoundPermission: false,
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
     );
 
     const InitializationSettings initializationSettings = InitializationSettings(
@@ -118,12 +126,14 @@ class NotificationService {
               scheduledDate,
               const NotificationDetails(
                 android: AndroidNotificationDetails(
-                  'task_reminders',
+                  'task_reminders_v2',
                   'یادآور تسک‌ها',
                   channelDescription: 'اعلان‌های مربوط به یادآور تسک‌ها',
                   importance: Importance.max,
                   priority: Priority.high,
                   showWhen: true,
+                  playSound: true,
+                  enableVibration: true,
                 ),
                 iOS: DarwinNotificationDetails(
                   presentAlert: true,
@@ -132,8 +142,8 @@ class NotificationService {
                 ),
               ),
               androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-                  payload: task.id.toString(),
-                );
+              payload: task.id.toString(),
+            );
             scheduledCount++;
           }
         }
@@ -150,7 +160,7 @@ class NotificationService {
       return;
     }
 
-    debugPrint('📅 Scheduling single reminder at $reminderTime (ID: ${task.id})');
+    debugPrint('📅 Scheduling single reminder at $reminderTime (ID: ${task.id}) in timezone: ${tz.local.name}');
     await _notificationsPlugin.zonedSchedule(
       task.id!,
       task.title,
@@ -158,12 +168,14 @@ class NotificationService {
       scheduledDate,
       const NotificationDetails(
         android: AndroidNotificationDetails(
-          'task_reminders',
+          'task_reminders_v2',
           'یادآور تسک‌ها',
           channelDescription: 'اعلان‌های مربوط به یادآور تسک‌ها',
           importance: Importance.max,
           priority: Priority.high,
           showWhen: true,
+          playSound: true,
+          enableVibration: true,
         ),
         iOS: DarwinNotificationDetails(
           presentAlert: true,

@@ -979,15 +979,15 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                       color: Colors.blue,
                                     ),
                                   ),
-                                  title: Text(
-                                    _getReminderLabel(),
-                                    style: const TextStyle(
+                                  title: const Text(
+                                    'یادآور',
+                                    style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                   subtitle: Text(
-                                    _hasReminder ? 'فعال' : 'بدون یادآور',
+                                    _getReminderSubtitle(),
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: _hasReminder
@@ -2715,8 +2715,8 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     );
   }
 
-  String _getReminderLabel() {
-    if (!_hasReminder || _reminderDateTime == null) return 'یادآور';
+  String _getReminderSubtitle() {
+    if (!_hasReminder || _reminderDateTime == null) return 'بدون یادآور';
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -2732,15 +2732,15 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     );
 
     if (reminderDate == today) {
-      return 'یادآور: امروز ساعت $timeStr';
+      return 'امروز ساعت $timeStr';
     } else if (reminderDate == tomorrow) {
-      return 'یادآور: فردا ساعت $timeStr';
+      return 'فردا ساعت $timeStr';
     } else {
       final jalali = Jalali.fromDateTime(_reminderDateTime!);
       final dateStr = StringUtils.toPersianDigit(
         '${jalali.day} ${jalali.formatter.mN}',
       );
-      return 'یادآور: $dateStr ساعت $timeStr';
+      return '$dateStr ساعت $timeStr';
     }
   }
 
