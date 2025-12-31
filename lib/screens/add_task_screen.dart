@@ -2432,267 +2432,313 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
               ),
             ),
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Handle Line
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.outlineVariant,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-
-                // Header
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Handle Line
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const HugeIcon(
-                        icon: HugeIcons.strokeRoundedNotification03,
-                        size: 20,
-                        color: Colors.blue,
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    const SizedBox(width: 14),
-                    Text(
-                      'تنظیم یادآور',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const HugeIcon(
-                        icon: HugeIcons.strokeRoundedCancel01,
-                        size: 22,
-                        color: Colors.grey,
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
+                  ),
 
-                // Permission Warning
-                FutureBuilder<bool>(
-                  future: NotificationService().requestPermissions(),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData && snapshot.data == false) {
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 20),
-                        padding: const EdgeInsets.all(12),
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.amber.withValues(alpha: 0.1),
+                          color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.amber.withValues(alpha: 0.3),
-                          ),
                         ),
-                        child: Row(
-                          children: [
-                            const HugeIcon(
-                              icon: HugeIcons.strokeRoundedAlert02,
-                              color: Colors.amber,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'دسترسی اعلان‌ها غیرفعال است. برای دریافت یادآور، لطفا دسترسی را تایید کنید.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Theme.of(context).colorScheme.onSurface,
-                                ),
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () async {
-                                await NotificationService().requestPermissions();
-                                setSheetState(() {});
-                              },
-                              child: const Text('تایید'),
-                            ),
-                          ],
+                        child: HugeIcon(
+                          icon: HugeIcons.strokeRoundedNotification03,
+                          size: 20,
+                          color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
                         ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
-
-                // Predefined Options
-                _buildReminderOption(
-                  'بدون یادآور',
-                  HugeIcons.strokeRoundedNotification01,
-                  null,
-                  setSheetState,
-                ),
-
-                if (_hasTime) ...[
-                  _buildReminderOption(
-                    'در زمان انجام تسک',
-                    HugeIcons.strokeRoundedClock01,
-                    _selectedDate,
-                    setSheetState,
-                  ),
-                  _buildReminderOption(
-                    '۵ دقیقه قبل',
-                    HugeIcons.strokeRoundedClock02,
-                    _selectedDate.subtract(const Duration(minutes: 5)),
-                    setSheetState,
-                  ),
-                  _buildReminderOption(
-                    '۳۰ دقیقه قبل',
-                    HugeIcons.strokeRoundedClock05,
-                    _selectedDate.subtract(const Duration(minutes: 30)),
-                    setSheetState,
-                  ),
-                  _buildReminderOption(
-                    '۱ ساعت قبل',
-                    HugeIcons.strokeRoundedClock04,
-                    _selectedDate.subtract(const Duration(hours: 1)),
-                    setSheetState,
-                  ),
-                ],
-
-                // Today Options (Morning, Noon, Night)
-                _buildReminderOption(
-                  'امروز صبح (۰۹:۰۰)',
-                  HugeIcons.strokeRoundedSun03,
-                  DateTime(
-                    DateTime.now().year,
-                    DateTime.now().month,
-                    DateTime.now().day,
-                    9,
-                    0,
-                  ),
-                  setSheetState,
-                ),
-                _buildReminderOption(
-                  'امروز ظهر (۱۳:۰۰)',
-                  HugeIcons.strokeRoundedSun01,
-                  DateTime(
-                    DateTime.now().year,
-                    DateTime.now().month,
-                    DateTime.now().day,
-                    13,
-                    0,
-                  ),
-                  setSheetState,
-                ),
-                _buildReminderOption(
-                  'امروز شب (۲۱:۰۰)',
-                  HugeIcons.strokeRoundedMoon02,
-                  DateTime(
-                    DateTime.now().year,
-                    DateTime.now().month,
-                    DateTime.now().day,
-                    21,
-                    0,
-                  ),
-                  setSheetState,
-                ),
-
-                const Divider(height: 32),
-
-                // Custom Option
-                InkWell(
-                  onTap: () async {
-                    final pickedDate = await showPersianDatePicker(
-                      context: context,
-                      initialDate: Jalali.fromDateTime(
-                        _reminderDateTime ?? _selectedDate,
                       ),
-                      firstDate: Jalali.now(),
-                      lastDate: Jalali(1500, 1, 1),
-                    );
-
-                    if (pickedDate != null) {
-                      if (!context.mounted) return;
-                      final pickedTime = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.fromDateTime(
-                          _reminderDateTime ?? _selectedDate,
-                        ),
-                        builder: (context, child) => Directionality(
-                          textDirection: TextDirection.rtl,
-                          child: child!,
-                        ),
-                      );
-
-                      if (pickedTime != null) {
-                        if (!context.mounted) return;
-                        final finalDateTime = DateTime(
-                          pickedDate.toDateTime().year,
-                          pickedDate.toDateTime().month,
-                          pickedDate.toDateTime().day,
-                          pickedTime.hour,
-                          pickedTime.minute,
-                        );
-
-                        setState(() {
-                          _hasReminder = true;
-                          _reminderDateTime = finalDateTime;
-                        });
-                        Navigator.pop(context);
-                      }
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(16),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 12,
-                      horizontal: 8,
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: HugeIcon(
-                            icon: HugeIcons.strokeRoundedCalendar03,
-                            size: 20,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        const Expanded(
-                          child: Text(
-                            'انتخاب دستی تاریخ و ساعت',
-                            style: TextStyle(
-                              fontSize: 14,
+                      const SizedBox(width: 14),
+                      Text(
+                        'تنظیم یادآور',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
-                          ),
-                        ),
-                        const HugeIcon(
-                          icon: HugeIcons.strokeRoundedArrowLeft01,
-                          size: 20,
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const HugeIcon(
+                          icon: HugeIcons.strokeRoundedCancel01,
+                          size: 22,
                           color: Colors.grey,
                         ),
-                      ],
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Permission Warning
+                  FutureBuilder<bool>(
+                    future: NotificationService().requestPermissions(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData && snapshot.data == false) {
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 20),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.amber.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const HugeIcon(
+                                icon: HugeIcons.strokeRoundedAlert02,
+                                color: Colors.amber,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'دسترسی اعلان‌ها غیرفعال است. برای دریافت یادآور، لطفا دسترسی را تایید کنید.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () async {
+                                  await NotificationService().requestPermissions();
+                                  setSheetState(() {});
+                                },
+                                child: const Text('تایید'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+
+                  // Predefined Options
+                  _buildReminderOption(
+                    'بدون یادآور',
+                    HugeIcons.strokeRoundedNotification01,
+                    null,
+                    setSheetState,
+                  ),
+
+                  if (_hasTime) ...[
+                    _buildReminderOption(
+                      'در زمان انجام تسک',
+                      HugeIcons.strokeRoundedClock01,
+                      _selectedDate,
+                      setSheetState,
+                    ),
+                    _buildReminderOption(
+                      '۵ دقیقه قبل',
+                      HugeIcons.strokeRoundedClock02,
+                      _selectedDate.subtract(const Duration(minutes: 5)),
+                      setSheetState,
+                    ),
+                    _buildReminderOption(
+                      '۳۰ دقیقه قبل',
+                      HugeIcons.strokeRoundedClock05,
+                      _selectedDate.subtract(const Duration(minutes: 30)),
+                      setSheetState,
+                    ),
+                    _buildReminderOption(
+                      '۱ ساعت قبل',
+                      HugeIcons.strokeRoundedClock04,
+                      _selectedDate.subtract(const Duration(hours: 1)),
+                      setSheetState,
+                    ),
+                  ],
+
+                  // Today Options (Morning, Noon, Night)
+                  _buildReminderOption(
+                    'امروز صبح (۰۹:۰۰)',
+                    HugeIcons.strokeRoundedSun03,
+                    DateTime(
+                      DateTime.now().year,
+                      DateTime.now().month,
+                      DateTime.now().day,
+                      9,
+                      0,
+                    ),
+                    setSheetState,
+                  ),
+                  _buildReminderOption(
+                    'امروز ظهر (۱۳:۰۰)',
+                    HugeIcons.strokeRoundedSun01,
+                    DateTime(
+                      DateTime.now().year,
+                      DateTime.now().month,
+                      DateTime.now().day,
+                      13,
+                      0,
+                    ),
+                    setSheetState,
+                  ),
+                  _buildReminderOption(
+                    'امروز شب (۲۱:۰۰)',
+                    HugeIcons.strokeRoundedMoon02,
+                    DateTime(
+                      DateTime.now().year,
+                      DateTime.now().month,
+                      DateTime.now().day,
+                      21,
+                      0,
+                    ),
+                    setSheetState,
+                  ),
+
+                  const Divider(height: 10),
+
+                  // Custom Option
+                  InkWell(
+                    onTap: () async {
+                      final bool isRecurring = _recurrence != null &&
+                          _recurrence!.type != RecurrenceType.none;
+
+                      if (isRecurring) {
+                        if (!context.mounted) return;
+                        final pickedTime = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.fromDateTime(
+                            _reminderDateTime ?? _selectedDate,
+                          ),
+                          builder: (context, child) => Directionality(
+                            textDirection: TextDirection.rtl,
+                            child: child!,
+                          ),
+                        );
+
+                        if (pickedTime != null) {
+                          if (!context.mounted) return;
+                          final finalDateTime = DateTime(
+                            _selectedDate.year,
+                            _selectedDate.month,
+                            _selectedDate.day,
+                            pickedTime.hour,
+                            pickedTime.minute,
+                          );
+
+                          setState(() {
+                            _hasReminder = true;
+                            _reminderDateTime = finalDateTime;
+                          });
+                          Navigator.pop(context);
+                        }
+                      } else {
+                        final pickedDate = await showPersianDatePicker(
+                          context: context,
+                          initialDate: Jalali.fromDateTime(
+                            _reminderDateTime ?? _selectedDate,
+                          ),
+                          firstDate: Jalali.now(),
+                          lastDate: Jalali(1500, 1, 1),
+                        );
+
+                        if (pickedDate != null) {
+                          if (!context.mounted) return;
+                          final pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(
+                              _reminderDateTime ?? _selectedDate,
+                            ),
+                            builder: (context, child) => Directionality(
+                              textDirection: TextDirection.rtl,
+                              child: child!,
+                            ),
+                          );
+
+                          if (pickedTime != null) {
+                            if (!context.mounted) return;
+                            final finalDateTime = DateTime(
+                              pickedDate.toDateTime().year,
+                              pickedDate.toDateTime().month,
+                              pickedDate.toDateTime().day,
+                              pickedTime.hour,
+                              pickedTime.minute,
+                            );
+
+                            setState(() {
+                              _hasReminder = true;
+                              _reminderDateTime = finalDateTime;
+                            });
+                            Navigator.pop(context);
+                          }
+                        }
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 8,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: HugeIcon(
+                              icon: (_recurrence != null &&
+                                      _recurrence!.type != RecurrenceType.none)
+                                  ? HugeIcons.strokeRoundedClock01
+                                  : HugeIcons.strokeRoundedCalendar03,
+                              size: 20,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Text(
+                              (_recurrence != null &&
+                                      _recurrence!.type != RecurrenceType.none)
+                                  ? 'انتخاب دستی ساعت'
+                                  : 'انتخاب دستی تاریخ و ساعت',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const HugeIcon(
+                            icon: HugeIcons.strokeRoundedArrowLeft01,
+                            size: 20,
+                            color: Colors.grey,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },
