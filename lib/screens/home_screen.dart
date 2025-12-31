@@ -648,7 +648,9 @@ class TaskListTile extends ConsumerWidget {
                         task.categories.isNotEmpty ||
                         task.goalIds.isNotEmpty ||
                         (task.recurrence != null &&
-                            task.recurrence!.type != RecurrenceType.none)) ...[
+                            task.recurrence!.type != RecurrenceType.none) ||
+                        task.reminderDateTime != null ||
+                        task.hasTime) ...[
                       const SizedBox(height: 4),
                       SizedBox(
                         height: 24,
@@ -823,6 +825,42 @@ class TaskListTile extends ConsumerWidget {
     );
   }
 
+  Widget _buildReminderCapsule(BuildContext context) {
+    if (task.reminderDateTime == null) return const SizedBox.shrink();
+
+    final reminderStr = StringUtils.toPersianDigit(
+      intl.DateFormat('HH:mm').format(task.reminderDateTime!),
+    );
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const HugeIcon(
+            icon: HugeIcons.strokeRoundedNotification03,
+            size: 12,
+            color: Colors.amber,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            reminderStr,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Colors.amber,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTimeCapsule(BuildContext context) {
     if (!task.hasTime) return const SizedBox.shrink();
 
@@ -838,7 +876,7 @@ class TaskListTile extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         color: onSurfaceVariant.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: onSurfaceVariant.withValues(alpha: 0.2)),
       ),
       child: Row(
@@ -886,25 +924,29 @@ class TaskListTile extends ConsumerWidget {
         task.recurrence!.type != RecurrenceType.none) {
       capsules.add(
         Container(
-          padding: const EdgeInsets.all(4),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
+            color: Colors.blue.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color:
-                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+              color: Colors.blue.withValues(alpha: 0.2),
             ),
           ),
-          child: HugeIcon(
+          child: const HugeIcon(
             icon: HugeIcons.strokeRoundedRepeat,
-            size: 12,
-            color: Theme.of(context).colorScheme.primary,
+            size: 10,
+            color: Colors.blue,
           ),
         ),
       );
     }
 
-    // 5. Time
+    // 5. Reminder
+    if (task.reminderDateTime != null) {
+      capsules.add(_buildReminderCapsule(context));
+    }
+
+    // 6. Time
     capsules.add(_buildTimeCapsule(context));
 
     // Filter out empty widgets and join with spacing

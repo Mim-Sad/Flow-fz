@@ -178,7 +178,10 @@ class TaskCard extends ConsumerWidget {
                   child: _AutoScrollCapsules(
                     children: [
                       _buildTimeCapsule(context, onCardColor),
-                      if (task.hasTime && (task.reminderDateTime != null || task.priority != TaskPriority.medium || task.categories.isNotEmpty || task.goalIds.isNotEmpty))
+                      if (task.hasTime && (task.reminderDateTime != null || task.recurrence != null || task.priority != TaskPriority.medium || task.categories.isNotEmpty || task.goalIds.isNotEmpty))
+                        const SizedBox(width: 6),
+                      _buildRecurrenceCapsule(context, onCardColor),
+                      if (task.recurrence != null && (task.reminderDateTime != null || task.priority != TaskPriority.medium || task.categories.isNotEmpty || task.goalIds.isNotEmpty))
                         const SizedBox(width: 6),
                       _buildReminderCapsule(context, onCardColor),
                       if (task.reminderDateTime != null && (task.priority != TaskPriority.medium || task.categories.isNotEmpty || task.goalIds.isNotEmpty))
@@ -259,7 +262,7 @@ class TaskCard extends ConsumerWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const HugeIcon(icon: HugeIcons.strokeRoundedNotification03, size: 10, color: Colors.blue),
+          const HugeIcon(icon: HugeIcons.strokeRoundedNotification03, size: 12, color: Colors.blue),
           const SizedBox(width: 4),
           Text(
             reminderStr,
@@ -269,6 +272,27 @@ class TaskCard extends ConsumerWidget {
               color: Colors.blue,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecurrenceCapsule(BuildContext context, Color onCardColor) {
+    if (task.recurrence == null || task.recurrence!.type == RecurrenceType.none) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.2)),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          HugeIcon(icon: HugeIcons.strokeRoundedRepeat, size: 12, color: Colors.orange),
         ],
       ),
     );

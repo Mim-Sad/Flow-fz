@@ -34,7 +34,7 @@ class NotificationService {
     }
 
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/launcher_icon');
+        AndroidInitializationSettings('@drawable/ic_launcher_foreground');
 
     const DarwinInitializationSettings initializationSettingsDarwin =
         DarwinInitializationSettings(
@@ -119,26 +119,36 @@ class NotificationService {
             
             debugPrint('📅 Scheduling occurrence $scheduledCount at $candidateReminder (ID: $notificationId)');
             
+            final notificationEmoji = task.taskEmoji ?? '🔔';
+            final androidDetails = AndroidNotificationDetails(
+              'task_reminders_v3',
+              'یادآور تسک‌ها',
+              channelDescription: 'اعلان‌های مربوط به یادآور تسک‌ها',
+              importance: Importance.max,
+              priority: Priority.high,
+              showWhen: true,
+              playSound: true,
+              enableVibration: true,
+              styleInformation: BigTextStyleInformation(
+                task.description ?? 'زمان انجام تسک فرا رسیده است.',
+                contentTitle: '$notificationEmoji ${task.title}',
+                summaryText: 'یادآور تسک تکرار شونده',
+              ),
+              category: AndroidNotificationCategory.reminder,
+            );
+
             await _notificationsPlugin.zonedSchedule(
               notificationId,
               task.title,
-              task.description ?? 'یادآور تسک',
+              task.description ?? 'زمان انجام تسک فرا رسیده است.',
               scheduledDate,
-              const NotificationDetails(
-                android: AndroidNotificationDetails(
-                  'task_reminders_v2',
-                  'یادآور تسک‌ها',
-                  channelDescription: 'اعلان‌های مربوط به یادآور تسک‌ها',
-                  importance: Importance.max,
-                  priority: Priority.high,
-                  showWhen: true,
-                  playSound: true,
-                  enableVibration: true,
-                ),
-                iOS: DarwinNotificationDetails(
+              NotificationDetails(
+                android: androidDetails,
+                iOS: const DarwinNotificationDetails(
                   presentAlert: true,
                   presentBadge: true,
                   presentSound: true,
+                  interruptionLevel: InterruptionLevel.timeSensitive,
                 ),
               ),
               androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
@@ -161,27 +171,42 @@ class NotificationService {
     }
 
     debugPrint('📅 Scheduling single reminder at $reminderTime (ID: ${task.id}) in timezone: ${tz.local.name}');
+    
+    // Customizing the notification with better layout and details
+    final notificationEmoji = task.taskEmoji ?? '🔔';
+    final androidDetails = AndroidNotificationDetails(
+      'task_reminders_v3', // Incremented version for new layout
+      'یادآور تسک‌ها',
+      channelDescription: 'اعلان‌های مربوط به یادآور تسک‌ها',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: true,
+      playSound: true,
+      enableVibration: true,
+      styleInformation: BigTextStyleInformation(
+        task.description ?? 'زمان انجام تسک فرا رسیده است.',
+        contentTitle: '$notificationEmoji ${task.title}',
+        summaryText: 'یادآور تسک',
+      ),
+      category: AndroidNotificationCategory.reminder,
+      fullScreenIntent: true, // For critical reminders
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+      interruptionLevel: InterruptionLevel.timeSensitive,
+    );
+
     await _notificationsPlugin.zonedSchedule(
       task.id!,
       task.title,
-      task.description ?? 'یادآور تسک',
+      task.description ?? 'زمان انجام تسک فرا رسیده است.',
       scheduledDate,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'task_reminders_v2',
-          'یادآور تسک‌ها',
-          channelDescription: 'اعلان‌های مربوط به یادآور تسک‌ها',
-          importance: Importance.max,
-          priority: Priority.high,
-          showWhen: true,
-          playSound: true,
-          enableVibration: true,
-        ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
+      NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: task.id.toString(),

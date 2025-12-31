@@ -735,22 +735,13 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                   leading: Container(
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
-                                      color: _hasTime
-                                          ? Theme.of(context)
-                                                .colorScheme
-                                                .secondaryContainer
-                                                .withValues(alpha: 0.5)
-                                          : Colors.grey.withValues(alpha: 0.1),
+                                      color: Colors.lightGreen.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: HugeIcon(
                                       icon: HugeIcons.strokeRoundedClock01,
                                       size: 20,
-                                      color: _hasTime
-                                          ? Theme.of(
-                                              context,
-                                            ).colorScheme.secondary
-                                          : Colors.grey,
+                                      color: Colors.lightGreen,
                                     ),
                                   ),
                                   title: const Text(
@@ -770,11 +761,9 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                         : 'بدون ساعت تنظیم شده',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: _hasTime
-                                          ? Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant
-                                          : Colors.grey,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                   trailing: Row(
@@ -897,11 +886,9 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                           : 'بدون ساعت پایان',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: _hasEndTime
-                                            ? Theme.of(
-                                                context,
-                                              ).colorScheme.onSurfaceVariant
-                                            : Colors.grey,
+                                        color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                       ),
                                     ),
                                     trailing: Row(
@@ -968,7 +955,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                   leading: Container(
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
-                                      color: Colors.blue.withValues(
+                                      color: Colors.amber.withValues(
                                         alpha: 0.1,
                                       ),
                                       borderRadius: BorderRadius.circular(12),
@@ -976,7 +963,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                     child: HugeIcon(
                                       icon: HugeIcons.strokeRoundedNotification03,
                                       size: 20,
-                                      color: Colors.blue,
+                                      color: Colors.amber,
                                     ),
                                   ),
                                   title: const Text(
@@ -990,11 +977,9 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                     _getReminderSubtitle(),
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: _hasReminder
-                                          ? Colors.blue
-                                          : Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                   trailing: Row(
@@ -1061,7 +1046,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                   leading: Container(
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
-                                      color: Colors.orange.withValues(
+                                      color: Colors.blue.withValues(
                                         alpha: 0.1,
                                       ),
                                       borderRadius: BorderRadius.circular(12),
@@ -1069,7 +1054,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                     child: const HugeIcon(
                                       icon: HugeIcons.strokeRoundedRepeat,
                                       size: 20,
-                                      color: Colors.orange,
+                                      color: Colors.blue,
                                     ),
                                   ),
                                   title: const Text(

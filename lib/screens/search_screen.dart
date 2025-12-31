@@ -212,11 +212,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       ),
                       const SizedBox(width: 6),
                     ],
-                    if (task.recurrence != null &&
-                        task.recurrence!.type != RecurrenceType.none) ...[
-                      _buildDateBadge(task.dueDate),
-                      const SizedBox(width: 6),
-                    ],
                     Expanded(
                       child: TextScroll(
                         task.title,

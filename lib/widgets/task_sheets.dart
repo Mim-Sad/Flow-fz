@@ -674,18 +674,20 @@ class TaskOptionsSheet extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             textDirection: TextDirection.rtl,
                             children: [
-                              const HugeIcon(
+                              HugeIcon(
                                 icon: HugeIcons.strokeRoundedNotification03,
                                 size: 18,
-                                color: Colors.blue,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: _buildParenthesesStyledText(
                                   _getReminderText(task),
-                                  const TextStyle(
+                                  TextStyle(
                                     fontSize: 13,
-                                    color: Colors.blue,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
