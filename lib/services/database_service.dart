@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:archive/archive.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/task.dart';
+import '../models/goal.dart';
 import '../models/category_data.dart';
 import '../constants/duck_emojis.dart';
 
@@ -28,7 +28,7 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'flow_database.db');
     final db = await openDatabase(
       path,
-      version: 16,
+      version: 19,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -361,6 +361,57 @@ class DatabaseService {
         debugPrint('Error in category migration: $e');
       }
     }
+    if (oldVersion < 17) {
+      // Version 17: Add goals table and goalIds to tasks
+      await _createGoalsTable(db);
+      try {
+        await db.execute('ALTER TABLE tasks ADD COLUMN goalIds TEXT');
+        debugPrint('✅ Added goalIds column to tasks table');
+      } catch (e) {
+        debugPrint('Error adding goalIds column: $e');
+      }
+    }
+    if (oldVersion < 18) {
+      // Version 18: Add goalId to media table and audioPath to goals table if missing
+      try {
+        await db.execute('ALTER TABLE media ADD COLUMN goalId INTEGER');
+        debugPrint('✅ Added goalId column to media table');
+      } catch (e) {
+        debugPrint('Error adding goalId column to media: $e');
+      }
+
+      try {
+        await db.execute('ALTER TABLE goals ADD COLUMN audioPath TEXT');
+        debugPrint('✅ Added audioPath column to goals table');
+      } catch (e) {
+        debugPrint('Error adding audioPath column to goals: $e');
+      }
+    }
+    if (oldVersion < 19) {
+      try {
+        // Add categoryIds column
+        await db.execute('ALTER TABLE goals ADD COLUMN categoryIds TEXT');
+        
+        // Migrate existing data from categoryId to categoryIds
+        final goals = await db.query('goals');
+        for (var goal in goals) {
+          final catId = goal['categoryId'] as String?;
+          final List<String> catIds = [];
+          if (catId != null && catId.isNotEmpty) {
+            catIds.add(catId);
+          }
+          await db.update(
+            'goals', 
+            {'categoryIds': json.encode(catIds)}, 
+            where: 'id = ?', 
+            whereArgs: [goal['id']]
+          );
+        }
+        debugPrint('✅ Migrated goals to support multiple categories');
+      } catch (e) {
+        debugPrint('Error migrating goals to version 19: $e');
+      }
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -373,6 +424,7 @@ class DatabaseService {
         priority INTEGER NOT NULL,
         categories TEXT,
         tags TEXT,
+        goalIds TEXT,
         taskEmoji TEXT,
         attachments TEXT,
         recurrence TEXT,
@@ -387,6 +439,7 @@ class DatabaseService {
     ''');
     await _createCategoriesTable(db);
     await _createMediaTable(db);
+    await _createGoalsTable(db);
     await db.execute('''
       CREATE TABLE IF NOT EXISTS task_events(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -404,6 +457,80 @@ class DatabaseService {
     ''');
   }
 
+  Future<void> _createGoalsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS goals(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        description TEXT,
+        emoji TEXT NOT NULL,
+        categoryIds TEXT,
+        deadline TEXT,
+        priority INTEGER NOT NULL,
+        tags TEXT,
+        attachments TEXT,
+        audioPath TEXT,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL,
+        isDeleted INTEGER NOT NULL DEFAULT 0,
+        position INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+  }
+
+  // Goals CRUD
+  Future<List<Goal>> getAllGoals({bool includeDeleted = false}) async {
+    Database db = await database;
+    List<Map<String, dynamic>> maps;
+    if (includeDeleted) {
+      maps = await db.query('goals', orderBy: 'position ASC');
+    } else {
+      maps = await db.query(
+        'goals',
+        where: 'isDeleted = 0',
+        orderBy: 'position ASC',
+      );
+    }
+    if (maps.isEmpty) return [];
+    return List.generate(maps.length, (i) => Goal.fromMap(maps[i]));
+  }
+
+  Future<Goal?> getGoalById(int id) async {
+    Database db = await database;
+    final maps = await db.query('goals', where: 'id = ?', whereArgs: [id]);
+    if (maps.isEmpty) return null;
+    return Goal.fromMap(maps.first);
+  }
+
+  Future<int> insertGoal(Goal goal) async {
+    Database db = await database;
+    return await db.insert('goals', goal.toMap());
+  }
+
+  Future<int> updateGoal(Goal goal) async {
+    Database db = await database;
+    return await db.update(
+      'goals',
+      goal.toMap(),
+      where: 'id = ?',
+      whereArgs: [goal.id],
+    );
+  }
+
+  Future<int> deleteGoal(int id) async {
+    Database db = await database;
+    // Soft delete
+    return await db.update(
+      'goals',
+      {
+        'isDeleted': 1,
+        'updatedAt': DateTime.now().toIso8601String(),
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   Future<void> _createMediaTable(Database db) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS media(
@@ -413,7 +540,8 @@ class DatabaseService {
         fileSize INTEGER,
         mimeType TEXT,
         createdAt TEXT NOT NULL,
-        taskId INTEGER
+        taskId INTEGER,
+        goalId INTEGER
       )
     ''');
   }

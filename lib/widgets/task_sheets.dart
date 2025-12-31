@@ -8,9 +8,11 @@ import 'package:open_filex/open_filex.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../models/task.dart';
+import '../models/goal.dart';
 import '../models/category_data.dart';
 import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
+import '../providers/goal_provider.dart';
 import '../screens/add_task_screen.dart';
 import 'postpone_dialog.dart';
 import 'package:go_router/go_router.dart';
@@ -479,8 +481,10 @@ class TaskOptionsSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final allCategories = ref.watch(categoryProvider).valueOrNull ?? [];
+    final allGoals = ref.watch(goalsProvider);
 
     final taskCategories = task.categories;
+    final taskGoals = task.goalIds;
 
     // Find the original task to get the true start date if it's a recurring task
     final allTasks = ref.watch(tasksProvider);
@@ -773,6 +777,94 @@ class TaskOptionsSheet extends ConsumerWidget {
                               );
                             }).toList(),
                           ),
+                        ],
+
+                        if (taskGoals.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            textDirection: TextDirection.rtl,
+                            children: taskGoals.map((goalId) {
+                              final goal = allGoals.cast<Goal?>().firstWhere(
+                                (g) => g?.id == goalId,
+                                orElse: () => null,
+                              );
+                              if (goal == null) return const SizedBox.shrink();
+                              
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.primary.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: Theme.of(context).colorScheme.primary.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  textDirection: TextDirection.rtl,
+                                  children: [
+                                    Text(goal.emoji, style: const TextStyle(fontSize: 16)),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      goal.title,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Theme.of(context).colorScheme.primary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          
+                          // Goal Audio Players
+                          ...taskGoals.map((goalId) {
+                            final goal = allGoals.cast<Goal?>().firstWhere(
+                              (g) => g?.id == goalId,
+                              orElse: () => null,
+                            );
+                            
+                            if (goal != null && goal.audioPath != null) {
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 4),
+                                      child: Text(
+                                        'صدای هدف: ${goal.title}', 
+                                        style: TextStyle(
+                                          fontSize: 12, 
+                                          color: Theme.of(context).colorScheme.primary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    AudioWaveformPlayer(
+                                      audioPath: goal.audioPath!,
+                                      activeWaveColor: Theme.of(context).colorScheme.primary,
+                                      waveColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          }),
                         ],
 
                         if (task.tags.isNotEmpty) ...[

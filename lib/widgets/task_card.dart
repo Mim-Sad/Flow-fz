@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'lottie_category_icon.dart';
 import '../models/task.dart';
+import '../models/goal.dart';
 import '../models/category_data.dart';
 import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
+import '../providers/goal_provider.dart';
   // Removed unused import
 import '../widgets/task_sheets.dart';
 import '../screens/add_task_screen.dart';
@@ -171,10 +173,14 @@ class TaskCard extends ConsumerWidget {
                   child: _AutoScrollCapsules(
                     children: [
                       _buildPriorityCapsule(context, onCardColor),
-                      if (task.priority != TaskPriority.medium && task.categories.isNotEmpty)
+                      if (task.priority != TaskPriority.medium && (task.categories.isNotEmpty || task.goalIds.isNotEmpty))
                         const SizedBox(width: 6),
                       if (task.categories.isNotEmpty)
                         _buildCategoryCapsules(onCardColor, ref),
+                      if (task.categories.isNotEmpty && task.goalIds.isNotEmpty)
+                        const SizedBox(width: 6),
+                      if (task.goalIds.isNotEmpty)
+                        _buildGoalCapsules(onCardColor, ref),
                     ],
                   ),
                 ),
@@ -263,6 +269,55 @@ class TaskCard extends ConsumerWidget {
                   color: isDeleted ? Colors.grey : onCardColor,
                   decoration: isDeleted ? TextDecoration.lineThrough : null,
                   decorationColor: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildGoalCapsules(Color onCardColor, WidgetRef ref) {
+    final goalIds = task.goalIds;
+    final allGoals = ref.watch(goalsProvider);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: goalIds.asMap().entries.map((entry) {
+        final index = entry.key;
+        final goalId = entry.value;
+        final goalData = allGoals.cast<Goal?>().firstWhere(
+          (g) => g?.id == goalId,
+          orElse: () => null,
+        );
+        
+        if (goalData == null) return const SizedBox.shrink();
+
+        return Container(
+          margin: EdgeInsetsDirectional.only(start: index == 0 ? 0 : 6),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: onCardColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: onCardColor.withValues(alpha: 0.1),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                goalData.emoji,
+                style: const TextStyle(fontSize: 10),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                goalData.title,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: onCardColor,
                 ),
               ),
             ],

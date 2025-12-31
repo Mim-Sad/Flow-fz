@@ -66,7 +66,7 @@ class FlowBottomSheet extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity( 0.1),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: HugeIcon(
@@ -119,8 +119,8 @@ class FlowBottomSheet extends StatelessWidget {
                           end: Alignment.topCenter,
                           colors: [
                             theme.colorScheme.surface,
-                            theme.colorScheme.surface.withOpacity( 0.8),
-                            theme.colorScheme.surface.withOpacity( 0),
+                            theme.colorScheme.surface.withValues(alpha: 0.8),
+                            theme.colorScheme.surface.withValues(alpha: 0),
                           ],
                           stops: const [0, 0.6, 1.0],
                         ),

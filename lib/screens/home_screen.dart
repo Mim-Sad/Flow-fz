@@ -8,7 +8,9 @@ import '../widgets/lottie_category_icon.dart';
 import 'package:text_scroll/text_scroll.dart';
 import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
+import '../providers/goal_provider.dart';
 import '../models/task.dart';
+import '../models/goal.dart';
 import '../models/category_data.dart';
 import '../widgets/postpone_dialog.dart';
 import '../widgets/task_sheets.dart';
@@ -309,8 +311,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           onReorder: (oldIndex, newIndex) {
                             // Allow reorder if manual sort OR selection mode is active
                             if (_sortMode != SortMode.manual &&
-                                !_isSelectionMode)
+                                !_isSelectionMode) {
                               return;
+                            }
 
                             if (newIndex > oldIndex) newIndex -= 1;
                             final items = [...todayTasks];
@@ -636,14 +639,18 @@ class TaskListTile extends ConsumerWidget {
                           children: [
                             _buildPriorityCapsule(context),
                             if (task.priority != TaskPriority.medium &&
-                                task.categories.isNotEmpty)
+                                (task.categories.isNotEmpty || task.goalIds.isNotEmpty))
                               const SizedBox(width: 6),
                             _buildCategoryCapsules(context, ref),
+                            if (task.categories.isNotEmpty && task.goalIds.isNotEmpty)
+                              const SizedBox(width: 6),
+                            _buildGoalCapsules(context, ref, task),
                             if (task.recurrence != null &&
                                 task.recurrence!.type !=
                                     RecurrenceType.none) ...[
                               if (task.priority != TaskPriority.medium ||
-                                  task.categories.isNotEmpty)
+                                  task.categories.isNotEmpty ||
+                                  task.goalIds.isNotEmpty)
                                 const SizedBox(width: 6),
                               Container(
                                 padding: const EdgeInsets.all(4),
@@ -902,6 +909,55 @@ class TaskListTile extends ConsumerWidget {
                 ),
               ],
             ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildGoalCapsules(BuildContext context, WidgetRef ref, Task task) {
+    if (task.goalIds.isEmpty) return const SizedBox.shrink();
+
+    final goalIds = task.goalIds;
+    final allGoals = ref.watch(goalsProvider);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: goalIds.asMap().entries.map((entry) {
+        final index = entry.key;
+        final goalId = entry.value;
+        final goalData = allGoals.cast<Goal?>().firstWhere(
+          (g) => g?.id == goalId,
+          orElse: () => null,
+        );
+        
+        if (goalData == null) return const SizedBox.shrink();
+
+        return Container(
+          margin: EdgeInsetsDirectional.only(start: index == 0 ? 0 : 6),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                goalData.emoji,
+                style: const TextStyle(fontSize: 10),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                goalData.title,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ],
           ),
         );
       }).toList(),

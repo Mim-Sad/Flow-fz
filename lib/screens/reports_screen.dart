@@ -7,6 +7,7 @@ import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import '../providers/task_provider.dart';
+import '../providers/goal_provider.dart';
 import '../models/task.dart';
 import 'package:go_router/go_router.dart';
 import '../utils/route_builder.dart';
@@ -344,6 +345,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
         ]);
       }
+
+      content.addAll([
+        const SizedBox(height: 32),
+        _buildGoalsReport(context),
+      ]);
     } else {
       content.add(
         Center(
@@ -612,6 +618,118 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildGoalsReport(BuildContext context) {
+    final goals = ref.watch(goalsProvider);
+    if (goals.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Center(
+          child: Text(
+            'پیشرفت اهداف',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: goals.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final goal = goals[index];
+            final progress = ref.watch(goalProgressProvider(goal.id!));
+            
+            return Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(goal.emoji, style: const TextStyle(fontSize: 20)),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              goal.title,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            if (goal.description != null && goal.description!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Text(
+                                  goal.description!,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            
+                            // Progress Bar
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: LinearProgressIndicator(
+                                      value: progress / 100,
+                                      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                      color: Theme.of(context).colorScheme.primary,
+                                      minHeight: 6,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${_toPersianDigit(progress.toStringAsFixed(0))}%',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 

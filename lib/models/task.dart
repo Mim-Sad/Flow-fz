@@ -91,6 +91,7 @@ class Task {
   final String? taskEmoji;
   final List<String> attachments;
   final List<String> tags;
+  final List<int> goalIds;
   final RecurrenceConfig? recurrence;
   final Map<String, int> statusHistory;
   final Map<String, dynamic> metadata;
@@ -104,6 +105,7 @@ class Task {
     this.priority = TaskPriority.medium,
     List<String>? categories,
     List<String>? tags,
+    List<int>? goalIds,
     DateTime? createdAt,
     DateTime? updatedAt,
     this.isDeleted = false,
@@ -119,6 +121,7 @@ class Task {
        updatedAt = updatedAt ?? (createdAt ?? DateTime.now()),
        categories = categories ?? [],
        tags = tags ?? const [],
+       goalIds = goalIds ?? const [],
        attachments = attachments ?? [],
        statusHistory = statusHistory ?? {},
        metadata = metadata ?? {},
@@ -260,8 +263,9 @@ class Task {
 
         // Use Jalali for yearly recurrence
         if (jalaliDate.month != jalaliDueDate.month ||
-            jalaliDate.day != jalaliDueDate.day)
+            jalaliDate.day != jalaliDueDate.day) {
           return false;
+        }
 
         final yearsDiff = jalaliDate.year - jalaliDueDate.year;
         return yearsDiff >= 0 && yearsDiff % interval == 0;
@@ -388,6 +392,7 @@ class Task {
       priority: priority,
       categories: List.from(categories),
       tags: List.from(tags),
+      goalIds: List.from(goalIds),
       taskEmoji: taskEmoji,
       attachments: List.from(attachments),
       recurrence: recurrence,
@@ -407,6 +412,7 @@ class Task {
       'priority': priority.index,
       'categories': json.encode(categories),
       'tags': json.encode(tags),
+      'goalIds': json.encode(goalIds),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
       'isDeleted': isDeleted ? 1 : 0,
@@ -437,6 +443,15 @@ class Task {
     if (map['tags'] != null) {
       try {
         loadedTags = List<String>.from(json.decode(map['tags']));
+      } catch (e) {
+        // Fallback
+      }
+    }
+
+    List<int> loadedGoalIds = [];
+    if (map['goalIds'] != null) {
+      try {
+        loadedGoalIds = List<int>.from(json.decode(map['goalIds']));
       } catch (e) {
         // Fallback
       }
@@ -487,6 +502,7 @@ class Task {
       priority: loadedPriority,
       categories: loadedCategories,
       tags: loadedTags,
+      goalIds: loadedGoalIds,
       createdAt: DateTime.parse(map['createdAt']),
       updatedAt: map['updatedAt'] != null
           ? DateTime.parse(map['updatedAt'])
@@ -519,6 +535,7 @@ class Task {
     TaskPriority? priority,
     List<String>? categories,
     List<String>? tags,
+    List<int>? goalIds,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
@@ -539,6 +556,7 @@ class Task {
       priority: priority ?? this.priority,
       categories: categories ?? this.categories,
       tags: tags ?? this.tags,
+      goalIds: goalIds ?? this.goalIds,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,

@@ -1085,6 +1085,8 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
 
     if (pickedFrom == null) return;
 
+    if (!mounted) return;
+
     final Jalali? pickedTo = await showPersianDatePicker(
       context: context,
       initialDate: _filters.dateTo != null
@@ -1096,6 +1098,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
     );
 
     if (pickedTo != null) {
+      if (!mounted) return;
       setState(() {
         _filters = _filters.copyWith(
           dateFrom: pickedFrom.toDateTime(),
@@ -1382,8 +1385,9 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                               .take(10)
                               .toList();
 
-                          if (filteredSuggestions.isEmpty)
+                          if (filteredSuggestions.isEmpty) {
                             return const SizedBox.shrink();
+                          }
 
                           return Padding(
                             padding: const EdgeInsets.fromLTRB(0, 12, 0, 0),

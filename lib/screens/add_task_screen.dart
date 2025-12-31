@@ -15,10 +15,12 @@ import '../models/category_data.dart';
 import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
 import '../providers/tag_provider.dart';
+import '../providers/goal_provider.dart';
 import '../utils/string_utils.dart';
 import '../utils/emoji_suggester.dart';
 import '../widgets/audio_waveform_player.dart';
 import 'package:intl/intl.dart' as intl;
+import 'goals_screen.dart';
 
 class AddTaskScreen extends ConsumerStatefulWidget {
   final Task? task;
@@ -37,6 +39,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   late DateTime _selectedDate;
   late TaskPriority _priority;
   List<String> _selectedCategories = [];
+  List<int> _selectedGoals = [];
   List<String> _tags = [];
   String? _selectedEmoji;
   List<String> _attachments = [];
@@ -83,6 +86,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     _recurrence = widget.task?.recurrence;
     _priority = widget.task?.priority ?? TaskPriority.medium;
     _selectedCategories = widget.task?.categories ?? [];
+    _selectedGoals = List.from(widget.task?.goalIds ?? []);
     _tags = List.from(widget.task?.tags ?? []);
     _selectedEmoji = widget.task?.taskEmoji;
     _attachments = widget.task?.attachments ?? [];
@@ -490,7 +494,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                           );
                         },
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
 
                       // Collapsible Details Section
                       Theme(
@@ -869,6 +873,118 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                             ),
 
                             const SizedBox(height: 16),
+
+                            // Goals (Moved here and center-aligned)
+                            Consumer(
+                              builder: (context, ref, child) {
+                                final goals = ref.watch(goalsProvider);
+                                
+                                if (goals.isEmpty) {
+                                  return Column(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(builder: (context) => const GoalsScreen()),
+                                          );
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(14),
+                                            border: Border.all(
+                                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Text('🎯', style: TextStyle(fontSize: 16)),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                'تعریف اولین هدف...',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Theme.of(context).colorScheme.primary,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 20),
+                                    ],
+                                  );
+                                }
+                                
+                                return Column(
+                                   crossAxisAlignment: CrossAxisAlignment.center,
+                                   children: [
+                                     SizedBox(
+                                      width: double.infinity,
+                                      child: Wrap(
+                                        alignment: WrapAlignment.center,
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: goals.map((goal) {
+                                          final isSelected = _selectedGoals.contains(goal.id);
+                                          return GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                if (isSelected) {
+                                                  _selectedGoals.remove(goal.id);
+                                                } else {
+                                                  _selectedGoals.add(goal.id!);
+                                                }
+                                              });
+                                            },
+                                            child: AnimatedContainer(
+                                              duration: const Duration(milliseconds: 200),
+                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                              decoration: BoxDecoration(
+                                                color: isSelected 
+                                                    ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1) 
+                                                    : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                                borderRadius: BorderRadius.circular(14),
+                                                border: Border.all(
+                                                  color: isSelected 
+                                                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)
+                                                      : Colors.transparent,
+                                                  width: 1.5,
+                                                ),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(goal.emoji, style: const TextStyle(fontSize: 16)),
+                                                  const SizedBox(width: 6),
+                                                  Text(
+                                                    goal.title,
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                                      color: isSelected 
+                                                          ? Theme.of(context).colorScheme.primary
+                                                          : Theme.of(context).colorScheme.onSurface,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                  ],
+                                );
+                              },
+                            ),
                             
                             // Attachments
                             Padding(
@@ -1517,6 +1633,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
         dueDate: _selectedDate,
         priority: _priority,
         categories: _selectedCategories,
+        goalIds: _selectedGoals,
         statusHistory: widget.task?.statusHistory,
         createdAt: widget.task?.createdAt,
         updatedAt: widget.task?.updatedAt,

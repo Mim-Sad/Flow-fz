@@ -845,8 +845,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         if (!t.isActiveOnDate(date)) continue;
 
         final status = tasksNotifier.getStatusForDate(t.id!, date);
-        if (status == TaskStatus.cancelled || status == TaskStatus.deferred)
+        if (status == TaskStatus.cancelled || status == TaskStatus.deferred) {
           continue;
+        }
         total++;
         if (status == TaskStatus.success) completed++;
       }
@@ -854,8 +855,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
     for (var t in regularTasks) {
       final status = tasksNotifier.getStatusForDate(t.id!, t.dueDate);
-      if (status == TaskStatus.cancelled || status == TaskStatus.deferred)
+      if (status == TaskStatus.cancelled || status == TaskStatus.deferred) {
         continue;
+      }
       total++;
       if (status == TaskStatus.success) completed++;
     }
@@ -1044,8 +1046,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           if (Jalali.fromDateTime(d).month != currentMonth) continue;
           if (!t.isActiveOnDate(d)) continue;
           final status = tasksNotifier.getStatusForDate(t.id!, d);
-          if (status == TaskStatus.cancelled || status == TaskStatus.deferred)
+          if (status == TaskStatus.cancelled || status == TaskStatus.deferred) {
             continue;
+          }
           total++;
           if (status == TaskStatus.success) completed++;
         }
@@ -1054,8 +1057,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
     for (var t in regularTasks) {
       final status = tasksNotifier.getStatusForDate(t.id!, t.dueDate);
-      if (status == TaskStatus.cancelled || status == TaskStatus.deferred)
+      if (status == TaskStatus.cancelled || status == TaskStatus.deferred) {
         continue;
+      }
       total++;
       if (status == TaskStatus.success) completed++;
     }

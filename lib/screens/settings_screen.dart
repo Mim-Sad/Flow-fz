@@ -13,6 +13,7 @@ import '../widgets/animations.dart';
 import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
 import 'categories_screen.dart';
+import 'goals_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -391,6 +392,55 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => const CategoriesScreen(),
+                    ),
+                  );
+                },
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Goals Management
+          FadeInOnce(
+            delay: 120.ms,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: onCardColor.withValues(alpha: 0.1),
+                  width: 1,
+                ),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 4,
+                ),
+                title: const Text(
+                  'مدیریت اهداف',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                subtitle: const Text(
+                  'افزودن، ویرایش و مشاهده پیشرفت اهداف',
+                  style: TextStyle(fontSize: 12),
+                ),
+                leading: HugeIcon(
+                  icon: HugeIcons.strokeRoundedTarget02,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                trailing: const HugeIcon(
+                  icon: HugeIcons.strokeRoundedArrowLeft01,
+                  color: Colors.grey,
+                  size: 20,
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const GoalsScreen(),
                     ),
                   );
                 },

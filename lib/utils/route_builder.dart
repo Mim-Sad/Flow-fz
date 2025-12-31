@@ -8,6 +8,7 @@ class SearchRouteBuilder {
     String? query,
     List<String>? categories,
     List<String>? tags,
+    List<int>? goals,
     DateTime? dateFrom,
     DateTime? dateTo,
     DateTime? specificDate,
@@ -30,6 +31,10 @@ class SearchRouteBuilder {
 
     if (tags != null && tags.isNotEmpty) {
       params['tag'] = tags.join(',');
+    }
+
+    if (goals != null && goals.isNotEmpty) {
+      params['goal'] = goals.join(',');
     }
 
     if (specificDate != null) {
