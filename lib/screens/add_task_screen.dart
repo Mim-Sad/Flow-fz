@@ -2113,7 +2113,8 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                               borderRadius: BorderRadius.circular(16),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
-                                  vertical: 8,
+                                  vertical: 12,
+                                  horizontal: 12,
                                 ),
                                 child: Row(
                                   children: [
@@ -2345,12 +2346,10 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
     StateSetter setSheetState,
   ) {
     final isSelected = (_recurrence?.type ?? RecurrenceType.none) == type;
-    final color = isSelected
-        ? Theme.of(context).colorScheme.primary
-        : Theme.of(context).colorScheme.onSurface;
+    final color = Theme.of(context).colorScheme.primary;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 1),
+      padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: () {
           setState(() {
@@ -2372,7 +2371,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
         borderRadius: BorderRadius.circular(16),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
             color: isSelected
                 ? color.withValues(alpha: 0.08)
@@ -2380,36 +2379,39 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isSelected
-                  ? color.withValues(alpha: 0.5)
+                  ? color.withValues(alpha: 0.2)
                   : Colors.transparent,
-              width: 1,
+              width: 1.5,
             ),
           ),
           child: Row(
             children: [
+              HugeIcon(
+                icon: icon,
+                color: isSelected
+                    ? color
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+                size: 22,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isSelected
+                        ? color
+                        : Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ),
               if (isSelected)
                 HugeIcon(
                   icon: HugeIcons.strokeRoundedCheckmarkCircle02,
                   color: color,
                   size: 20,
-                )
-              else
-                HugeIcon(
-                  icon: icon,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  size: 22,
                 ),
-              const SizedBox(width: 16),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected
-                      ? color
-                      : Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
             ],
           ),
         ),
@@ -2693,7 +2695,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         vertical: 12,
-                        horizontal: 8,
+                        horizontal: 12,
                       ),
                       child: Row(
                         children: [
@@ -2728,10 +2730,10 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                               ),
                             ),
                           ),
-                          const HugeIcon(
+                          HugeIcon(
                             icon: HugeIcons.strokeRoundedArrowLeft01,
                             size: 20,
-                            color: Colors.grey,
+                            color: Theme.of(context).colorScheme.outline,
                           ),
                         ],
                       ),
@@ -2791,54 +2793,68 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
             _reminderDateTime?.hour == dateTime.hour &&
             _reminderDateTime?.minute == dateTime.minute);
 
-    final color = isSelected ? Colors.blue : Theme.of(context).colorScheme.onSurface;
+    final color = Theme.of(context).colorScheme.primary;
 
-    return InkWell(
-      onTap: () {
-        setState(() {
-          if (dateTime == null) {
-            _hasReminder = false;
-          } else {
-            _hasReminder = true;
-            _reminderDateTime = dateTime;
-          }
-        });
-        Navigator.pop(context);
-      },
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        margin: const EdgeInsets.only(bottom: 4),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.blue.withValues(alpha: 0.05) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            HugeIcon(
-              icon: icon,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            if (dateTime == null) {
+              _hasReminder = false;
+            } else {
+              _hasReminder = true;
+              _reminderDateTime = dateTime;
+            }
+          });
+          Navigator.pop(context);
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? color.withValues(alpha: 0.08)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
               color: isSelected
-                  ? Colors.blue
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
-              size: 22,
+                  ? color.withValues(alpha: 0.2)
+                  : Colors.transparent,
+              width: 1.5,
             ),
-            const SizedBox(width: 16),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: color,
+          ),
+          child: Row(
+            children: [
+              HugeIcon(
+                icon: icon,
+                color: isSelected
+                    ? color
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+                size: 22,
               ),
-            ),
-            const Spacer(),
-            if (isSelected)
-              const HugeIcon(
-                icon: HugeIcons.strokeRoundedCheckmarkCircle02,
-                color: Colors.blue,
-                size: 20,
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isSelected
+                        ? color
+                        : Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
               ),
-          ],
+              if (isSelected)
+                HugeIcon(
+                  icon: HugeIcons.strokeRoundedCheckmarkCircle02,
+                  color: color,
+                  size: 20,
+                ),
+            ],
+          ),
         ),
       ),
     );

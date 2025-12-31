@@ -55,6 +55,23 @@ The app uses a dynamic color system seeded from a primary brand color.
 - **Behavior**: Always `isScrollControlled: true` to support expanding content and keyboard interaction.
 - **Header Pattern**: Usually follows a "Handle -> Icon + Title -> Close Button" layout.
 
+### Picker Options (Sheet Items)
+- **Design**: Used in Reminder and Recurrence sheets for individual options.
+- **Radius**: `16.0`.
+- **Selected State**: 
+  - Background: `primary.withValues(alpha: 0.08)`.
+  - Border: `primary.withValues(alpha: 0.2)` with `1.5` thickness.
+  - Color: `primary` for icon, text, and trailing checkmark.
+- **Unselected State**: Transparent background/border, `onSurfaceVariant` icon, `onSurface` text.
+- **Animation**: `AnimatedContainer` with `200ms` duration for smooth selection feedback.
+- **Layout**: Leading Icon -> Spacing -> Expanded Label -> Trailing Checkmark (if selected).
+
+### Action Items (Sheet Buttons)
+- **Design**: Used for "Custom" or "Manual" selection entries in sheets.
+- **Layout**: Similar to Picker Options but usually with a `secondary` or `primary` icon container (0.1 alpha) and a trailing arrow (`strokeRoundedArrowLeft01`).
+- **Padding**: Consistent `12px` vertical and horizontal padding.
+- **Radius**: `16.0`.
+
 ### Capsules & Badges
 - Used for Categories and Priorities.
 - **Design**: Pill-shaped with a background alpha of `0.15` and a 1.5px border of `0.5` alpha.
