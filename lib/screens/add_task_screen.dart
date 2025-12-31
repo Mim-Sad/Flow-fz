@@ -2148,6 +2148,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
+                                          const SizedBox(height: 4),
                                           Text(
                                             _recurrence?.endDate != null
                                                 ? _formatJalali(
@@ -2719,15 +2720,30 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                           ),
                           const SizedBox(width: 14),
                           Expanded(
-                            child: Text(
-                              (_recurrence != null &&
-                                      _recurrence!.type != RecurrenceType.none)
-                                  ? 'انتخاب دستی ساعت'
-                                  : 'انتخاب دستی تاریخ و ساعت',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  (_recurrence != null &&
+                                          _recurrence!.type != RecurrenceType.none)
+                                      ? 'انتخاب دستی ساعت'
+                                      : 'انتخاب دستی تاریخ و ساعت',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _getReminderSubtitle(),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           HugeIcon(
