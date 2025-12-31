@@ -526,14 +526,159 @@ class DatabaseService {
 
   Future<int> insertGoal(Goal goal) async {
     Database db = await database;
-    return await db.insert('goals', goal.toMap());
+    final now = DateTime.now().toIso8601String();
+    final map = goal.toMap();
+    map['updatedAt'] = now;
+
+    // Convert attachment paths to media IDs
+    final List<int> mediaIds = [];
+    for (var attachment in goal.attachments) {
+      if (RegExp(r'^\d+$').hasMatch(attachment)) {
+        mediaIds.add(int.parse(attachment));
+      } else {
+        final file = File(attachment);
+        if (await file.exists()) {
+          final fileName = attachment.split('/').last;
+          final fileSize = await file.length();
+          final mimeType = _getMimeType(fileName);
+
+          final mediaId = await insertMedia(
+            filePath: attachment,
+            fileName: fileName,
+            fileSize: fileSize,
+            mimeType: mimeType,
+            goalId: null, // Will be updated after goal is created
+          );
+          mediaIds.add(mediaId);
+        }
+      }
+    }
+
+    // Handle audioPath if it exists and is not already a media entry
+    if (goal.audioPath != null && goal.audioPath!.isNotEmpty) {
+      final audioFile = File(goal.audioPath!);
+      if (await audioFile.exists()) {
+        final fileName = goal.audioPath!.split('/').last;
+        final fileSize = await audioFile.length();
+        final mimeType = _getMimeType(fileName);
+
+        final mediaId = await insertMedia(
+          filePath: goal.audioPath!,
+          fileName: fileName,
+          fileSize: fileSize,
+          mimeType: mimeType,
+          goalId: null,
+        );
+        // We don't add audioPath to mediaIds list as it's a separate field, 
+        // but we'll update its goalId later.
+        mediaIds.add(mediaId);
+      }
+    }
+
+    map['attachments'] = json.encode(
+      mediaIds.map((id) => id.toString()).toList(),
+    );
+
+    final id = await db.insert('goals', map);
+
+    // Update media entries with goalId
+    if (mediaIds.isNotEmpty) {
+      final placeholders = mediaIds.map((_) => '?').join(',');
+      await db.update(
+        'media',
+        {'goalId': id},
+        where: 'id IN ($placeholders)',
+        whereArgs: mediaIds,
+      );
+    }
+
+    return id;
   }
 
   Future<int> updateGoal(Goal goal) async {
     Database db = await database;
+    final now = DateTime.now().toIso8601String();
+    final map = goal.toMap();
+    map['updatedAt'] = now;
+
+    // Get old attachments to find what to delete
+    final oldGoal = await getGoalById(goal.id!);
+    List<int> oldMediaIds = [];
+    if (oldGoal != null) {
+      try {
+        oldMediaIds = oldGoal.attachments
+            .where((a) => RegExp(r'^\d+$').hasMatch(a))
+            .map((a) => int.parse(a))
+            .toList();
+        if (oldGoal.audioPath != null && RegExp(r'^\d+$').hasMatch(oldGoal.audioPath!)) {
+           oldMediaIds.add(int.parse(oldGoal.audioPath!));
+        }
+      } catch (_) {}
+    }
+
+    // Convert new attachment paths to media IDs
+    final List<int> newMediaIds = [];
+    for (var attachment in goal.attachments) {
+      if (RegExp(r'^\d+$').hasMatch(attachment)) {
+        newMediaIds.add(int.parse(attachment));
+      } else {
+        final file = File(attachment);
+        if (await file.exists()) {
+          final fileName = attachment.split('/').last;
+          final fileSize = await file.length();
+          final mimeType = _getMimeType(fileName);
+
+          final mediaId = await insertMedia(
+            filePath: attachment,
+            fileName: fileName,
+            fileSize: fileSize,
+            mimeType: mimeType,
+            goalId: goal.id,
+          );
+          newMediaIds.add(mediaId);
+        }
+      }
+    }
+
+    // Handle audioPath
+    if (goal.audioPath != null && goal.audioPath!.isNotEmpty) {
+      if (RegExp(r'^\d+$').hasMatch(goal.audioPath!)) {
+        newMediaIds.add(int.parse(goal.audioPath!));
+      } else {
+        final audioFile = File(goal.audioPath!);
+        if (await audioFile.exists()) {
+          final fileName = goal.audioPath!.split('/').last;
+          final fileSize = await audioFile.length();
+          final mimeType = _getMimeType(fileName);
+
+          final mediaId = await insertMedia(
+            filePath: goal.audioPath!,
+            fileName: fileName,
+            fileSize: fileSize,
+            mimeType: mimeType,
+            goalId: goal.id,
+          );
+          newMediaIds.add(mediaId);
+          map['audioPath'] = mediaId.toString();
+        }
+      }
+    }
+
+    // Delete media that are no longer referenced
+    final mediaToDelete = oldMediaIds
+        .where((id) => !newMediaIds.contains(id))
+        .toList();
+    for (var mediaId in mediaToDelete) {
+      await deleteMedia(mediaId);
+    }
+
+    map['attachments'] = json.encode(
+      newMediaIds.map((id) => id.toString()).toList(),
+    );
+
     return await db.update(
       'goals',
-      goal.toMap(),
+      map,
       where: 'id = ?',
       whereArgs: [goal.id],
     );
@@ -1012,15 +1157,17 @@ class DatabaseService {
   // Export/Import Logic
   Future<Map<String, dynamic>> exportData() async {
     final tasks = await getAllTasks(includeDeleted: true);
+    final goals = await getAllGoals(includeDeleted: true);
     final categories = await getAllCategories();
     final db = await database;
     final events = await db.query('task_events');
     final settings = await db.query('settings');
 
     return {
-      'version': 2, // Updated version for new array-based status structure
+      'version': 3, // Increment version for goals support
       'timestamp': DateTime.now().toIso8601String(),
       'tasks': tasks.map((t) => t.toMap()).toList(),
+      'goals': goals.map((g) => g.toMap()).toList(),
       'categories': categories.map((c) => c.toMap()).toList(),
       'events': events,
       'settings': settings,
@@ -1262,7 +1409,65 @@ class DatabaseService {
           }
         }
 
-        // 2. Import Tasks (Deduplicate by title, description, and dueDate)
+        // 2. Import Goals
+        Map<int, int> goalIdMap = {}; // oldId -> newId
+        if (data['goals'] != null) {
+          final goalsList = (data['goals'] as List).cast<Map<String, dynamic>>();
+          debugPrint('Importing ${goalsList.length} goals...');
+
+          final existingGoals = await txn.query('goals');
+
+          for (var goalMap in goalsList) {
+            final oldId = goalMap['id'] as int?;
+            final title = goalMap['title'] as String? ?? '';
+            final description = goalMap['description'] as String? ?? '';
+
+            // Deduplication: same title and description
+            final duplicate = existingGoals.firstWhere(
+              (g) => g['title'] == title && g['description'] == description,
+              orElse: () => {},
+            );
+
+            if (duplicate.isNotEmpty) {
+              if (oldId != null) goalIdMap[oldId] = duplicate['id'] as int;
+              debugPrint('Skipping duplicate goal: $title');
+            } else {
+              // New goal
+              final newGoalMap = Map<String, dynamic>.from(goalMap);
+              newGoalMap.remove('id');
+
+              // Map categories
+              if (newGoalMap['categoryIds'] != null) {
+                try {
+                  final dynamic catsRaw = newGoalMap['categoryIds'];
+                  List<dynamic> cats;
+                  if (catsRaw is String) {
+                    cats = json.decode(catsRaw);
+                  } else if (catsRaw is List) {
+                    cats = catsRaw;
+                  } else {
+                    cats = [];
+                  }
+
+                  final List<String> updatedCats = [];
+                  for (var c in cats) {
+                    final catId = c.toString();
+                    updatedCats.add(categoryIdMap[catId] ?? catId);
+                  }
+                  newGoalMap['categoryIds'] = json.encode(updatedCats);
+                } catch (_) {}
+              }
+
+              newGoalMap['updatedAt'] = now;
+              newGoalMap['createdAt'] = newGoalMap['createdAt'] ?? now;
+
+              final newId = await txn.insert('goals', newGoalMap);
+              if (oldId != null) goalIdMap[oldId] = newId;
+            }
+          }
+        }
+
+        // 3. Import Tasks (Deduplicate by title, description, and dueDate)
         Map<int, int> taskIdMap = {}; // oldId -> newId
         if (data['tasks'] != null) {
           final tasksList = (data['tasks'] as List)
@@ -1362,6 +1567,34 @@ class DatabaseService {
                 }
               } else {
                 newTaskMap['categories'] = '[]';
+              }
+
+              // Map goalIds to new IDs if they changed
+              if (newTaskMap['goalIds'] != null) {
+                try {
+                  final dynamic goalsRaw = newTaskMap['goalIds'];
+                  List<dynamic> goals;
+                  if (goalsRaw is String) {
+                    goals = json.decode(goalsRaw);
+                  } else if (goalsRaw is List) {
+                    goals = goalsRaw;
+                  } else {
+                    goals = [];
+                  }
+
+                  final List<String> updatedGoalIds = [];
+                  for (var g in goals) {
+                    final oldGoalId = int.tryParse(g.toString());
+                    if (oldGoalId != null && goalIdMap.containsKey(oldGoalId)) {
+                      updatedGoalIds.add(goalIdMap[oldGoalId]!.toString());
+                    } else {
+                      updatedGoalIds.add(g.toString());
+                    }
+                  }
+                  newTaskMap['goalIds'] = json.encode(updatedGoalIds);
+                } catch (_) {
+                  newTaskMap['goalIds'] = '[]';
+                }
               }
 
               // Ensure tags is a JSON string
@@ -1622,6 +1855,76 @@ class DatabaseService {
         }
       }
 
+      // Update goal attachments and audioPath to use new media IDs and paths
+      if (data['goals'] != null && oldMediaIdToNewMediaId.isNotEmpty) {
+        final goalsList = data['goals'] as List;
+        for (var goal in goalsList) {
+          final goalMap = goal as Map<String, dynamic>;
+          
+          // 1. Update attachments
+          final attachmentsJson = goalMap['attachments'] as String?;
+          if (attachmentsJson != null && attachmentsJson.isNotEmpty) {
+            try {
+              final attachments = json.decode(attachmentsJson) as List;
+              final updatedAttachments = <String>[];
+
+              for (var attachment in attachments) {
+                final attachmentStr = attachment.toString();
+                if (RegExp(r'^\d+$').hasMatch(attachmentStr)) {
+                  final oldMediaId = int.parse(attachmentStr);
+                  final newMediaId = oldMediaIdToNewMediaId[oldMediaId];
+                  if (newMediaId != null) {
+                    updatedAttachments.add(newMediaId.toString());
+                  }
+                } else {
+                  updatedAttachments.add(attachmentStr);
+                }
+              }
+              goalMap['attachments'] = json.encode(updatedAttachments);
+            } catch (e) {
+              debugPrint('Error updating attachments for goal: $e');
+            }
+          }
+
+          // 2. Update audioPath
+          final oldAudioPath = goalMap['audioPath'] as String?;
+          if (oldAudioPath != null && oldAudioPath.isNotEmpty) {
+            // Find if this audioPath was associated with a media ID that we mapped
+            // Since we don't have a direct oldPath -> newPath mapping for all files,
+            // we check if the audioPath's media ID is in attachments and was mapped.
+            // Actually, we can use the oldMediaIdToNewPath mapping if we know the oldMediaId.
+            // But the JSON doesn't store the mediaId for audioPath directly.
+            
+            // However, we know that audioPath's media ID is in the attachments list.
+            // Let's find it.
+            try {
+              final attachments = json.decode(goalMap['attachments'] as String) as List;
+              for (var attachment in attachments) {
+                final attachmentStr = attachment.toString();
+                if (RegExp(r'^\d+$').hasMatch(attachmentStr)) {
+                  final newMediaId = int.parse(attachmentStr);
+                  // Find the new path for this new media ID
+                  final mediaEntry = await db.query(
+                    'media',
+                    where: 'id = ?',
+                    whereArgs: [newMediaId],
+                    limit: 1,
+                  );
+                  if (mediaEntry.isNotEmpty) {
+                    final newPath = mediaEntry.first['filePath'] as String;
+                    // Check if the filename matches (roughly)
+                    if (newPath.endsWith(oldAudioPath.split('/').last)) {
+                      goalMap['audioPath'] = newPath;
+                      break;
+                    }
+                  }
+                }
+              }
+            } catch (_) {}
+          }
+        }
+      }
+
       // Import the data
       await importData(data);
 
@@ -1676,7 +1979,54 @@ class DatabaseService {
         }
       }
 
-      debugPrint('Full data import completed successfully!');
+      // Update media entries with goal IDs after import
+      if (data['goals'] != null) {
+        final goalsList = data['goals'] as List;
+
+        for (var goal in goalsList) {
+          final goalMap = goal as Map<String, dynamic>;
+          final oldGoalId = goalMap['id'] as int?;
+          final attachmentsJson = goalMap['attachments'] as String?;
+
+          if (oldGoalId != null &&
+              attachmentsJson != null &&
+              attachmentsJson.isNotEmpty) {
+            try {
+              final attachments = json.decode(attachmentsJson) as List;
+              final title = goalMap['title'] as String? ?? '';
+              final description = goalMap['description'] as String? ?? '';
+
+              final newGoal = await db.query(
+                'goals',
+                where: 'title = ? AND description = ?',
+                whereArgs: [title, description],
+                limit: 1,
+              );
+
+              if (newGoal.isNotEmpty) {
+                final newGoalId = newGoal.first['id'] as int;
+
+                for (var attachment in attachments) {
+                  final attachmentStr = attachment.toString();
+                  if (RegExp(r'^\d+$').hasMatch(attachmentStr)) {
+                    final mediaId = int.parse(attachmentStr);
+                    await db.update(
+                      'media',
+                      {'goalId': newGoalId},
+                      where: 'id = ?',
+                      whereArgs: [mediaId],
+                    );
+                  }
+                }
+              }
+            } catch (e) {
+              debugPrint('Error updating media goal IDs: $e');
+            }
+          }
+        }
+      }
+
+      debugPrint('Full data import completed successfully');
     } catch (e) {
       debugPrint('Error during full data import: $e');
       rethrow;
@@ -1929,6 +2279,7 @@ class DatabaseService {
     int? fileSize,
     String? mimeType,
     int? taskId,
+    int? goalId,
   }) async {
     Database db = await database;
     final now = DateTime.now().toIso8601String();
@@ -1940,6 +2291,7 @@ class DatabaseService {
       'mimeType': mimeType,
       'createdAt': now,
       'taskId': taskId,
+      'goalId': goalId,
     });
   }
 
