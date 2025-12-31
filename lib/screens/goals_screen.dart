@@ -1,12 +1,14 @@
+import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:shamsi_date/shamsi_date.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 import '../widgets/audio_waveform_player.dart';
+import '../providers/tag_provider.dart';
+import '../utils/string_utils.dart';
 import '../models/goal.dart';
 import '../models/task.dart';
 import '../providers/goal_provider.dart';
@@ -148,6 +150,24 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
           final categoriesAsync = ref.watch(categoryProvider);
+
+          void addTag(String tag) {
+            final trimmedTag = tag.trim();
+            if (trimmedTag.isNotEmpty && !StringUtils.containsTag(tags, trimmedTag)) {
+              setModalState(() {
+                tags.add(trimmedTag);
+                tagController.clear();
+              });
+            } else if (trimmedTag.isNotEmpty) {
+              tagController.clear();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('این تگ قبلاً اضافه شده است', style: TextStyle(fontFamily: 'IRANSansX')),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
+          }
 
           return Container(
             decoration: BoxDecoration(
@@ -311,15 +331,6 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    'انتخاب دسته‌بندی',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
                                   SizedBox(
                                     width: double.infinity,
                                     child: Wrap(
@@ -382,28 +393,21 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                           const SizedBox(height: 20),
 
                           // Deadline
-                          Text(
-                            'تاریخ رسیدن به هدف',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
                           ListTile(
                             onTap: () async {
-                              final date = await showDatePicker(
+                              final pickedDate = await showPersianDatePicker(
                                 context: context,
-                                initialDate: selectedDeadline ?? DateTime.now(),
-                                firstDate: DateTime.now(),
-                                lastDate: DateTime.now().add(const Duration(days: 3650)),
+                                initialDate: selectedDeadline != null ? Jalali.fromDateTime(selectedDeadline!) : Jalali.now(),
+                                firstDate: Jalali.now(),
+                                lastDate: Jalali.now().addYears(10),
                               );
-                              if (date != null) setModalState(() => selectedDeadline = date);
+                              if (pickedDate != null) {
+                                final dt = pickedDate.toDateTime();
+                                setModalState(() => selectedDeadline = dt);
+                              }
                             },
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                            tileColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                             leading: Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
@@ -412,14 +416,21 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                               ),
                               child: const HugeIcon(icon: HugeIcons.strokeRoundedCalendar03, size: 20),
                             ),
-                            title: Text(
-                              selectedDeadline != null ? _formatJalali(Jalali.fromDateTime(selectedDeadline!)) : 'تعیین نشده',
-                              style: TextStyle(fontSize: 13, color: selectedDeadline != null ? Theme.of(context).colorScheme.primary : Colors.grey),
+                            title: const Text(
+                              'تاریخ رسیدن به هدف',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)
                             ),
-                            trailing: selectedDeadline != null ? IconButton(
-                              icon: const Icon(Icons.close, size: 18),
-                              onPressed: () => setModalState(() => selectedDeadline = null),
-                            ) : const Icon(Icons.chevron_left, size: 20),
+                            subtitle: Text(
+                              selectedDeadline != null 
+                                  ? _formatJalali(Jalali.fromDateTime(selectedDeadline!))
+                                  : 'تاریخی انتخاب نشده',
+                              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                            ),
+                            trailing: Icon(
+                              Icons.chevron_right, 
+                              size: 20, 
+                              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
+                            ),
                           ),
                           const SizedBox(height: 20),
 
@@ -461,35 +472,98 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                           const SizedBox(height: 20),
 
                           // Tags
-                          TextField(
-                            controller: tagController,
-                            style: const TextStyle(fontSize: 13),
-                            decoration: InputDecoration(
-                              hintText: 'تگ‌ها (با اینتر جدا کنید)',
-                              hintStyle: const TextStyle(fontSize: 13),
-                              prefixIcon: const HugeIcon(icon: HugeIcons.strokeRoundedTag01, size: 18),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(15),
-                                borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 0),
+                            child: TextField(
+                              controller: tagController,
+                              onChanged: (value) => setModalState(() {}),
+                              decoration: InputDecoration(
+                                hintText: 'افزودن تگ جدید...',
+                                hintStyle: const TextStyle(fontSize: 12),
+                                prefixIcon: Container(
+                                  margin: const EdgeInsetsDirectional.only(start: 14, end: 10),
+                                  child: HugeIcon(
+                                    icon: HugeIcons.strokeRoundedTag01, 
+                                    size: 20,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                                prefixIconConstraints: const BoxConstraints(
+                                  minWidth: 0,
+                                  minHeight: 0,
+                                ),
+                                suffixIcon: IconButton(
+                                  icon: const HugeIcon(
+                                    icon: HugeIcons.strokeRoundedAddCircle, 
+                                    size: 20
+                                  ),
+                                  onPressed: () => addTag(tagController.text),
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                               ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(15),
-                                borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              onSubmitted: (val) => addTag(val),
                             ),
-                            onSubmitted: (val) {
-                              if (val.trim().isNotEmpty) {
-                                setModalState(() {
-                                  if (!tags.contains(val.trim())) tags.add(val.trim());
-                                  tagController.clear();
-                                });
-                              }
-                            },
                           ),
-                          if (tags.isNotEmpty)
+
+                          // Suggestions (Centered and padded like main tags) - Shown first while typing
+                          if (tagController.text.isNotEmpty) ...[
+                            Consumer(
+                              builder: (context, ref, child) {
+                                final suggestions = ref.watch(tagSuggestionsProvider(tagController.text));
+                                final filteredSuggestions = suggestions
+                                    .where((s) => !StringUtils.containsTag(tags, s))
+                                    .take(5)
+                                    .toList();
+                                
+                                if (filteredSuggestions.isEmpty) return const SizedBox.shrink();
+                                
+                                return Padding(
+                                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                                  child: Center(
+                                    child: Wrap(
+                                      alignment: WrapAlignment.center,
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: filteredSuggestions.map((suggestion) => ActionChip(
+                                        label: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(suggestion, style: const TextStyle(fontSize: 11)),
+                                            const SizedBox(width: 4),
+                                            Icon(
+                                              Icons.add, 
+                                              size: 14, 
+                                              color: Theme.of(context).colorScheme.primary
+                                            ),
+                                          ],
+                                        ),
+                                        onPressed: () => addTag(suggestion),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        backgroundColor: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                                        side: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
+                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                                      )).toList(),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+
+                          // Added Tags (Centered and padded)
+                          if (tags.isNotEmpty) ...[
+                            const SizedBox(height: 12),
                             Padding(
-                              padding: const EdgeInsets.only(top: 12),
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
                               child: Center(
                                 child: Wrap(
                                   alignment: WrapAlignment.center,
@@ -518,6 +592,9 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                                 ),
                               ),
                             ),
+                          ],
+                            const SizedBox(height: 20),
+
                           const SizedBox(height: 20),
 
                           // Attachments
@@ -537,12 +614,15 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                               ),
                               const SizedBox(width: 12),
                               OutlinedButton.icon(
-                                onPressed: () => _toggleRecording(audioPath, (path, newAtts) {
-                                  setModalState(() {
-                                    audioPath = path;
-                                    attachments = newAtts;
-                                  });
-                                }, attachments),
+                                onPressed: () async {
+                                  await _toggleRecording(audioPath, (path, newAtts) {
+                                    setModalState(() {
+                                      audioPath = path;
+                                      attachments = newAtts;
+                                    });
+                                  }, attachments);
+                                  setModalState(() {});
+                                },
                                 icon: HugeIcon(
                                   icon: _isRecording ? HugeIcons.strokeRoundedStop : HugeIcons.strokeRoundedMic01, 
                                   size: 18,
