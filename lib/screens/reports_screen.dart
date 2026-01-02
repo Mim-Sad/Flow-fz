@@ -307,6 +307,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       );
 
       if (_viewMode != 0) {
+        final rangeAvg = relevantTasksLength > 0
+            ? (successCount / relevantTasksLength) * 100
+            : 0.0;
         content.addAll([
           const SizedBox(height: 32),
           Center(
@@ -337,10 +340,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
           const SizedBox(height: 18),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 18),
             child: SizedBox(
               height: 200,
-              child: _buildSuccessRateChart(filteredTasks),
+              child: _buildSuccessRateChart(filteredTasks, rangeAvg),
             ),
           ),
         ]);
@@ -1180,7 +1183,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  Widget _buildSuccessRateChart(List<Task> filteredTasks) {
+  Widget _buildSuccessRateChart(List<Task> filteredTasks, double rangeAvg) {
     List<FlSpot> spots = [];
     List<String> labels = [];
 
@@ -1324,6 +1327,29 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             );
           },
         ),
+        extraLinesData: ExtraLinesData(
+          horizontalLines: [
+            if (rangeAvg > 0)
+              HorizontalLine(
+                y: rangeAvg,
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
+                strokeWidth: 1,
+                dashArray: [4, 4],
+                label: HorizontalLineLabel(
+                  show: true,
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: -18, bottom: 2),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                    fontFeatures: const [FontFeature.enable('ss01')],
+                  ),
+                  labelResolver: (line) => '${_toPersianDigit(rangeAvg.toInt().toString())}٪',
+                ),
+              ),
+          ],
+        ),
         titlesData: FlTitlesData(
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
@@ -1332,7 +1358,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               getTitlesWidget: (value, meta) {
                 if (value < 0 || value > 100) return const SizedBox.shrink();
                 return Text(
-                  '${value.toInt()}%',
+                  '  ${value.toInt()}%  ',
                   style: const TextStyle(fontSize: 9),
                 );
               },
