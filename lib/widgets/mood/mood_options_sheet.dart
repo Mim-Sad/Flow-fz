@@ -387,7 +387,7 @@ class MoodOptionsSheet extends ConsumerWidget {
   }
 
   dynamic _getIconData(String name) {
-    if (name.length <= 2) return name;
+    if (!name.startsWith('strokeRounded')) return name;
     switch (name) {
       case 'strokeRoundedFavourite':
         return HugeIcons.strokeRoundedFavourite;

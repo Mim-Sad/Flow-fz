@@ -27,6 +27,9 @@ class MoodCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final moodInfo = _getMoodInfo(entry.moodLevel);
+    final displayLabel = entry.label ?? moodInfo['label'] as String;
+    final displayEmoji = entry.emoji ?? moodInfo['icon'];
+
     final jalali = Jalali.fromDateTime(entry.dateTime);
     final f = jalali.formatter;
 
@@ -64,7 +67,7 @@ class MoodCard extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                   child: _buildIconOrEmoji(
-                    moodInfo['icon'],
+                    displayEmoji,
                     color: moodInfo['color'] as Color,
                     size: 24,
                   ),
@@ -75,7 +78,7 @@ class MoodCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        moodInfo['label'] as String,
+                        displayLabel,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: moodInfo['color'] as Color,
@@ -162,7 +165,7 @@ class MoodCard extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  HugeIcon(icon: HugeIcons.strokeRoundedAttachment01, size: 14, color: theme.colorScheme.primary),
+                  const Text('📎', style: TextStyle(fontSize: 14)),
                   const SizedBox(width: 4),
                   Text(
                     '${entry.attachments.length} فایل ضمیمه',
@@ -181,7 +184,7 @@ class MoodCard extends StatelessWidget {
 
   // Helper to map string names to HugeIcons data
   dynamic _getIconData(String name) {
-    if (name.length <= 2) return name;
+    if (!name.startsWith('strokeRounded')) return name;
     switch (name) {
       case 'strokeRoundedFavourite':
         return HugeIcons.strokeRoundedFavourite;

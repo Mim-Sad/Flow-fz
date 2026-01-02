@@ -28,12 +28,13 @@ class DatabaseService {
 
   // Mood Tables Creation
   Future<void> _createMoodTables(Database db) async {
-    // Mood Entries Table
     await db.execute('''
       CREATE TABLE IF NOT EXISTS mood_entries(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         dateTime TEXT NOT NULL,
         moodLevel INTEGER NOT NULL,
+        label TEXT,
+        emoji TEXT,
         note TEXT,
         attachments TEXT,
         createdAt TEXT NOT NULL,
@@ -86,7 +87,7 @@ class DatabaseService {
     // 1. Emotions (احساسات)
     final emotionsId = await db.insert('activity_categories', {
       'name': 'احساسات',
-      'iconName': 'strokeRoundedFavourite', // Heart
+      'iconName': '❤️',
       'sortOrder': 0,
       'isSystem': 1
     });
@@ -411,6 +412,16 @@ class DatabaseService {
     return await db.delete('activities', where: 'id = ?', whereArgs: [id]);
   }
 
+  Future<int> updateActivity(Activity activity) async {
+    Database db = await database;
+    return await db.update(
+      'activities',
+      activity.toMap(),
+      where: 'id = ?',
+      whereArgs: [activity.id],
+    );
+  }
+
   Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'flow_database.db');
     
@@ -418,7 +429,7 @@ class DatabaseService {
     try {
       db = await openDatabase(
         path,
-        version: 24,
+        version: 25,
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       );
@@ -850,6 +861,16 @@ class DatabaseService {
       await db.execute('DROP TABLE IF EXISTS activity_categories');
       await db.execute('DROP TABLE IF EXISTS mood_entries');
       await _createMoodTables(db);
+    }
+    if (oldVersion < 25) {
+      // Version 25: Add custom label and emoji to mood_entries
+      try {
+        await db.execute('ALTER TABLE mood_entries ADD COLUMN label TEXT');
+        await db.execute('ALTER TABLE mood_entries ADD COLUMN emoji TEXT');
+        debugPrint('✅ Added label and emoji columns to mood_entries table');
+      } catch (e) {
+        debugPrint('Error adding columns to mood_entries: $e');
+      }
     }
   }
 
@@ -1582,15 +1603,25 @@ class DatabaseService {
     final db = await database;
     final events = await db.query('task_events');
     final settings = await db.query('settings');
+    
+    // Export Mood Tracking Data
+    final moodEntries = await db.query('mood_entries');
+    final activityCategories = await db.query('activity_categories');
+    final activities = await db.query('activities');
+    final moodActivitiesLink = await db.query('mood_activities_link');
 
     return {
-      'version': 3, // Increment version for goals support
+      'version': 4, // Increment version for mood support
       'timestamp': DateTime.now().toIso8601String(),
       'tasks': tasks.map((t) => t.toMap()).toList(),
       'goals': goals.map((g) => g.toMap()).toList(),
       'categories': categories.map((c) => c.toMap()).toList(),
       'events': events,
       'settings': settings,
+      'mood_entries': moodEntries,
+      'activity_categories': activityCategories,
+      'activities': activities,
+      'mood_activities_link': moodActivitiesLink,
     };
   }
 
@@ -2118,6 +2149,100 @@ class DatabaseService {
               settingMap,
               conflictAlgorithm: ConflictAlgorithm.replace,
             );
+          }
+        }
+
+        // 5. Import Mood Tracking Data
+        Map<int, int> activityCategoryIdMap = {}; // oldId -> newId
+        if (data['activity_categories'] != null) {
+          final catList = (data['activity_categories'] as List)
+              .cast<Map<String, dynamic>>();
+          debugPrint('Importing ${catList.length} activity categories...');
+          final existingCats = await txn.query('activity_categories');
+          for (var catMap in catList) {
+            final oldId = catMap['id'] as int?;
+            final name = catMap['name'] as String? ?? '';
+
+            final duplicate = existingCats.firstWhere(
+              (c) => c['name'].toString().toLowerCase() == name.toLowerCase(),
+              orElse: () => {},
+            );
+
+            if (duplicate.isNotEmpty) {
+              if (oldId != null) {
+                activityCategoryIdMap[oldId] = duplicate['id'] as int;
+              }
+            } else {
+              final newCatMap = Map<String, dynamic>.from(catMap);
+              newCatMap.remove('id');
+              final newId = await txn.insert('activity_categories', newCatMap);
+              if (oldId != null) activityCategoryIdMap[oldId] = newId;
+            }
+          }
+        }
+
+        Map<int, int> activityIdMap = {}; // oldId -> newId
+        if (data['activities'] != null) {
+          final actList =
+              (data['activities'] as List).cast<Map<String, dynamic>>();
+          debugPrint('Importing ${actList.length} activities...');
+          final existingActs = await txn.query('activities');
+          for (var actMap in actList) {
+            final oldId = actMap['id'] as int?;
+            final name = actMap['name'] as String? ?? '';
+            final oldCatId = actMap['categoryId'] as int?;
+            final newCatId =
+                oldCatId != null ? activityCategoryIdMap[oldCatId] : null;
+
+            final duplicate = existingActs.firstWhere(
+              (a) =>
+                  a['name'].toString().toLowerCase() == name.toLowerCase() &&
+                  a['categoryId'] == (newCatId ?? a['categoryId']),
+              orElse: () => {},
+            );
+
+            if (duplicate.isNotEmpty) {
+              if (oldId != null) activityIdMap[oldId] = duplicate['id'] as int;
+            } else {
+              final newActMap = Map<String, dynamic>.from(actMap);
+              newActMap.remove('id');
+              if (newCatId != null) newActMap['categoryId'] = newCatId;
+              final newId = await txn.insert('activities', newActMap);
+              if (oldId != null) activityIdMap[oldId] = newId;
+            }
+          }
+        }
+
+        Map<int, int> moodIdMap = {}; // oldId -> newId
+        if (data['mood_entries'] != null) {
+          final moodList =
+              (data['mood_entries'] as List).cast<Map<String, dynamic>>();
+          debugPrint('Importing ${moodList.length} mood entries...');
+          for (var moodMap in moodList) {
+            final oldId = moodMap['id'] as int?;
+            final newMoodMap = Map<String, dynamic>.from(moodMap);
+            newMoodMap.remove('id');
+            final newId = await txn.insert('mood_entries', newMoodMap);
+            if (oldId != null) moodIdMap[oldId] = newId;
+          }
+        }
+
+        if (data['mood_activities_link'] != null) {
+          final linkList =
+              (data['mood_activities_link'] as List).cast<Map<String, dynamic>>();
+          debugPrint('Importing ${linkList.length} mood-activity links...');
+          for (var linkMap in linkList) {
+            final oldMoodId = linkMap['moodId'] as int?;
+            final oldActId = linkMap['activityId'] as int?;
+            final newMoodId = oldMoodId != null ? moodIdMap[oldMoodId] : null;
+            final newActId = oldActId != null ? activityIdMap[oldActId] : null;
+
+            if (newMoodId != null && newActId != null) {
+              await txn.insert('mood_activities_link', {
+                'moodId': newMoodId,
+                'activityId': newActId,
+              }, conflictAlgorithm: ConflictAlgorithm.ignore);
+            }
           }
         }
       });

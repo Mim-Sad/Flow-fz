@@ -128,7 +128,7 @@ class ActivityNotifier extends StateNotifier<ActivityState> {
     }
   }
 
-  Future<void> addCategory(String name, {String iconName = 'strokeRoundedFolder01'}) async {
+  Future<void> addCategory(String name, {String iconName = '🗄️'}) async {
     try {
       await _db.insertActivityCategory(name, iconName);
       await loadActivities();
@@ -149,7 +149,7 @@ class ActivityNotifier extends StateNotifier<ActivityState> {
     } catch (_) {}
   }
 
-  Future<void> addActivity(String name, int categoryId, String iconName) async {
+  Future<void> addActivity(String name, int categoryId, [String iconName = '✨']) async {
     try {
       await _db.insertActivity(name, iconName, categoryId);
       await loadActivities();
@@ -159,6 +159,13 @@ class ActivityNotifier extends StateNotifier<ActivityState> {
   Future<void> deleteActivity(int id) async {
     try {
       await _db.deleteActivity(id);
+      await loadActivities();
+    } catch (_) {}
+  }
+
+  Future<void> updateActivity(Activity activity) async {
+    try {
+      await _db.updateActivity(activity);
       await loadActivities();
     } catch (_) {}
   }
