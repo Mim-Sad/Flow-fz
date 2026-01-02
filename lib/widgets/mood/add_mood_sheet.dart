@@ -22,9 +22,6 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
   MoodLevel? _selectedMood;
   DateTime _selectedDate = DateTime.now();
   final TextEditingController _noteController = TextEditingController();
-  final TextEditingController _labelController = TextEditingController();
-  final TextEditingController _emojiController = TextEditingController();
-  String _selectedEmoji = '';
   final Set<int> _selectedActivityIds = {};
   final List<String> _attachments = [];
 
@@ -35,9 +32,6 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
       _selectedMood = widget.entry!.moodLevel;
       _selectedDate = widget.entry!.dateTime;
       _noteController.text = widget.entry!.note ?? '';
-      _labelController.text = widget.entry!.label ?? '';
-      _emojiController.text = widget.entry!.emoji ?? '';
-      _selectedEmoji = widget.entry!.emoji ?? '';
       _selectedActivityIds.addAll(widget.entry!.activityIds);
       _attachments.addAll(widget.entry!.attachments);
     }
@@ -55,13 +49,6 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
   void _onMoodSelected(Map<String, dynamic> mood) {
     setState(() {
       _selectedMood = mood['level'];
-      if (_labelController.text.trim().isEmpty || _moods.any((m) => m['label'] == _labelController.text.trim())) {
-        _labelController.text = mood['label'];
-      }
-      if (_selectedEmoji.isEmpty || _moods.any((m) => m['icon'] == _selectedEmoji)) {
-        _selectedEmoji = mood['icon'];
-        _emojiController.text = mood['icon'];
-      }
     });
   }
 
@@ -80,8 +67,6 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
       id: widget.entry?.id,
       dateTime: _selectedDate,
       moodLevel: _selectedMood!,
-      label: _labelController.text.trim().isEmpty ? null : _labelController.text.trim(),
-      emoji: _selectedEmoji.isEmpty ? null : _selectedEmoji,
       note: _noteController.text.isEmpty ? null : _noteController.text,
       activityIds: _selectedActivityIds.toList(),
       attachments: _attachments,
@@ -234,84 +219,6 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
             }).toList(),
           ),
           const SizedBox(height: 32),
-          // Custom Name and Emoji
-          Row(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-                  ),
-                ),
-                alignment: Alignment.center,
-                child: TextField(
-                  controller: _emojiController,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 24),
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                    isDense: true,
-                    hintText: '🤩',
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      if (value.characters.isNotEmpty) {
-                        _selectedEmoji = value.characters.last;
-                        _emojiController.text = _selectedEmoji;
-                        _emojiController.selection = TextSelection.fromPosition(
-                          TextPosition(offset: _emojiController.text.length),
-                        );
-                      } else {
-                        _selectedEmoji = '';
-                      }
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _labelController,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  decoration: InputDecoration(
-                    hintText: 'نام حالت شما...',
-                    hintStyle: TextStyle(
-                      fontSize: 14,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                    ),
-                    filled: true,
-                    fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(
-                        color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(
-                        color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(
-                        color: theme.colorScheme.primary,
-                        width: 1.5,
-                      ),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
           InkWell(
             onTap: _pickDateTime,
             borderRadius: BorderRadius.circular(12),

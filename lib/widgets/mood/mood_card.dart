@@ -27,8 +27,8 @@ class MoodCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final moodInfo = _getMoodInfo(entry.moodLevel);
-    final displayLabel = entry.label ?? moodInfo['label'] as String;
-    final displayEmoji = entry.emoji ?? moodInfo['icon'];
+    final displayLabel = moodInfo['label'] as String;
+    final displayEmoji = moodInfo['icon'];
 
     final jalali = Jalali.fromDateTime(entry.dateTime);
     final f = jalali.formatter;

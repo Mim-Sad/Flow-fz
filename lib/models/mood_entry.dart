@@ -12,8 +12,6 @@ class MoodEntry {
   final int? id;
   final DateTime dateTime;
   final MoodLevel moodLevel;
-  final String? label; // Custom label for this entry
-  final String? emoji; // Custom emoji for this entry
   final String? note;
   final List<String> attachments; // Paths to files/photos
   final List<int> activityIds; // Linked activities
@@ -24,8 +22,6 @@ class MoodEntry {
     this.id,
     required this.dateTime,
     required this.moodLevel,
-    this.label,
-    this.emoji,
     this.note,
     this.attachments = const [],
     this.activityIds = const [],
@@ -38,9 +34,8 @@ class MoodEntry {
       'id': id,
       'dateTime': dateTime.toIso8601String(),
       'moodLevel': moodLevel.index,
-      'label': label,
-      'emoji': emoji,
       'note': note,
+      'activityIds': json.encode(activityIds),
       'attachments': json.encode(attachments),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
@@ -52,13 +47,13 @@ class MoodEntry {
       id: map['id'],
       dateTime: DateTime.parse(map['dateTime']),
       moodLevel: MoodLevel.values[map['moodLevel'] ?? 2],
-      label: map['label'],
-      emoji: map['emoji'],
       note: map['note'],
+      activityIds: activities ?? (map['activityIds'] != null
+          ? List<int>.from(json.decode(map['activityIds']))
+          : []),
       attachments: map['attachments'] != null
           ? List<String>.from(json.decode(map['attachments']))
           : [],
-      activityIds: activities ?? [],
       createdAt: DateTime.parse(map['createdAt']),
       updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
     );
@@ -68,8 +63,6 @@ class MoodEntry {
     int? id,
     DateTime? dateTime,
     MoodLevel? moodLevel,
-    String? label,
-    String? emoji,
     String? note,
     List<String>? attachments,
     List<int>? activityIds,
@@ -80,8 +73,6 @@ class MoodEntry {
       id: id ?? this.id,
       dateTime: dateTime ?? this.dateTime,
       moodLevel: moodLevel ?? this.moodLevel,
-      label: label ?? this.label,
-      emoji: emoji ?? this.emoji,
       note: note ?? this.note,
       attachments: attachments ?? this.attachments,
       activityIds: activityIds ?? this.activityIds,

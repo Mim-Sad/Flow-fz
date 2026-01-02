@@ -33,9 +33,8 @@ class DatabaseService {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         dateTime TEXT NOT NULL,
         moodLevel INTEGER NOT NULL,
-        label TEXT,
-        emoji TEXT,
         note TEXT,
+        activityIds TEXT,
         attachments TEXT,
         createdAt TEXT NOT NULL,
         updatedAt TEXT
@@ -63,17 +62,6 @@ class DatabaseService {
         sortOrder INTEGER NOT NULL DEFAULT 0,
         isSystem INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (categoryId) REFERENCES activity_categories (id) ON DELETE CASCADE
-      )
-    ''');
-
-    // Link Table for Mood <-> Activity
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS mood_activities_link(
-        moodId INTEGER NOT NULL,
-        activityId INTEGER NOT NULL,
-        PRIMARY KEY (moodId, activityId),
-        FOREIGN KEY (moodId) REFERENCES mood_entries (id) ON DELETE CASCADE,
-        FOREIGN KEY (activityId) REFERENCES activities (id) ON DELETE CASCADE
       )
     ''');
 
@@ -197,11 +185,10 @@ class DatabaseService {
 
   Future<int> insertMoodEntry(MoodEntry entry) async {
     Database db = await database;
-    final now = DateTime.now().toIso8601String();
     final map = entry.toMap();
-    map['updatedAt'] = now;
+    map.remove('id');
 
-    // Handle Attachments (similar to tasks)
+    // Handle Attachments (Convert paths to media IDs)
     final List<int> mediaIds = [];
     for (var attachment in entry.attachments) {
       if (RegExp(r'^\d+$').hasMatch(attachment)) {
@@ -218,9 +205,7 @@ class DatabaseService {
             fileName: fileName,
             fileSize: fileSize,
             mimeType: mimeType,
-            taskId: null, // No task ID
-            // We might need to add moodId to media table later, or just keep it generic
-            // For now, we rely on the mood_entries table storing the media IDs
+            moodId: null, // Will be updated after entry is created
           );
           mediaIds.add(mediaId);
         }
@@ -228,18 +213,16 @@ class DatabaseService {
     }
     map['attachments'] = json.encode(mediaIds.map((id) => id.toString()).toList());
 
-    // Insert Entry
     final id = await db.insert('mood_entries', map);
 
-    // Insert Activity Links
-    final batch = db.batch();
-    for (var activityId in entry.activityIds) {
-      batch.insert('mood_activities_link', {
-        'moodId': id,
-        'activityId': activityId
-      });
+    // Update media entries with the new mood ID
+    if (mediaIds.isNotEmpty) {
+      await db.update(
+        'media',
+        {'moodId': id},
+        where: 'id IN (${mediaIds.join(',')})',
+      );
     }
-    await batch.commit();
 
     return id;
   }
@@ -267,7 +250,7 @@ class DatabaseService {
             fileName: fileName,
             fileSize: fileSize,
             mimeType: mimeType,
-            taskId: null,
+            moodId: entry.id,
           );
           mediaIds.add(mediaId);
         }
@@ -275,53 +258,21 @@ class DatabaseService {
     }
     map['attachments'] = json.encode(mediaIds.map((id) => id.toString()).toList());
 
-    return await db.transaction((txn) async {
-      // Update entry
-      final result = await txn.update(
-        'mood_entries',
-        map,
-        where: 'id = ?',
-        whereArgs: [entry.id],
-      );
-
-      // Update Activity Links
-      await txn.delete(
-        'mood_activities_link',
-        where: 'moodId = ?',
-        whereArgs: [entry.id],
-      );
-
-      final batch = txn.batch();
-      for (var activityId in entry.activityIds) {
-        batch.insert('mood_activities_link', {
-          'moodId': entry.id,
-          'activityId': activityId
-        });
-      }
-      await batch.commit();
-
-      return result;
-    });
+    return await db.update(
+      'mood_entries',
+      map,
+      where: 'id = ?',
+      whereArgs: [entry.id],
+    );
   }
 
   Future<List<MoodEntry>> getAllMoodEntries() async {
     Database db = await database;
     final maps = await db.query('mood_entries', orderBy: 'dateTime DESC');
-    
-    List<MoodEntry> entries = [];
-    
-    for (var map in maps) {
-      final id = map['id'] as int;
-      
-      // Get Activities
-      final activityLinks = await db.query(
-        'mood_activities_link',
-        columns: ['activityId'],
-        where: 'moodId = ?',
-        whereArgs: [id]
-      );
-      final activityIds = activityLinks.map((e) => e['activityId'] as int).toList();
 
+    List<MoodEntry> entries = [];
+
+    for (var map in maps) {
       // Get Attachments (resolve IDs to paths)
       final attachmentsJson = map['attachments'] as String?;
       List<String> attachments = [];
@@ -330,20 +281,35 @@ class DatabaseService {
           final List<dynamic> ids = json.decode(attachmentsJson);
           final mediaIds = ids.map((e) => int.parse(e.toString())).toList();
           if (mediaIds.isNotEmpty) {
-             final mediaList = await getMediaByIds(mediaIds);
-             attachments = mediaList.map((m) => m['filePath'] as String).toList();
+            final mediaList = await getMediaByIds(mediaIds);
+            attachments = mediaList.map((m) => m['filePath'] as String).toList();
           }
         } catch (_) {}
       }
 
-      entries.add(MoodEntry.fromMap(map, activities: activityIds).copyWith(attachments: attachments));
+      entries.add(MoodEntry.fromMap(map).copyWith(attachments: attachments));
     }
     return entries;
   }
 
   Future<int> deleteMoodEntry(int id) async {
     Database db = await database;
+    // Delete associated media files
+    await deleteMediaByMoodId(id);
     return await db.delete('mood_entries', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> deleteMediaByMoodId(int moodId) async {
+    Database db = await database;
+    final mediaList = await db.query(
+      'media',
+      where: 'moodId = ?',
+      whereArgs: [moodId],
+    );
+
+    for (var media in mediaList) {
+      await deleteMedia(media['id'] as int);
+    }
   }
 
   // --- Activity CRUD ---
@@ -862,16 +828,37 @@ class DatabaseService {
       await db.execute('DROP TABLE IF EXISTS mood_entries');
       await _createMoodTables(db);
     }
-    if (oldVersion < 25) {
-      // Version 25: Add custom label and emoji to mood_entries
-      try {
-        await db.execute('ALTER TABLE mood_entries ADD COLUMN label TEXT');
-        await db.execute('ALTER TABLE mood_entries ADD COLUMN emoji TEXT');
-        debugPrint('✅ Added label and emoji columns to mood_entries table');
-      } catch (e) {
-        debugPrint('Error adding columns to mood_entries: $e');
+    if (oldVersion < 26) {
+        // Version 26: Store activityIds directly in mood_entries and add moodId to media
+        try {
+          await db.execute('ALTER TABLE mood_entries ADD COLUMN activityIds TEXT');
+          await db.execute('ALTER TABLE media ADD COLUMN moodId INTEGER');
+          debugPrint('✅ Added activityIds to mood_entries and moodId to media table');
+          
+          // Migrate data from mood_activities_link to activityIds column
+          final List<Map<String, dynamic>> links = await db.query('mood_activities_link');
+          final Map<int, List<int>> moodActivities = {};
+          
+          for (final link in links) {
+            final moodId = link['moodId'] as int;
+            final activityId = link['activityId'] as int;
+            moodActivities[moodId] ??= [];
+            moodActivities[moodId]!.add(activityId);
+          }
+          
+          for (final entry in moodActivities.entries) {
+            await db.update(
+              'mood_entries',
+              {'activityIds': json.encode(entry.value)},
+              where: 'id = ?',
+              whereArgs: [entry.key],
+            );
+          }
+          debugPrint('✅ Migrated activity links to mood_entries table');
+        } catch (e) {
+          debugPrint('Error migrating mood activities and media: $e');
+        }
       }
-    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -1149,7 +1136,8 @@ class DatabaseService {
         mimeType TEXT,
         createdAt TEXT NOT NULL,
         taskId INTEGER,
-        goalId INTEGER
+        goalId INTEGER,
+        moodId INTEGER
       )
     ''');
   }
@@ -2835,6 +2823,7 @@ class DatabaseService {
     String? mimeType,
     int? taskId,
     int? goalId,
+    int? moodId,
   }) async {
     Database db = await database;
     final now = DateTime.now().toIso8601String();
@@ -2847,6 +2836,7 @@ class DatabaseService {
       'createdAt': now,
       'taskId': taskId,
       'goalId': goalId,
+      'moodId': moodId,
     });
   }
 

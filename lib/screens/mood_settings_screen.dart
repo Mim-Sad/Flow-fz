@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../../models/activity.dart';
 import '../../providers/mood_provider.dart';
+import '../../utils/emoji_suggester.dart';
 import '../widgets/flow_toast.dart';
 
 class MoodSettingsScreen extends ConsumerWidget {
@@ -196,6 +197,15 @@ class MoodSettingsScreen extends ConsumerWidget {
                               child: TextField(
                                 controller: nameController,
                                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                onChanged: (value) {
+                                  final suggested = EmojiSuggester.suggestEmoji(value);
+                                  if (suggested != null) {
+                                    setModalState(() {
+                                      selectedEmoji = suggested;
+                                      emojiController.text = suggested;
+                                    });
+                                  }
+                                },
                                 decoration: InputDecoration(
                                   hintText: 'نام دسته‌بندی',
                                   hintStyle: const TextStyle(fontSize: 14),
@@ -374,6 +384,15 @@ class MoodSettingsScreen extends ConsumerWidget {
                               child: TextField(
                                 controller: nameController,
                                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                onChanged: (value) {
+                                  final suggested = EmojiSuggester.suggestEmoji(value);
+                                  if (suggested != null) {
+                                    setModalState(() {
+                                      selectedEmoji = suggested;
+                                      emojiController.text = suggested;
+                                    });
+                                  }
+                                },
                                 decoration: InputDecoration(
                                   hintText: 'نام فعالیت (مثلاً: مطالعه)',
                                   hintStyle: const TextStyle(fontSize: 14),
