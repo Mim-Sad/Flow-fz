@@ -1,12 +1,67 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../services/notification_service.dart';
+import '../providers/task_provider.dart';
+import '../widgets/task_sheets.dart';
+import '../models/task.dart';
 
-class NavigationWrapper extends StatelessWidget {
+class NavigationWrapper extends ConsumerStatefulWidget {
   final Widget child;
 
   const NavigationWrapper({super.key, required this.child});
+
+  @override
+  ConsumerState<NavigationWrapper> createState() => _NavigationWrapperState();
+}
+
+class _NavigationWrapperState extends ConsumerState<NavigationWrapper> {
+  StreamSubscription? _notificationSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _notificationSubscription = NotificationService().onNotificationClick.listen((payload) {
+      if (payload != null) {
+        _handleNotificationClick(payload);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _notificationSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _handleNotificationClick(String payload) {
+    final taskId = int.tryParse(payload);
+    if (taskId == null) return;
+
+    // Use ref.read to get the current list of tasks
+    final allTasks = ref.read(tasksProvider);
+    final task = allTasks.cast<Task?>().firstWhere(
+      (t) => t?.id == taskId,
+      orElse: () => null,
+    );
+
+    if (task != null && mounted) {
+      // If a bottom sheet is already open, close it first
+      if (Navigator.canPop(context)) {
+        Navigator.popUntil(context, (route) => route.isFirst);
+      }
+      
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => TaskOptionsSheet(task: task, date: task.dueDate),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +151,7 @@ class NavigationWrapper extends StatelessWidget {
           const SizedBox(width: 8),
         ],
       ),
-      body: child,
+      body: widget.child,
       bottomNavigationBar: NavigationBarTheme(
         data: NavigationBarThemeData(
           height: 70, // Further reduced height

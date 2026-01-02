@@ -3,6 +3,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 import '../models/task.dart';
 
 class NotificationService {
@@ -12,6 +13,9 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
+
+  final _onNotificationClick = StreamController<String?>.broadcast();
+  Stream<String?> get onNotificationClick => _onNotificationClick.stream;
 
   Future<void> init() async {
     // Initialize timezone
@@ -51,9 +55,22 @@ class NotificationService {
     await _notificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        // Handle notification tap
+        debugPrint('🔔 Notification clicked with payload: ${response.payload}');
+        _onNotificationClick.add(response.payload);
       },
     );
+
+    // Check if app was launched via notification
+    final NotificationAppLaunchDetails? notificationAppLaunchDetails =
+        await _notificationsPlugin.getNotificationAppLaunchDetails();
+    if (notificationAppLaunchDetails?.didNotificationLaunchApp ?? false) {
+      final payload = notificationAppLaunchDetails?.notificationResponse?.payload;
+      debugPrint('🔔 App launched from notification with payload: $payload');
+      // Delay slightly to ensure listeners are ready
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _onNotificationClick.add(payload);
+      });
+    }
   }
 
   Future<bool> requestPermissions() async {

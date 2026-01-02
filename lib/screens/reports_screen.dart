@@ -831,6 +831,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   child: Text(
                     _formatMiladi(_selectedDate, _viewMode),
                     style: TextStyle(
+                      fontFeatures: [FontFeature.enable('ss00')],
                       fontSize: 10,
                       color: Theme.of(
                         context,
