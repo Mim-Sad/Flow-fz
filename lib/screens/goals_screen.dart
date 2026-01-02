@@ -1166,7 +1166,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
               },
               itemBuilder: (context, index) {
                 final goal = goals[index];
-                final progress = ref.watch(goalProgressProvider(goal.id!));
+                final progress = ref.watch(goalProgressProvider(GoalProgressArgs(goalId: goal.id!))) ?? 0.0;
 
                 return Container(
                   key: ValueKey(goal.id),

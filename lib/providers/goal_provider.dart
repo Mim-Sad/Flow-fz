@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/goal.dart';
 import '../models/task.dart';
@@ -53,14 +54,39 @@ final goalsProvider = StateNotifierProvider<GoalsNotifier, List<Goal>>((ref) {
   return GoalsNotifier(ref);
 });
 
+/// Arguments for goal progress calculation
+class GoalProgressArgs {
+  final int goalId;
+  final DateTimeRange? range;
+
+  GoalProgressArgs({required this.goalId, this.range});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GoalProgressArgs &&
+          runtimeType == other.runtimeType &&
+          goalId == other.goalId &&
+          range == other.range;
+
+  @override
+  int get hashCode => goalId.hashCode ^ range.hashCode;
+}
+
 /// Provider to calculate progress for a specific goal
-final goalProgressProvider = Provider.family<double, int>((ref, goalId) {
+final goalProgressProvider = Provider.family<double?, GoalProgressArgs>((ref, args) {
   final tasks = ref.watch(tasksProvider);
+  final goals = ref.watch(goalsProvider);
+  final goalId = args.goalId;
+  final range = args.range;
+  
+  // Find the goal to check for deadline
+  final goal = goals.firstWhere((g) => g.id == goalId, orElse: () => Goal(title: '', emoji: ''));
   
   // Find tasks linked to this goal
   final goalTasks = tasks.where((t) => t.goalIds.contains(goalId)).toList();
   
-  if (goalTasks.isEmpty) return 0.0;
+  if (goalTasks.isEmpty) return null;
 
   int totalExpected = 0;
   int totalCompleted = 0;
@@ -68,25 +94,60 @@ final goalProgressProvider = Provider.family<double, int>((ref, goalId) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
 
+  bool hasAnyRelevantTask = false;
+
   for (final task in goalTasks) {
     if (task.recurrence == null || task.recurrence!.type == RecurrenceType.none) {
       // One-off task
-      totalExpected += 1;
-      // Check if it's completed on any day
-      final hasCompleted = task.statusHistory.values.any((status) => status == TaskStatus.success.index);
-      if (hasCompleted) {
-        totalCompleted += 1;
+      final isRelevant = range != null 
+          ? (task.dueDate.isAfter(range.start) || isSameDay(task.dueDate, range.start)) &&
+            (task.dueDate.isBefore(range.end) || isSameDay(task.dueDate, range.end))
+          : true; // Overall includes all one-off tasks
+
+      if (isRelevant) {
+        hasAnyRelevantTask = true;
+        totalExpected += 1;
+        final status = task.getStatusForDate(task.dueDate);
+        if (status == TaskStatus.success) {
+          totalCompleted += 1;
+        }
       }
     } else {
-      // Recurring task - count from start date to today
-      DateTime current = DateTime(task.dueDate.year, task.dueDate.month, task.dueDate.day);
-      
-      while (current.isBefore(today) || isSameDay(current, today)) {
-        if (task.isActiveOnDate(current)) {
+      // Recurring task
+      DateTime start;
+      DateTime end;
+      DateTime completionEnd; // Only count completions up to today
+
+      if (range != null) {
+        start = range.start;
+        end = range.end;
+        completionEnd = end;
+      } else {
+        // Overall progress
+        start = task.dueDate;
+        // End date for "Overall" calculation:
+        // Use task's recurrence end date, or goal's deadline, or fallback to today
+        end = task.recurrence?.endDate ?? goal.deadline ?? today;
+        
+        // If the end is in the future, we still want to count total expected until that end
+        // but only completions until today.
+        completionEnd = today;
+      }
+
+      // We need to iterate through the range and check each day
+      DateTime current = start;
+      while (current.isBefore(end) || isSameDay(current, end)) {
+        // Only count if it's after or on the task's original due date
+        if ((current.isAfter(task.dueDate) || isSameDay(current, task.dueDate)) && task.isActiveOnDate(current)) {
+          hasAnyRelevantTask = true;
           totalExpected += 1;
-          final status = task.getStatusForDate(current);
-          if (status == TaskStatus.success) {
-            totalCompleted += 1;
+          
+          // Only count completion if it's within the range or (for overall) before today
+          if (current.isBefore(completionEnd) || isSameDay(current, completionEnd)) {
+            final status = task.getStatusForDate(current);
+            if (status == TaskStatus.success) {
+              totalCompleted += 1;
+            }
           }
         }
         current = current.add(const Duration(days: 1));
@@ -94,6 +155,7 @@ final goalProgressProvider = Provider.family<double, int>((ref, goalId) {
     }
   }
 
+  if (!hasAnyRelevantTask) return null;
   if (totalExpected == 0) return 0.0;
   return (totalCompleted / totalExpected) * 100;
 });

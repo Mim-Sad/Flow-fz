@@ -642,6 +642,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       range = DateTimeRange(start: jStart.toDateTime(), end: jEnd.toDateTime());
     }
 
+    // Filter goals that have tasks in the selected range
+    final activeGoals = goals.where((goal) {
+      final progress = ref.watch(
+        goalProgressProvider(GoalProgressArgs(goalId: goal.id!, range: range)),
+      );
+      return progress != null;
+    }).toList();
+
+    if (activeGoals.isEmpty) return const SizedBox.shrink();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -657,11 +667,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: goals.length,
+          itemCount: activeGoals.length,
           separatorBuilder: (context, index) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
-            final goal = goals[index];
-            final progress = ref.watch(goalProgressProvider(goal.id!));
+            final goal = activeGoals[index];
+            final progress = ref.watch(
+              goalProgressProvider(
+                GoalProgressArgs(goalId: goal.id!, range: range),
+              ),
+            );
 
             return InkWell(
               onTap: () {
@@ -744,20 +758,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(4),
                                       child: LinearProgressIndicator(
-                                        value: progress / 100,
-                                        backgroundColor: Theme.of(
-                                          context,
-                                        ).colorScheme.surfaceContainerHighest,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        minHeight: 6,
-                                      ),
+                                      value: progress! / 100,
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerHighest,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      minHeight: 6,
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '${_toPersianDigit(progress.toStringAsFixed(0))}%',
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${_toPersianDigit(progress.toStringAsFixed(0))}%',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
