@@ -13,8 +13,11 @@ import '../providers/theme_provider.dart';
 import '../widgets/animations.dart';
 import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
+import '../providers/mood_provider.dart';
+import '../providers/goal_provider.dart';
 import 'categories_screen.dart';
 import 'goals_screen.dart';
+import 'mood_settings_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -278,6 +281,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         // Invalidate and reload providers
         await ref.read(tasksProvider.notifier).reloadTasks();
         ref.invalidate(categoryProvider);
+        ref.invalidate(moodProvider);
+        ref.invalidate(activityProvider);
+        ref.invalidate(goalsProvider);
 
         // Re-initialize theme to defaults
         ref.invalidate(themeProvider);
@@ -451,6 +457,55 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => const GoalsScreen(),
+                    ),
+                  );
+                },
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Mood & Activity Management
+          FadeInOnce(
+            delay: 135.ms,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: onCardColor.withValues(alpha: 0.1),
+                  width: 1,
+                ),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 4,
+                ),
+                title: const Text(
+                  'تنظیمات مود و فعالیت‌ها',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                subtitle: const Text(
+                  'مدیریت دسته‌بندی‌ها و فعالیت‌های روزانه',
+                  style: TextStyle(fontSize: 12),
+                ),
+                leading: HugeIcon(
+                  icon: HugeIcons.strokeRoundedFlash,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                trailing: const HugeIcon(
+                  icon: HugeIcons.strokeRoundedArrowLeft01,
+                  color: Colors.grey,
+                  size: 20,
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MoodSettingsScreen(),
                     ),
                   );
                 },

@@ -83,6 +83,10 @@ class _NavigationWrapperState extends ConsumerState<NavigationWrapper> {
       currentIndex = 2;
       title = 'گزارشات';
       showLogo = true;
+    } else if (location == '/mood') {
+      currentIndex = 3;
+      title = 'مود';
+      showLogo = true;
     }
 
     final theme = Theme.of(context);
@@ -177,6 +181,9 @@ class _NavigationWrapperState extends ConsumerState<NavigationWrapper> {
             case 2:
               context.go('/reports');
               break;
+            case 3:
+              context.go('/mood');
+              break;
           }
         },
         destinations: [
@@ -194,6 +201,11 @@ class _NavigationWrapperState extends ConsumerState<NavigationWrapper> {
             icon: const HugeIcon(icon: HugeIcons.strokeRoundedChartLineData01),
             selectedIcon: HugeIcon(icon: HugeIcons.strokeRoundedChartLineData01, color: theme.colorScheme.primary),
             label: 'گزارشات',
+          ),
+          NavigationDestination(
+            icon: const HugeIcon(icon: HugeIcons.strokeRoundedSmileDizzy),
+            selectedIcon: HugeIcon(icon: HugeIcons.strokeRoundedSmileDizzy, color: theme.colorScheme.primary),
+            label: 'مود',
           ),
         ],
       ),

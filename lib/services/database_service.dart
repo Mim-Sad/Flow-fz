@@ -8,6 +8,8 @@ import 'package:path_provider/path_provider.dart';
 import '../models/task.dart';
 import '../models/goal.dart';
 import '../models/category_data.dart';
+import '../models/mood_entry.dart';
+import '../models/activity.dart';
 import '../constants/duck_emojis.dart';
 
 class DatabaseService {
@@ -24,6 +26,331 @@ class DatabaseService {
     return _database!;
   }
 
+  // Mood Tables Creation
+  Future<void> _createMoodTables(Database db) async {
+    // Mood Entries Table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS mood_entries(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        dateTime TEXT NOT NULL,
+        moodLevel INTEGER NOT NULL,
+        note TEXT,
+        attachments TEXT,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT
+      )
+    ''');
+
+    // Activity Categories Table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS activity_categories(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        iconName TEXT NOT NULL,
+        sortOrder INTEGER NOT NULL DEFAULT 0,
+        isSystem INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+
+    // Activities Table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS activities(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        iconName TEXT NOT NULL,
+        categoryId INTEGER NOT NULL,
+        sortOrder INTEGER NOT NULL DEFAULT 0,
+        isSystem INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (categoryId) REFERENCES activity_categories (id) ON DELETE CASCADE
+      )
+    ''');
+
+    // Link Table for Mood <-> Activity
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS mood_activities_link(
+        moodId INTEGER NOT NULL,
+        activityId INTEGER NOT NULL,
+        PRIMARY KEY (moodId, activityId),
+        FOREIGN KEY (moodId) REFERENCES mood_entries (id) ON DELETE CASCADE,
+        FOREIGN KEY (activityId) REFERENCES activities (id) ON DELETE CASCADE
+      )
+    ''');
+
+    // Insert Default Data
+    await _insertDefaultMoodData(db);
+  }
+
+  Future<void> _insertDefaultMoodData(dynamic db) async {
+    final batch = db.batch();
+
+    // 1. Emotions (احساسات)
+    final emotionsId = await db.insert('activity_categories', {
+      'name': 'احساسات',
+      'iconName': 'strokeRoundedFavourite', // Heart
+      'sortOrder': 0,
+      'isSystem': 1
+    });
+
+    final emotions = [
+      {'name': 'خوشحال', 'icon': '😊', 'cat': emotionsId},
+      {'name': 'هیجان‌زده', 'icon': '🤩', 'cat': emotionsId},
+      {'name': 'شکرگزار', 'icon': '🙏', 'cat': emotionsId},
+      {'name': 'آرام', 'icon': '😌', 'cat': emotionsId},
+      {'name': 'خسته', 'icon': '😴', 'cat': emotionsId},
+      {'name': 'بی‌حوصله', 'icon': '😑', 'cat': emotionsId},
+      {'name': 'مضطرب', 'icon': '😰', 'cat': emotionsId},
+      {'name': 'عصبانی', 'icon': '😠', 'cat': emotionsId},
+      {'name': 'غمگین', 'icon': '😢', 'cat': emotionsId},
+    ];
+
+    for (var i = 0; i < emotions.length; i++) {
+      batch.insert('activities', {
+        'name': emotions[i]['name'],
+        'iconName': emotions[i]['icon'],
+        'categoryId': emotions[i]['cat'],
+        'sortOrder': i,
+        'isSystem': 1
+      });
+    }
+
+    // 2. Hobbies (سرگرمی)
+    final hobbiesId = await db.insert('activity_categories', {
+      'name': 'سرگرمی',
+      'iconName': '🎮',
+      'sortOrder': 1,
+      'isSystem': 1
+    });
+
+    final hobbies = [
+      {'name': 'بازی', 'icon': '🕹️', 'cat': hobbiesId},
+      {'name': 'فیلم', 'icon': '🎬', 'cat': hobbiesId},
+      {'name': 'مطالعه', 'icon': '📚', 'cat': hobbiesId},
+      {'name': 'سفر', 'icon': '✈️', 'cat': hobbiesId},
+      {'name': 'موسیقی', 'icon': '🎵', 'cat': hobbiesId},
+      {'name': 'مهمانی', 'icon': '🥳', 'cat': hobbiesId},
+    ];
+
+    for (var i = 0; i < hobbies.length; i++) {
+      batch.insert('activities', {
+        'name': hobbies[i]['name'],
+        'iconName': hobbies[i]['icon'],
+        'categoryId': hobbies[i]['cat'],
+        'sortOrder': i,
+        'isSystem': 1
+      });
+    }
+
+    // 3. Sleep (خواب)
+    final sleepId = await db.insert('activity_categories', {
+      'name': 'خواب',
+      'iconName': '💤',
+      'sortOrder': 2,
+      'isSystem': 1
+    });
+
+    final sleep = [
+      {'name': 'خواب خوب', 'icon': '😴', 'cat': sleepId},
+      {'name': 'خواب معمولی', 'icon': '🥱', 'cat': sleepId},
+      {'name': 'خواب بد', 'icon': '😫', 'cat': sleepId},
+    ];
+
+    for (var i = 0; i < sleep.length; i++) {
+      batch.insert('activities', {
+        'name': sleep[i]['name'],
+        'iconName': sleep[i]['icon'],
+        'categoryId': sleep[i]['cat'],
+        'sortOrder': i,
+        'isSystem': 1
+      });
+    }
+
+    // 4. Health (سلامت)
+    final healthId = await db.insert('activity_categories', {
+      'name': 'سلامت',
+      'iconName': '🩺',
+      'sortOrder': 3,
+      'isSystem': 1
+    });
+
+    final health = [
+      {'name': 'ورزش', 'icon': '🏃', 'cat': healthId},
+      {'name': 'غذای سالم', 'icon': '🥗', 'cat': healthId},
+      {'name': 'آب نوشیدن', 'icon': '💧', 'cat': healthId},
+      {'name': 'پیاده‌روی', 'icon': '🚶', 'cat': healthId},
+    ];
+
+    for (var i = 0; i < health.length; i++) {
+      batch.insert('activities', {
+        'name': health[i]['name'],
+        'iconName': health[i]['icon'],
+        'categoryId': health[i]['cat'],
+        'sortOrder': i,
+        'isSystem': 1
+      });
+    }
+
+    await batch.commit();
+  }
+
+  // --- Mood CRUD ---
+
+  Future<int> insertMoodEntry(MoodEntry entry) async {
+    Database db = await database;
+    final now = DateTime.now().toIso8601String();
+    final map = entry.toMap();
+    map['updatedAt'] = now;
+
+    // Handle Attachments (similar to tasks)
+    final List<int> mediaIds = [];
+    for (var attachment in entry.attachments) {
+      if (RegExp(r'^\d+$').hasMatch(attachment)) {
+        mediaIds.add(int.parse(attachment));
+      } else {
+        final file = File(attachment);
+        if (await file.exists()) {
+          final fileName = attachment.split('/').last;
+          final fileSize = await file.length();
+          final mimeType = _getMimeType(fileName);
+
+          final mediaId = await insertMedia(
+            filePath: attachment,
+            fileName: fileName,
+            fileSize: fileSize,
+            mimeType: mimeType,
+            taskId: null, // No task ID
+            // We might need to add moodId to media table later, or just keep it generic
+            // For now, we rely on the mood_entries table storing the media IDs
+          );
+          mediaIds.add(mediaId);
+        }
+      }
+    }
+    map['attachments'] = json.encode(mediaIds.map((id) => id.toString()).toList());
+
+    // Insert Entry
+    final id = await db.insert('mood_entries', map);
+
+    // Insert Activity Links
+    final batch = db.batch();
+    for (var activityId in entry.activityIds) {
+      batch.insert('mood_activities_link', {
+        'moodId': id,
+        'activityId': activityId
+      });
+    }
+    await batch.commit();
+
+    return id;
+  }
+
+  Future<List<MoodEntry>> getAllMoodEntries() async {
+    Database db = await database;
+    final maps = await db.query('mood_entries', orderBy: 'dateTime DESC');
+    
+    List<MoodEntry> entries = [];
+    
+    for (var map in maps) {
+      final id = map['id'] as int;
+      
+      // Get Activities
+      final activityLinks = await db.query(
+        'mood_activities_link',
+        columns: ['activityId'],
+        where: 'moodId = ?',
+        whereArgs: [id]
+      );
+      final activityIds = activityLinks.map((e) => e['activityId'] as int).toList();
+
+      // Get Attachments (resolve IDs to paths)
+      final attachmentsJson = map['attachments'] as String?;
+      List<String> attachments = [];
+      if (attachmentsJson != null) {
+        try {
+          final List<dynamic> ids = json.decode(attachmentsJson);
+          final mediaIds = ids.map((e) => int.parse(e.toString())).toList();
+          if (mediaIds.isNotEmpty) {
+             final mediaList = await getMediaByIds(mediaIds);
+             attachments = mediaList.map((m) => m['filePath'] as String).toList();
+          }
+        } catch (_) {}
+      }
+
+      entries.add(MoodEntry.fromMap(map, activities: activityIds).copyWith(attachments: attachments));
+    }
+    return entries;
+  }
+
+  Future<int> deleteMoodEntry(int id) async {
+    Database db = await database;
+    return await db.delete('mood_entries', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // --- Activity CRUD ---
+
+  Future<List<ActivityCategory>> getAllActivityCategories() async {
+    Database db = await database;
+    final maps = await db.query('activity_categories', orderBy: 'sortOrder ASC');
+    return maps.map((e) => ActivityCategory.fromMap(e)).toList();
+  }
+
+  Future<List<Activity>> getActivitiesByCategoryId(int categoryId) async {
+    Database db = await database;
+    final maps = await db.query(
+      'activities', 
+      where: 'categoryId = ?', 
+      whereArgs: [categoryId],
+      orderBy: 'sortOrder ASC'
+    );
+    return maps.map((e) => Activity.fromMap(e)).toList();
+  }
+
+  Future<List<Activity>> getAllActivities() async {
+    Database db = await database;
+    final maps = await db.query('activities', orderBy: 'sortOrder ASC');
+    return maps.map((e) => Activity.fromMap(e)).toList();
+  }
+
+  Future<int> insertActivityCategory(String name, String iconName) async {
+    Database db = await database;
+    return await db.insert('activity_categories', {
+      'name': name,
+      'iconName': iconName,
+      'sortOrder': 0,
+      'isSystem': 0
+    });
+  }
+
+  Future<int> updateActivityCategory(ActivityCategory category) async {
+    Database db = await database;
+    return await db.update(
+      'activity_categories',
+      category.toMap(),
+      where: 'id = ?',
+      whereArgs: [category.id]
+    );
+  }
+
+  Future<int> deleteActivityCategory(int id) async {
+    Database db = await database;
+    return await db.delete('activity_categories', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> insertActivity(String name, String iconName, int categoryId) async {
+    Database db = await database;
+    return await db.insert('activities', {
+      'name': name,
+      'iconName': iconName,
+      'categoryId': categoryId,
+      'sortOrder': 0,
+      'isSystem': 0
+    });
+  }
+
+  Future<int> deleteActivity(int id) async {
+    Database db = await database;
+    return await db.delete('activities', where: 'id = ?', whereArgs: [id]);
+  }
+
   Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'flow_database.db');
     
@@ -31,7 +358,7 @@ class DatabaseService {
     try {
       db = await openDatabase(
         path,
-        version: 22,
+        version: 24,
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       );
@@ -452,6 +779,18 @@ class DatabaseService {
         debugPrint('Error adding reminderDateTime column to tasks: $e');
       }
     }
+    if (oldVersion < 23) {
+      // Version 23: Add mood tracking tables
+      await _createMoodTables(db);
+    }
+    if (oldVersion < 24) {
+      // Version 24: Drop and recreate mood tables to ensure clean state after emoji updates
+      await db.execute('DROP TABLE IF EXISTS mood_activities_link');
+      await db.execute('DROP TABLE IF EXISTS activities');
+      await db.execute('DROP TABLE IF EXISTS activity_categories');
+      await db.execute('DROP TABLE IF EXISTS mood_entries');
+      await _createMoodTables(db);
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -482,6 +821,7 @@ class DatabaseService {
     await _createCategoriesTable(db);
     await _createMediaTable(db);
     await _createGoalsTable(db);
+    await _createMoodTables(db);
     await db.execute('''
       CREATE TABLE IF NOT EXISTS task_events(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2227,11 +2567,21 @@ class DatabaseService {
       await txn.delete('task_events');
       await txn.delete('settings');
       await txn.delete('categories');
+      await txn.delete('goals');
+      
+      // Clear mood tables
+      await txn.delete('mood_activities_link');
+      await txn.delete('activities');
+      await txn.delete('activity_categories');
+      await txn.delete('mood_entries');
 
       // Re-insert default categories
       for (var cat in defaultCategories) {
         await txn.insert('categories', cat.toMap());
       }
+
+      // Re-insert default mood data
+      await _insertDefaultMoodData(txn);
     });
   }
 

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/home_screen.dart';
+import 'screens/mood_screen.dart';
 import 'screens/planning_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/settings_screen.dart';
@@ -60,6 +61,13 @@ final _router = GoRouter(
           pageBuilder: (context, state) => NoTransitionPage(
             key: state.pageKey,
             child: const ReportsScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/mood',
+          pageBuilder: (context, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: const MoodScreen(),
           ),
         ),
         GoRoute(
