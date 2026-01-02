@@ -81,6 +81,15 @@ class MoodNotifier extends StateNotifier<MoodState> {
     }
   }
 
+  Future<void> updateMood(MoodEntry entry) async {
+    try {
+      await _db.updateMoodEntry(entry);
+      await loadMoods();
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+    }
+  }
+
   Future<void> deleteMood(int id) async {
     try {
       await _db.deleteMoodEntry(id);

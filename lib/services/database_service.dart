@@ -243,6 +243,66 @@ class DatabaseService {
     return id;
   }
 
+  Future<int> updateMoodEntry(MoodEntry entry) async {
+    Database db = await database;
+    final now = DateTime.now().toIso8601String();
+    final map = entry.toMap();
+    map['updatedAt'] = now;
+
+    // Handle Attachments
+    final List<int> mediaIds = [];
+    for (var attachment in entry.attachments) {
+      if (RegExp(r'^\d+$').hasMatch(attachment)) {
+        mediaIds.add(int.parse(attachment));
+      } else {
+        final file = File(attachment);
+        if (await file.exists()) {
+          final fileName = attachment.split('/').last;
+          final fileSize = await file.length();
+          final mimeType = _getMimeType(fileName);
+
+          final mediaId = await insertMedia(
+            filePath: attachment,
+            fileName: fileName,
+            fileSize: fileSize,
+            mimeType: mimeType,
+            taskId: null,
+          );
+          mediaIds.add(mediaId);
+        }
+      }
+    }
+    map['attachments'] = json.encode(mediaIds.map((id) => id.toString()).toList());
+
+    return await db.transaction((txn) async {
+      // Update entry
+      final result = await txn.update(
+        'mood_entries',
+        map,
+        where: 'id = ?',
+        whereArgs: [entry.id],
+      );
+
+      // Update Activity Links
+      await txn.delete(
+        'mood_activities_link',
+        where: 'moodId = ?',
+        whereArgs: [entry.id],
+      );
+
+      final batch = txn.batch();
+      for (var activityId in entry.activityIds) {
+        batch.insert('mood_activities_link', {
+          'moodId': entry.id,
+          'activityId': activityId
+        });
+      }
+      await batch.commit();
+
+      return result;
+    });
+  }
+
   Future<List<MoodEntry>> getAllMoodEntries() async {
     Database db = await database;
     final maps = await db.query('mood_entries', orderBy: 'dateTime DESC');

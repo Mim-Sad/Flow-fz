@@ -10,7 +10,8 @@ import '../../providers/mood_provider.dart';
 import '../flow_toast.dart';
 
 class AddMoodSheet extends ConsumerStatefulWidget {
-  const AddMoodSheet({super.key});
+  final MoodEntry? entry;
+  const AddMoodSheet({super.key, this.entry});
 
   @override
   ConsumerState<AddMoodSheet> createState() => _AddMoodSheetState();
@@ -23,6 +24,18 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
   final TextEditingController _noteController = TextEditingController();
   final Set<int> _selectedActivityIds = {};
   final List<String> _attachments = [];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.entry != null) {
+      _selectedMood = widget.entry!.moodLevel;
+      _selectedDate = widget.entry!.dateTime;
+      _noteController.text = widget.entry!.note ?? '';
+      _selectedActivityIds.addAll(widget.entry!.activityIds);
+      _attachments.addAll(widget.entry!.attachments);
+    }
+  }
 
   // Mood Data
   final List<Map<String, dynamic>> _moods = [
@@ -45,17 +58,24 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
     if (_selectedMood == null) return;
 
     final entry = MoodEntry(
+      id: widget.entry?.id,
       dateTime: _selectedDate,
       moodLevel: _selectedMood!,
       note: _noteController.text.isEmpty ? null : _noteController.text,
       activityIds: _selectedActivityIds.toList(),
       attachments: _attachments,
-      createdAt: DateTime.now(),
+      createdAt: widget.entry?.createdAt ?? DateTime.now(),
+      updatedAt: widget.entry != null ? DateTime.now() : null,
     );
 
-    ref.read(moodProvider.notifier).addMood(entry);
+    if (widget.entry != null) {
+      ref.read(moodProvider.notifier).updateMood(entry);
+      FlowToast.show(context, message: 'مود شما با موفقیت ویرایش شد', type: FlowToastType.success);
+    } else {
+      ref.read(moodProvider.notifier).addMood(entry);
+      FlowToast.show(context, message: 'مود شما با موفقیت ثبت شد', type: FlowToastType.success);
+    }
     Navigator.pop(context);
-    FlowToast.show(context, message: 'مود شما با موفقیت ثبت شد', type: FlowToastType.success);
   }
 
   Future<void> _pickDateTime() async {

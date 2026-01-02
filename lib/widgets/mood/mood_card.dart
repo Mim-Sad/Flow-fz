@@ -4,6 +4,7 @@ import 'package:shamsi_date/shamsi_date.dart';
 import 'package:intl/intl.dart' as intl;
 import '../../models/mood_entry.dart';
 import '../../models/activity.dart';
+import 'mood_options_sheet.dart';
 
 class MoodCard extends StatelessWidget {
   final MoodEntry entry;
@@ -53,7 +54,7 @@ class MoodCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header: Icon, Mood Name, Time
+            // Header: Icon, Mood Name, Time, and More Button
             Row(
               children: [
                 Container(
@@ -69,23 +70,44 @@ class MoodCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      moodInfo['label'] as String,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: moodInfo['color'] as Color,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        moodInfo['label'] as String,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: moodInfo['color'] as Color,
+                        ),
                       ),
-                    ),
-                    Text(
-                      '${f.wN} ${f.d} ${f.mN} • ${intl.DateFormat('HH:mm').format(entry.dateTime)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                      Text(
+                        '${f.wN} ${f.d} ${f.mN} • ${intl.DateFormat('HH:mm').format(entry.dateTime)}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      useSafeArea: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => MoodOptionsSheet(
+                        entry: entry,
+                        allActivities: allActivities,
+                      ),
+                    );
+                  },
+                  icon: Icon(
+                    Icons.more_vert,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  ),
+                  visualDensity: VisualDensity.compact,
                 ),
               ],
             ),
