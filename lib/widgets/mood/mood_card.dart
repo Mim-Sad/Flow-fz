@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:shamsi_date/shamsi_date.dart';
 import 'package:intl/intl.dart' as intl;
@@ -18,6 +19,11 @@ class MoodCard extends StatelessWidget {
     Color? color,
   }) {
     if (iconData is String) {
+      if (iconData.endsWith('.svg')) {
+        return SvgPicture.asset(iconData, width: size, height: size);
+      } else if (iconData.endsWith('.png') || iconData.endsWith('.jpg')) {
+        return Image.asset(iconData, width: size, height: size);
+      }
       return Text(iconData, style: TextStyle(fontSize: size));
     }
     return HugeIcon(icon: iconData, size: size, color: color);
@@ -28,7 +34,7 @@ class MoodCard extends StatelessWidget {
     final theme = Theme.of(context);
     final moodInfo = _getMoodInfo(entry.moodLevel);
     final displayLabel = moodInfo['label'] as String;
-    final displayEmoji = moodInfo['icon'];
+    final displayIcon = moodInfo['icon'];
 
     final jalali = Jalali.fromDateTime(entry.dateTime);
     final f = jalali.formatter;
@@ -58,31 +64,46 @@ class MoodCard extends StatelessWidget {
         margin: EdgeInsets.zero,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.only(
-            left: 6,
-            right: 12,
-            top: 12,
-            bottom: 12,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        child: InkWell(
+          onTap: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              useSafeArea: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => MoodOptionsSheet(
+                entry: entry,
+                allActivities: allActivities,
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.only(
+              left: 6,
+              right: 12,
+              top: 12,
+              bottom: 12,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // Header: Icon, Mood Name, Time, and More Button
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: (moodInfo['color'] as Color).withValues(
                         alpha: 0.1,
                       ),
-                      shape: BoxShape.circle,
+                      shape: BoxShape.rectangle,
+                      borderRadius: BorderRadius.circular(18),
                     ),
                     child: _buildIconOrEmoji(
-                      displayEmoji,
+                      displayIcon,
                       color: moodInfo['color'] as Color,
-                      size: 24,
+                      size: 30,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -208,8 +229,9 @@ class MoodCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   // Helper to map string names to HugeIcons data
   dynamic _getIconData(String name) {
@@ -267,17 +289,11 @@ class MoodCard extends StatelessWidget {
   }
 
   Map<String, dynamic> _getMoodInfo(MoodLevel level) {
-    switch (level) {
-      case MoodLevel.rad:
-        return {'label': 'عالی', 'color': Colors.green, 'icon': '🤩'};
-      case MoodLevel.good:
-        return {'label': 'خوب', 'color': Colors.lightGreen, 'icon': '😊'};
-      case MoodLevel.meh:
-        return {'label': 'معمولی', 'color': Colors.amber, 'icon': '😐'};
-      case MoodLevel.bad:
-        return {'label': 'بد', 'color': Colors.orange, 'icon': '☹️'};
-      case MoodLevel.awful:
-        return {'label': 'خیلی بد', 'color': Colors.red, 'icon': '😫'};
-    }
+    return {
+      'label': level.label,
+      'color': level.color,
+      'icon': level.iconPath,
+      'emoji': level.emoji,
+    };
   }
 }

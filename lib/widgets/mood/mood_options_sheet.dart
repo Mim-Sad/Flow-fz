@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shamsi_date/shamsi_date.dart';
 import '../../models/mood_entry.dart';
 import '../../models/activity.dart';
@@ -74,15 +75,15 @@ class MoodOptionsSheet extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(18),
                               ),
                               alignment: Alignment.center,
-                              child: Text(
-                                moodInfo['icon'] as String,
-                                style: const TextStyle(fontSize: 26),
+                              child: _buildIconOrEmoji(
+                                moodInfo['icon'],
+                                size: 30,
                               ),
                             ),
                             const SizedBox(width: 14),
                             Expanded(
                               child: Text(
-                                'مود ثبت شده: ${moodInfo['label']}',
+                                '${moodInfo['label']}',
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -433,6 +434,11 @@ class MoodOptionsSheet extends ConsumerWidget {
 
   Widget _buildIconOrEmoji(dynamic iconData, {required double size, Color? color}) {
     if (iconData is String) {
+      if (iconData.endsWith('.svg')) {
+        return SvgPicture.asset(iconData, width: size, height: size);
+      } else if (iconData.endsWith('.png') || iconData.endsWith('.jpg')) {
+        return Image.asset(iconData, width: size, height: size);
+      }
       return Text(iconData, style: TextStyle(fontSize: size));
     }
     return HugeIcon(icon: iconData, size: size, color: color);
@@ -493,17 +499,11 @@ class MoodOptionsSheet extends ConsumerWidget {
   }
 
   Map<String, dynamic> _getMoodInfo(MoodLevel level) {
-    switch (level) {
-      case MoodLevel.rad:
-        return {'label': 'عالی', 'color': Colors.green, 'icon': '🤩'};
-      case MoodLevel.good:
-        return {'label': 'خوب', 'color': Colors.lightGreen, 'icon': '😊'};
-      case MoodLevel.meh:
-        return {'label': 'معمولی', 'color': Colors.amber, 'icon': '😐'};
-      case MoodLevel.bad:
-        return {'label': 'بد', 'color': Colors.orange, 'icon': '☹️'};
-      case MoodLevel.awful:
-        return {'label': 'خیلی بد', 'color': Colors.red, 'icon': '😫'};
-    }
+    return {
+      'label': level.label,
+      'color': level.color,
+      'icon': level.iconPath,
+      'emoji': level.emoji,
+    };
   }
 }

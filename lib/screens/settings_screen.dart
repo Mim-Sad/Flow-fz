@@ -491,7 +491,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   vertical: 4,
                 ),
                 title: const Text(
-                  'تنظیمات مود و فعالیت‌ها',
+                  'تنظیمات مود‌ها',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 subtitle: const Text(

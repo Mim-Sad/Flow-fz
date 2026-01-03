@@ -54,13 +54,12 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
   }
 
   // Mood Data
-  final List<Map<String, dynamic>> _moods = [
-    {'level': MoodLevel.rad, 'icon': 'assets/images/MoodsIcon/1.svg', 'color': const Color(0xFF4CAF50), 'label': 'عالی'},
-    {'level': MoodLevel.good, 'icon': 'assets/images/MoodsIcon/2.svg', 'color': const Color(0xFF8BC34A), 'label': 'خوب'},
-    {'level': MoodLevel.meh, 'icon': 'assets/images/MoodsIcon/3.svg', 'color': const Color(0xFF2196F3), 'label': 'معمولی'},
-    {'level': MoodLevel.bad, 'icon': 'assets/images/MoodsIcon/4.svg', 'color': const Color(0xFFFF9800), 'label': 'بد'},
-    {'level': MoodLevel.awful, 'icon': 'assets/images/MoodsIcon/5.svg', 'color': const Color(0xFFF44336), 'label': 'افتضاح'},
-  ];
+  final List<Map<String, dynamic>> _moods = MoodLevel.values.map((level) => {
+    'level': level,
+    'icon': level.iconPath,
+    'color': level.color,
+    'label': level.label,
+  }).toList();
 
   void _onMoodSelected(Map<String, dynamic> mood) {
     setState(() {
@@ -183,6 +182,8 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
     if (iconData is String) {
       if (iconData.endsWith('.svg')) {
         return SvgPicture.asset(iconData, width: size, height: size);
+      } else if (iconData.endsWith('.png') || iconData.endsWith('.jpg')) {
+        return Image.asset(iconData, width: size, height: size);
       }
       return Text(iconData, style: TextStyle(fontSize: size));
     }
@@ -338,10 +339,9 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SvgPicture.asset(
+                      _buildIconOrEmoji(
                         m['icon'],
-                        width: 48,
-                        height: 48,
+                        size: 48,
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -416,6 +416,18 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
                 style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const Spacer(),
+              if (_selectedMood != null) ...[
+                InkWell(
+                  onTap: () => setState(() => _step = 1),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    _moods.firstWhere((m) => m['level'] == _selectedMood)['icon'],
+                    width: 32,
+                    height: 32,
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               IconButton(
                 onPressed: () => setState(() => _step = 1),
                 icon: const HugeIcon(

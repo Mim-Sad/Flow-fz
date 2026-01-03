@@ -720,11 +720,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Color _getMoodColor(double value) {
-    if (value >= 4.5) return Colors.greenAccent;
-    if (value >= 3.5) return Colors.lightGreen;
-    if (value >= 2.5) return Colors.orangeAccent;
-    if (value >= 1.5) return Colors.orange;
-    return Colors.redAccent;
+    if (value >= 4.5) return MoodLevel.rad.color;
+    if (value >= 3.5) return MoodLevel.good.color;
+    if (value >= 2.5) return MoodLevel.meh.color;
+    if (value >= 1.5) return MoodLevel.bad.color;
+    return MoodLevel.awful.color;
   }
 
   @override

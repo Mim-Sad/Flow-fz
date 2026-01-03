@@ -32,7 +32,7 @@ class MoodSettingsScreen extends ConsumerWidget {
         surfaceTintColor: Colors.transparent,
         centerTitle: true,
         title: Text(
-          'مدیریت حالات و فعالیت‌ها',
+          'مدیریت مود‌ها و فعالیت‌ها',
           style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w800,
             fontSize: 16,
