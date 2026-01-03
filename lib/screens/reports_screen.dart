@@ -436,8 +436,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       children: [
         Center(
           child: Text(
-            'گزارش وضعیت روحی',
-            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            'گزارش وضعیت مودی',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
         ),
         const SizedBox(height: 18),
@@ -469,25 +471,33 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         ),
         
         const SizedBox(height: 32),
+      if (_viewMode != 0) ...[
         Center(
           child: Text(
             'روند تغییرات مود',
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
         ),
         const SizedBox(height: 18),
-        SizedBox(
-          height: 200,
-          child: _buildMoodTrendChart(moods, range),
-        ),
-
-        const SizedBox(height: 32),
-        Center(
-          child: Text(
-            'تاثیر فعالیت‌ها بر مود',
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          child: SizedBox(
+            height: 200,
+            child: _buildMoodTrendChart(moods, range, avgMood),
           ),
         ),
+        const SizedBox(height: 32),
+      ],
+      Center(
+        child: Text(
+          'تاثیر فعالیت‌ها بر مود',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
+      ),
         const SizedBox(height: 18),
         _buildActivityImpactChart(context, moods),
       ],
@@ -535,6 +545,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Text(
                 _toPersianDigit(value),
@@ -562,88 +573,213 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  Widget _buildMoodTrendChart(List<MoodEntry> moods, DateTimeRange range) {
-    if (moods.isEmpty) return const SizedBox.shrink();
+  Widget _buildMoodTrendChart(List<MoodEntry> moods, DateTimeRange range, double rangeAvg) {
+  if (moods.isEmpty) return const SizedBox.shrink();
 
-    // Group moods by day and calculate average
-    final Map<String, List<double>> dailyMoods = {};
-    for (var mood in moods) {
-      final key = intl.DateFormat('yyyy-MM-dd').format(mood.dateTime);
-      dailyMoods.putIfAbsent(key, () => []).add((5 - mood.moodLevel.index).toDouble());
-    }
+  // Group moods by day and calculate average
+  final Map<String, List<double>> dailyMoods = {};
+  for (var mood in moods) {
+    final key = intl.DateFormat('yyyy-MM-dd').format(mood.dateTime);
+    dailyMoods.putIfAbsent(key, () => []).add((5 - mood.moodLevel.index).toDouble());
+  }
 
-    final List<FlSpot> spots = [];
-    final List<String> dates = [];
-    
-    DateTime current = range.start;
-    int index = 0;
-    while (current.isBefore(range.end) || isSameDay(current, range.end)) {
-      final key = intl.DateFormat('yyyy-MM-dd').format(current);
+  final List<FlSpot> spots = [];
+  final List<String> labels = [];
+  
+  if (_viewMode == 1) {
+    // Weekly
+    final startOfWeek = range.start;
+    for (int i = 0; i < 7; i++) {
+      final day = startOfWeek.add(Duration(days: i));
+      final key = intl.DateFormat('yyyy-MM-dd').format(day);
       final dayMoods = dailyMoods[key];
       if (dayMoods != null) {
         final avg = dayMoods.reduce((a, b) => a + b) / dayMoods.length;
-        spots.add(FlSpot(index.toDouble(), avg));
+        spots.add(FlSpot(i.toDouble(), avg));
       }
-      dates.add(intl.DateFormat('MM/dd').format(current));
-      current = current.add(const Duration(days: 1));
-      index++;
+      final j = Jalali.fromDateTime(day);
+      labels.add('${j.formatter.wN.substring(0, 1)} ${j.day}');
     }
+  } else if (_viewMode == 2) {
+    // Monthly
+    final jalali = Jalali.fromDateTime(range.start);
+    final daysInMonth = jalali.monthLength;
+    for (int i = 1; i <= daysInMonth; i++) {
+      final day = Jalali(jalali.year, jalali.month, i).toDateTime();
+      final key = intl.DateFormat('yyyy-MM-dd').format(day);
+      final dayMoods = dailyMoods[key];
+      if (dayMoods != null) {
+        final avg = dayMoods.reduce((a, b) => a + b) / dayMoods.length;
+        spots.add(FlSpot(i.toDouble(), avg));
+      }
+      if (i % 5 == 0 || i == 1 || i == daysInMonth) {
+        labels.add(i.toString());
+      } else {
+        labels.add('');
+      }
+    }
+  }
 
-    if (spots.isEmpty) return const SizedBox.shrink();
+  if (spots.isEmpty) return const SizedBox.shrink();
 
-    return LineChart(
-      LineChartData(
-        gridData: const FlGridData(show: false),
-        titlesData: FlTitlesData(
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (value, meta) => Text(
-                _toPersianDigit(value.toInt().toString()),
-                style: const TextStyle(fontSize: 10),
+  final moodColor = _getMoodColor(rangeAvg);
+  final theme = Theme.of(context);
+
+  double minX = 0;
+  double maxX = 6;
+  if (_viewMode == 2) {
+    final jalali = Jalali.fromDateTime(range.start);
+    minX = 1;
+    maxX = jalali.monthLength.toDouble();
+  }
+
+  return LineChart(
+    LineChartData(
+      minX: minX,
+      maxX: maxX,
+      minY: 0.5,
+      maxY: 5.5,
+      gridData: FlGridData(
+        show: true,
+        drawVerticalLine: true,
+        horizontalInterval: 1,
+        verticalInterval: 1,
+        getDrawingVerticalLine: (value) => FlLine(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+          strokeWidth: 1,
+        ),
+        getDrawingHorizontalLine: (value) => FlLine(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+          strokeWidth: 1,
+        ),
+      ),
+      extraLinesData: ExtraLinesData(
+        horizontalLines: [
+          if (rangeAvg > 0)
+            HorizontalLine(
+              y: rangeAvg,
+              color: moodColor.withValues(alpha: 0.4),
+              strokeWidth: 1,
+              dashArray: [4, 4],
+              label: HorizontalLineLabel(
+                show: true,
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: -18, bottom: 2),
+                style: TextStyle(
+                  color: moodColor.withValues(alpha: 0.6),
+                  fontSize: 8,
+                  fontWeight: FontWeight.bold,
+                  fontFeatures: const [FontFeature.enable('ss01')],
+                ),
+                labelResolver: (line) => _toPersianDigit(rangeAvg.toStringAsFixed(1)),
               ),
-              reservedSize: 22,
             ),
+        ],
+      ),
+      titlesData: FlTitlesData(
+        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        leftTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            interval: 1,
+            getTitlesWidget: (value, meta) {
+              if (value % 1 != 0 || value < 1 || value > 5) return const SizedBox.shrink();
+              final idx = 5 - value.toInt();
+              if (idx < 0 || idx >= MoodLevel.values.length) return const SizedBox.shrink();
+              final mood = MoodLevel.values[idx];
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Center(
+                  child: Image.asset(
+                    mood.iconPath,
+                    width: 20,
+                    height: 20,
+                  ),
+                ),
+              );
+            },
+            reservedSize: 32,
           ),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (value, meta) {
-                if (dates.isEmpty) return const SizedBox.shrink();
-                final interval = (dates.length / 5).ceil();
-                if (value % (interval == 0 ? 1 : interval) != 0) return const SizedBox.shrink();
-                final idx = value.toInt();
-                if (idx < 0 || idx >= dates.length) return const SizedBox.shrink();
-                return Text(
-                  _toPersianDigit(dates[idx]),
-                  style: const TextStyle(fontSize: 10),
-                );
-              },
+        ),
+        bottomTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            interval: 1,
+            getTitlesWidget: (value, meta) {
+              int index = value.toInt();
+              if (_viewMode == 1) {
+                if (index >= 0 && index < labels.length) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      _toPersianDigit(labels[index]),
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  );
+                }
+              } else if (_viewMode == 2) {
+                if (index > 0 && index <= labels.length) {
+                  final label = labels[index - 1];
+                  if (label.isNotEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        _toPersianDigit(label),
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    );
+                  }
+                }
+              }
+              return const SizedBox.shrink();
+            },
+            reservedSize: 30,
+          ),
+        ),
+      ),
+      borderData: FlBorderData(show: false),
+      lineBarsData: [
+        LineChartBarData(
+          spots: spots,
+          isCurved: true,
+          gradient: LinearGradient(
+            colors: [
+              MoodLevel.awful.color,
+              MoodLevel.bad.color,
+              MoodLevel.meh.color,
+              MoodLevel.good.color,
+              MoodLevel.rad.color,
+            ],
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            stops: const [0.1, 0.3, 0.5, 0.7, 0.9],
+          ),
+          barWidth: 4,
+          isStrokeCapRound: true,
+          dotData: const FlDotData(show: false),
+          belowBarData: BarAreaData(
+            show: true,
+            gradient: LinearGradient(
+              colors: [
+                MoodLevel.rad.color.withValues(alpha: 0.2),
+                MoodLevel.awful.color.withValues(alpha: 0.0),
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
             ),
           ),
         ),
-        borderData: FlBorderData(show: false),
-        lineBarsData: [
-          LineChartBarData(
-            spots: spots,
-            isCurved: true,
-            color: Theme.of(context).colorScheme.primary,
-            barWidth: 4,
-            isStrokeCapRound: true,
-            dotData: const FlDotData(show: false),
-            belowBarData: BarAreaData(
-              show: true,
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-            ),
-          ),
-        ],
-        minY: 1,
-        maxY: 5,
-      ),
-    );
-  }
+      ],
+    ),
+  );
+}
 
   Widget _buildActivityImpactChart(BuildContext context, List<MoodEntry> moods) {
     if (moods.isEmpty) return const SizedBox.shrink();
