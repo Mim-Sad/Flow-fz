@@ -77,6 +77,15 @@ The app uses a dynamic color system seeded from a primary brand color.
 - **Design**: Pill-shaped with a background alpha of `0.15` and a 1.5px border of `0.5` alpha.
 - **Auto-Scroll**: Long labels or multiple categories in cards auto-scroll horizontally using a linear animation to prevent UI breakage.
 
+### Category Progress Capsules (Reports)
+- **Purpose**: To show progress per category in the reports screen.
+- **Design**: Pill-shaped (radius 20) with a background alpha of `0.1` and a subtle border of `0.2` alpha of the category color.
+- **Components**:
+  - **Leading**: `LottieCategoryIcon` (size 18, non-animated).
+  - **Center**: Category label (size 12, bold, category color).
+  - **Trailing**: Progress percentage badge (filled category color, white text, size 10, bold).
+- **Interaction**: `InkWell` (radius 20) redirects to the search screen filtered by category and current report range.
+
 ### FlowToast (Smart Notifications)
 - **Purpose**: To provide non-intrusive feedback for actions or errors.
 - **Design**: 

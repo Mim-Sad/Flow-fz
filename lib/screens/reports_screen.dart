@@ -8,7 +8,11 @@ import 'package:intl/intl.dart' as intl;
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import '../providers/task_provider.dart';
 import '../providers/goal_provider.dart';
+import '../providers/category_provider.dart';
 import '../models/task.dart';
+import '../models/category_data.dart';
+import '../constants/duck_emojis.dart';
+import '../widgets/lottie_category_icon.dart';
 import 'package:go_router/go_router.dart';
 import '../utils/route_builder.dart';
 import '../widgets/animations.dart';
@@ -349,7 +353,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         ]);
       }
 
-      content.addAll([const SizedBox(height: 32), _buildGoalsReport(context)]);
+      content.addAll([
+        const SizedBox(height: 32),
+        _buildCategoryCapsules(context, filteredTasks, range),
+        const SizedBox(height: 32),
+        _buildGoalsReport(context),
+      ]);
     } else {
       content.add(
         Center(
@@ -617,6 +626,177 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryCapsules(
+    BuildContext context,
+    List<Task> filteredTasks,
+    DateTimeRange range,
+  ) {
+    final categoriesAsync = ref.watch(categoryProvider);
+    return categoriesAsync.when(
+      data: (categories) {
+        // Group tasks by category
+        final Map<String, List<Task>> categoryTasks = {};
+        for (final task in filteredTasks) {
+          final catId = task.categories.isNotEmpty ? task.categories.first : 'uncategorized';
+          categoryTasks.putIfAbsent(catId, () => []).add(task);
+        }
+
+        if (categoryTasks.isEmpty) return const SizedBox.shrink();
+
+        // Filter categories that have tasks in this range
+        final activeCategories = categories
+            .where((cat) => categoryTasks.containsKey(cat.id))
+            .toList();
+
+        // Also check for "uncategorized"
+        bool hasUncategorized = categoryTasks.containsKey('uncategorized');
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Text(
+                'پیشرفت دسته‌بندی‌ها',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Center(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 10,
+                alignment: WrapAlignment.center,
+                children: [
+                  ...activeCategories.map((cat) {
+                    final tasks = categoryTasks[cat.id]!;
+                    return _buildCategoryCapsule(context, cat, tasks, range);
+                  }),
+                  if (hasUncategorized)
+                    _buildCategoryCapsule(
+                      context,
+                      const CategoryData(
+                        id: 'uncategorized',
+                        label: 'بدون دسته‌بندی',
+                        emoji: DuckEmojis.other,
+                        color: Colors.grey,
+                      ),
+                      categoryTasks['uncategorized']!,
+                      range,
+                    ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildCategoryCapsule(
+    BuildContext context,
+    CategoryData category,
+    List<Task> tasks,
+    DateTimeRange range,
+  ) {
+    int total = 0;
+    int completed = 0;
+
+    for (var t in tasks) {
+      if (t.status != TaskStatus.cancelled && t.status != TaskStatus.deferred) {
+        total++;
+        if (t.status == TaskStatus.success) {
+          completed++;
+        }
+      }
+    }
+
+    if (total == 0) return const SizedBox.shrink();
+
+    final progress = (completed / total) * 100;
+
+    return InkWell(
+      onTap: () {
+        context.push(
+          SearchRouteBuilder.buildSearchUrl(
+            categories: [category.id],
+            dateFrom: range.start,
+            dateTo: range.end,
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: IntrinsicWidth(
+          child: Stack(
+            children: [
+              // Progress Background
+              Positioned.fill(
+                child: FractionallySizedBox(
+                  alignment: Alignment.centerRight,
+                  widthFactor: progress / 100,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: category.color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+              // Content
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: category.color.withValues(alpha: 0.5),
+                    width: 1.5,
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    LottieCategoryIcon(
+                      assetPath: category.emoji,
+                      width: 22,
+                      height: 22,
+                      repeat: false,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      category.label,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: category.color,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${_toPersianDigit(progress.toStringAsFixed(0))}%',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        color: category.color,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
