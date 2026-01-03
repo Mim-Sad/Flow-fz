@@ -62,7 +62,7 @@ class MoodOptionsSheet extends ConsumerWidget {
                       ),
                     ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           textDirection: TextDirection.rtl,
@@ -82,25 +82,68 @@ class MoodOptionsSheet extends ConsumerWidget {
                             ),
                             const SizedBox(width: 14),
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    'مود ثبت شده: ${moodInfo['label']}',
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    textDirection: TextDirection.rtl,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  _buildParenthesesStyledText(
-                                    _formatDate(entry.dateTime),
-                                    theme.textTheme.bodySmall!.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
+                              child: Text(
+                                'مود ثبت شده: ${moodInfo['label']}',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textDirection: TextDirection.rtl,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        // Date and Time Info
+                        const SizedBox(height: 16),
+                        const Divider(height: 1, thickness: 0.5),
+                        const SizedBox(height: 16),
+
+                        // Date Row
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          textDirection: TextDirection.rtl,
+                          children: [
+                            HugeIcon(
+                              icon: HugeIcons.strokeRoundedCalendar03,
+                              size: 18,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _buildParenthesesStyledText(
+                                "تاریخ: ${_formatDate(entry.dateTime)}",
+                                TextStyle(
+                                  fontSize: 13,
+                                  color: theme.colorScheme.onSurface,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // Time Row
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          textDirection: TextDirection.rtl,
+                          children: [
+                            HugeIcon(
+                              icon: HugeIcons.strokeRoundedClock01,
+                              size: 18,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _buildParenthesesStyledText(
+                                "زمان: ${_toPersianDigit(_formatTime(entry.dateTime))}",
+                                TextStyle(
+                                  fontSize: 13,
+                                  color: theme.colorScheme.onSurface,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ],
@@ -170,7 +213,7 @@ class MoodOptionsSheet extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
 
                   // Actions List
                   Column(
@@ -330,22 +373,25 @@ class MoodOptionsSheet extends ConsumerWidget {
   String _formatDate(DateTime date) {
     final jDate = Jalali.fromDateTime(date);
     final now = Jalali.now();
-    final timeStr = _toPersianDigit(intl.DateFormat('HH:mm').format(date));
 
     if (jDate.year == now.year &&
         jDate.month == now.month &&
         jDate.day == now.day) {
-      return 'امروز (${_formatJalali(jDate)}) • ساعت $timeStr';
+      return 'امروز (${_formatJalali(jDate)})';
     }
 
     final tomorrow = now.addDays(1);
     if (jDate.year == tomorrow.year &&
         jDate.month == tomorrow.month &&
         jDate.day == tomorrow.day) {
-      return 'فردا (${_formatJalali(jDate)}) • ساعت $timeStr';
+      return 'فردا (${_formatJalali(jDate)})';
     }
 
-    return '${_formatJalali(jDate)} • ساعت $timeStr';
+    return _formatJalali(jDate);
+  }
+
+  String _formatTime(DateTime date) {
+    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
   Widget _buildActionTile(
@@ -362,7 +408,7 @@ class MoodOptionsSheet extends ConsumerWidget {
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
       leading: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(0),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
@@ -376,10 +422,9 @@ class MoodOptionsSheet extends ConsumerWidget {
           fontWeight: FontWeight.w600,
           color: color,
         ),
-        textAlign: TextAlign.right,
       ),
       trailing: Icon(
-        Icons.chevron_left,
+        Icons.chevron_right,
         size: 18,
         color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
       ),

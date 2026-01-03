@@ -136,7 +136,9 @@ class MoodCard extends StatelessWidget {
                 Text(
                   entry.note!,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface,
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w300,
                   ),
                 ),
               ],
