@@ -5,6 +5,10 @@ import 'package:shamsi_date/shamsi_date.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart' as pdp;
 import 'package:intl/intl.dart' as intl;
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
+import '../audio_waveform_player.dart';
 import '../../models/mood_entry.dart';
 import '../../providers/mood_provider.dart';
 import '../flow_toast.dart';
@@ -25,6 +29,10 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
   final Set<int> _selectedActivityIds = {};
   final List<String> _attachments = [];
 
+  // Audio Recording
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  bool _isRecording = false;
+
   @override
   void initState() {
     super.initState();
@@ -35,6 +43,13 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
       _selectedActivityIds.addAll(widget.entry!.activityIds);
       _attachments.addAll(widget.entry!.attachments);
     }
+  }
+
+  @override
+  void dispose() {
+    _audioRecorder.dispose();
+    _noteController.dispose();
+    super.dispose();
   }
 
   // Mood Data
@@ -110,12 +125,55 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
     }
   }
 
-  Future<void> _pickAttachment() async {
+  Future<void> _openFile(String path) async {
+    try {
+      final result = await OpenFilex.open(path);
+      if (result.type != ResultType.done) {
+        if (!mounted) return;
+        FlowToast.show(
+          context,
+          message: 'خطا در باز کردن فایل: ${result.message}',
+          type: FlowToastType.error,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error opening file: $e');
+      if (!mounted) return;
+      FlowToast.show(
+        context,
+        message: 'خطا در باز کردن فایل',
+        type: FlowToastType.error,
+      );
+    }
+  }
+
+  Future<void> _pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
     if (result != null && result.files.single.path != null) {
       setState(() {
         _attachments.add(result.files.single.path!);
       });
+    }
+  }
+
+  Future<void> _toggleRecording() async {
+    if (_isRecording) {
+      final path = await _audioRecorder.stop();
+      if (path != null) {
+        setState(() {
+          _attachments.add(path);
+        });
+      }
+      setState(() => _isRecording = false);
+    } else {
+      if (await _audioRecorder.hasPermission()) {
+        final directory = await getApplicationDocumentsDirectory();
+        final path =
+            '${directory.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+        await _audioRecorder.start(const RecordConfig(), path: path);
+        setState(() => _isRecording = true);
+      }
     }
   }
 
@@ -344,17 +402,38 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              IconButton(
-                onPressed: () => setState(() => _step = 1),
-                icon: const Icon(Icons.arrow_back),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: HugeIcon(
+                  icon: HugeIcons.strokeRoundedTaskEdit01,
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
               ),
+              const SizedBox(width: 14),
               Text(
                 'جزئیات',
                 style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
-              const SizedBox(width: 48), // Balance
+              const Spacer(),
+              IconButton(
+                onPressed: () => setState(() => _step = 1),
+                icon: const HugeIcon(
+                  icon: HugeIcons.strokeRoundedArrowLeft01,
+                  size: 22,
+                  color: Colors.grey,
+                ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                style: const ButtonStyle(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
             ],
           ),
         ),
@@ -434,65 +513,169 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
                   );
                 }),
 
-                const Divider(),
-                
                 // Note
-                TextField(
-                  controller: _noteController,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    hintText: 'یادداشت (اختیاری)...',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: TextField(
+                    controller: _noteController,
+                    maxLines: 2,
+                    style: const TextStyle(fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: 'یادداشت...',
+                      hintStyle: const TextStyle(fontSize: 13),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
-                    filled: true,
-                    fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                   ),
                 ),
                 
                 const SizedBox(height: 16),
                 
                 // Attachments
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const HugeIcon(icon: HugeIcons.strokeRoundedAttachment01, size: 24),
-                      onPressed: _pickAttachment,
-                    ),
-                    const SizedBox(width: 8),
-                    if (_attachments.isNotEmpty)
-                      Expanded(
-                        child: SizedBox(
-                          height: 60,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _attachments.length,
-                            itemBuilder: (context, index) {
-                              return Container(
-                                margin: const EdgeInsets.only(right: 8),
-                                width: 60,
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Center(
-                                  child: HugeIcon(icon: HugeIcons.strokeRoundedFile01, size: 20),
-                                ),
-                              );
-                            },
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: _pickFile,
+                        icon: const HugeIcon(
+                          icon: HugeIcons.strokeRoundedAttachment01,
+                          size: 18,
+                        ),
+                        label: const Text('پیوست فایل'),
+                        style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          side: BorderSide(
+                            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
                           ),
                         ),
-                      )
-                    else
-                      Text(
-                        'ضمیمه کردن فایل...',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        onPressed: _toggleRecording,
+                        icon: HugeIcon(
+                          icon: _isRecording
+                              ? HugeIcons.strokeRoundedStop
+                              : HugeIcons.strokeRoundedMic01,
+                          size: 18,
+                          color: _isRecording ? Colors.red : null,
+                        ),
+                        label: Text(
+                          _isRecording ? 'توقف ضبط' : 'ضبط صدا',
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: _isRecording ? Colors.red : null,
+                          side: _isRecording
+                              ? const BorderSide(color: Colors.red)
+                              : BorderSide(
+                                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                                ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
-                  ],
+                    ],
+                  ),
                 ),
+                if (_attachments.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Column(
+                      children: _attachments.map((att) {
+                        final name = att.split('/').last;
+                        final isVoice = name.startsWith('voice_') || att.endsWith('.m4a');
+                        final isImage = name.toLowerCase().endsWith('.jpg') ||
+                            name.toLowerCase().endsWith('.jpeg') ||
+                            name.toLowerCase().endsWith('.png') ||
+                            name.toLowerCase().endsWith('.gif') ||
+                            name.toLowerCase().endsWith('.webp');
+
+                        if (isVoice) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: AudioWaveformPlayer(
+                              audioPath: att,
+                              onDelete: () {
+                                setState(() {
+                                  _attachments.remove(att);
+                                });
+                              },
+                            ),
+                          );
+                        } else {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: InkWell(
+                              onTap: () => _openFile(att),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                height: 48, // Same height as audio player
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    HugeIcon(
+                                      icon: isImage
+                                          ? HugeIcons.strokeRoundedImage01
+                                          : HugeIcons.strokeRoundedFile01,
+                                      size: 18,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        name.length > 30 ? '${name.substring(0, 30)}...' : name,
+                                        style: const TextStyle(fontSize: 12),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _attachments.remove(att);
+                                        });
+                                      },
+                                      child: HugeIcon(
+                                        icon: HugeIcons.strokeRoundedCancel01,
+                                        size: 18,
+                                        color: theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                      }).toList(),
+                    ),
+                  ),
+                ],
                   
                 const SizedBox(height: 24),
               ],
