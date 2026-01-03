@@ -1039,7 +1039,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     if (key == 'combined') {
       title = 'تسک های ترکیبی';
       emoji = DuckEmojis.hypn;
-      color = const Color.fromARGB(255, 209, 104, 228);
+      color = Theme.of(context).colorScheme.primary;
     } else if (key == 'uncategorized') {
       title = 'بدون دسته‌بندی';
       emoji = DuckEmojis.other;
