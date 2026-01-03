@@ -172,13 +172,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             await DatabaseService().importData(data);
           }
 
-          // Invalidate providers to refresh data
-          // Instead of invalidating, we directly reload the notifier to ensure immediate state update
-          await ref.read(tasksProvider.notifier).reloadTasks();
+          // Reload all data explicitly and await them
+          await Future.wait([
+            ref.read(tasksProvider.notifier).reloadTasks(),
+            ref.read(goalsProvider.notifier).reloadGoals(),
+            ref.read(moodProvider.notifier).loadMoods(),
+            ref.read(activityProvider.notifier).loadActivities(),
+          ]);
+          
           ref.invalidate(categoryProvider);
-          ref.invalidate(
-            themeProvider,
-          ); // Also invalidate theme to load imported settings
+          ref.invalidate(themeProvider);
+          
+          // Wait a bit for invalidation to settle
+          await Future.delayed(const Duration(milliseconds: 500));
 
           if (mounted) {
             FlowToast.show(

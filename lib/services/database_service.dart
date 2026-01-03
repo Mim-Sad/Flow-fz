@@ -395,7 +395,7 @@ class DatabaseService {
     try {
       db = await openDatabase(
         path,
-        version: 25,
+        version: 27,
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       );
@@ -828,35 +828,13 @@ class DatabaseService {
       await db.execute('DROP TABLE IF EXISTS mood_entries');
       await _createMoodTables(db);
     }
-    if (oldVersion < 26) {
-        // Version 26: Store activityIds directly in mood_entries and add moodId to media
+    if (oldVersion < 27) {
+        // Version 27: Drop unused mood_activities_link table
         try {
-          await db.execute('ALTER TABLE mood_entries ADD COLUMN activityIds TEXT');
-          await db.execute('ALTER TABLE media ADD COLUMN moodId INTEGER');
-          debugPrint('✅ Added activityIds to mood_entries and moodId to media table');
-          
-          // Migrate data from mood_activities_link to activityIds column
-          final List<Map<String, dynamic>> links = await db.query('mood_activities_link');
-          final Map<int, List<int>> moodActivities = {};
-          
-          for (final link in links) {
-            final moodId = link['moodId'] as int;
-            final activityId = link['activityId'] as int;
-            moodActivities[moodId] ??= [];
-            moodActivities[moodId]!.add(activityId);
-          }
-          
-          for (final entry in moodActivities.entries) {
-            await db.update(
-              'mood_entries',
-              {'activityIds': json.encode(entry.value)},
-              where: 'id = ?',
-              whereArgs: [entry.key],
-            );
-          }
-          debugPrint('✅ Migrated activity links to mood_entries table');
+          await db.execute('DROP TABLE IF EXISTS mood_activities_link');
+          debugPrint('✅ Dropped unused mood_activities_link table');
         } catch (e) {
-          debugPrint('Error migrating mood activities and media: $e');
+          debugPrint('Error dropping mood_activities_link: $e');
         }
       }
   }
@@ -1596,10 +1574,9 @@ class DatabaseService {
     final moodEntries = await db.query('mood_entries');
     final activityCategories = await db.query('activity_categories');
     final activities = await db.query('activities');
-    final moodActivitiesLink = await db.query('mood_activities_link');
 
     return {
-      'version': 4, // Increment version for mood support
+      'version': 5, // Increment version for mood support refactor
       'timestamp': DateTime.now().toIso8601String(),
       'tasks': tasks.map((t) => t.toMap()).toList(),
       'goals': goals.map((g) => g.toMap()).toList(),
@@ -1609,7 +1586,6 @@ class DatabaseService {
       'mood_entries': moodEntries,
       'activity_categories': activityCategories,
       'activities': activities,
-      'mood_activities_link': moodActivitiesLink,
     };
   }
 
@@ -1667,7 +1643,7 @@ class DatabaseService {
     return Uint8List.fromList(zipBytes);
   }
 
-  Future<void> importData(dynamic inputData) async {
+  Future<Map<String, Map<dynamic, dynamic>>> importData(dynamic inputData) async {
     debugPrint('Starting data import...');
     Database db = await database;
     final now = DateTime.now().toIso8601String();
@@ -1681,10 +1657,17 @@ class DatabaseService {
       throw Exception('Invalid data format for import');
     }
 
+    // Initialize all ID mapping maps
+    Map<String, String> categoryIdMap = {}; // oldId -> newId
+    Map<int, int> goalIdMap = {}; // oldId -> newId
+    Map<int, int> taskIdMap = {}; // oldId -> newId
+    Map<int, int> activityCategoryIdMap = {}; // oldId -> newId
+    Map<int, int> activityIdMap = {}; // oldId -> newId
+    Map<int, int> moodIdMap = {}; // oldId -> newId
+
     try {
       await db.transaction((txn) async {
         // 1. Import Categories (Deduplicate by ID or label - Case Insensitive)
-        Map<String, String> categoryIdMap = {}; // oldId -> newId
         if (data['categories'] != null) {
           final categoriesList = (data['categories'] as List)
               .cast<Map<String, dynamic>>();
@@ -1849,7 +1832,6 @@ class DatabaseService {
         }
 
         // 2. Import Goals
-        Map<int, int> goalIdMap = {}; // oldId -> newId
         if (data['goals'] != null) {
           final goalsList = (data['goals'] as List).cast<Map<String, dynamic>>();
           debugPrint('Importing ${goalsList.length} goals...');
@@ -1857,13 +1839,16 @@ class DatabaseService {
           final existingGoals = await txn.query('goals');
 
           for (var goalMap in goalsList) {
-            final oldId = goalMap['id'] as int?;
+            final oldId = int.tryParse(goalMap['id']?.toString() ?? '');
             final title = goalMap['title'] as String? ?? '';
             final description = goalMap['description'] as String? ?? '';
 
             // Deduplication: same title and description
             final duplicate = existingGoals.firstWhere(
-              (g) => g['title'] == title && g['description'] == description,
+              (g) =>
+                  g['title'].toString().toLowerCase() == title.toLowerCase() &&
+                  g['description'].toString().toLowerCase() ==
+                      description.toLowerCase(),
               orElse: () => {},
             );
 
@@ -1907,10 +1892,9 @@ class DatabaseService {
         }
 
         // 3. Import Tasks (Deduplicate by title, description, and dueDate)
-        Map<int, int> taskIdMap = {}; // oldId -> newId
         if (data['tasks'] != null) {
-          final tasksList = (data['tasks'] as List)
-              .cast<Map<String, dynamic>>();
+          final tasksList =
+              (data['tasks'] as List).cast<Map<String, dynamic>>();
           debugPrint('Importing ${tasksList.length} tasks...');
 
           final existingTasks = await txn.query(
@@ -1919,7 +1903,7 @@ class DatabaseService {
           );
 
           for (var taskMap in tasksList) {
-            final oldId = taskMap['id'] as int?; // Safe cast to nullable int
+            final oldId = int.tryParse(taskMap['id']?.toString() ?? '');
             final title = taskMap['title'] as String? ?? '';
             final description = taskMap['description'] as String?;
             final dueDate = taskMap['dueDate'] as String? ?? now;
@@ -1927,19 +1911,128 @@ class DatabaseService {
             // Basic deduplication: same title, description, and dueDate
             final duplicate = existingTasks.firstWhere(
               (t) =>
-                  t['title'] == title &&
-                  t['description'] == description &&
+                  t['title'].toString().toLowerCase() == title.toLowerCase() &&
+                  (t['description']?.toString().toLowerCase() ==
+                      description?.toLowerCase()) &&
                   t['dueDate'] == dueDate,
               orElse: () => {},
             );
 
             if (duplicate.isNotEmpty) {
-              if (oldId != null) taskIdMap[oldId] = duplicate['id'] as int;
+              final existingTaskId = duplicate['id'] as int;
+              if (oldId != null) taskIdMap[oldId] = existingTaskId;
               debugPrint('Skipping duplicate task: $title');
+
+              // Even if duplicate, we might want to update goalIds if provided in import
+              try {
+                List<int> importGoalIds = [];
+                if (taskMap['goalId'] != null) {
+                  final gId = int.tryParse(taskMap['goalId'].toString());
+                  if (gId != null) importGoalIds.add(gId);
+                }
+                if (taskMap['goalIds'] != null) {
+                  final dynamic goalsRaw = taskMap['goalIds'];
+                  if (goalsRaw is String) {
+                    final List<dynamic> decoded = json.decode(goalsRaw);
+                    importGoalIds.addAll(
+                      decoded.map((e) => int.parse(e.toString())),
+                    );
+                  } else if (goalsRaw is List) {
+                    importGoalIds.addAll(
+                      goalsRaw.map((e) => int.parse(e.toString())),
+                    );
+                  }
+                }
+
+                if (importGoalIds.isNotEmpty) {
+                  // Map and merge with existing goalIds
+                  final List<int> mappedImportIds = [];
+                  for (var oldGoalId in importGoalIds) {
+                    if (goalIdMap.containsKey(oldGoalId)) {
+                      mappedImportIds.add(goalIdMap[oldGoalId]!);
+                    }
+                  }
+
+                  if (mappedImportIds.isNotEmpty) {
+                    // Get existing goalIds
+                    List<int> existingGoalIds = [];
+                    if (duplicate['goalIds'] != null) {
+                      try {
+                        final List<dynamic> decoded = json.decode(
+                          duplicate['goalIds'] as String,
+                        );
+                        existingGoalIds = decoded
+                            .map((e) => int.parse(e.toString()))
+                            .toList();
+                      } catch (_) {}
+                    }
+
+                    // Merge and deduplicate
+                    final mergedIds =
+                        (existingGoalIds + mappedImportIds).toSet().toList();
+                    if (mergedIds.length > existingGoalIds.length) {
+                      await txn.update(
+                        'tasks',
+                        {
+                          'goalIds': json.encode(
+                            mergedIds.map((id) => id.toString()).toList(),
+                          ),
+                        },
+                        where: 'id = ?',
+                        whereArgs: [existingTaskId],
+                      );
+                      debugPrint('Updated goalIds for existing task: $title');
+                    }
+                  }
+                }
+              } catch (e) {
+                debugPrint('Error updating goalIds for duplicate task: $e');
+              }
             } else {
               // New task
               final newTaskMap = Map<String, dynamic>.from(taskMap);
               newTaskMap.remove('id'); // Let SQLite handle ID
+
+              // Handle goal linking (Support both goalId and goalIds)
+              List<int> currentGoalIds = [];
+
+              // 1. Check legacy goalId
+              if (taskMap['goalId'] != null) {
+                final gId = int.tryParse(taskMap['goalId'].toString());
+                if (gId != null) currentGoalIds.add(gId);
+              }
+
+              // 2. Check goalIds list
+              if (taskMap['goalIds'] != null) {
+                try {
+                  final dynamic goalsRaw = taskMap['goalIds'];
+                  if (goalsRaw is String) {
+                    final List<dynamic> decoded = json.decode(goalsRaw);
+                    currentGoalIds.addAll(
+                      decoded.map((e) => int.parse(e.toString())),
+                    );
+                  } else if (goalsRaw is List) {
+                    currentGoalIds.addAll(
+                      goalsRaw.map((e) => int.parse(e.toString())),
+                    );
+                  }
+                } catch (_) {}
+              }
+
+              // Map old goal IDs to new goal IDs
+              final List<int> updatedGoalIds = [];
+              for (var oldGoalId in currentGoalIds.toSet()) {
+                // deduplicate
+                if (goalIdMap.containsKey(oldGoalId)) {
+                  updatedGoalIds.add(goalIdMap[oldGoalId]!);
+                }
+                // Removed the "else add old ID" part as it's safer for goal links
+              }
+
+              newTaskMap['goalIds'] = json.encode(
+                updatedGoalIds.map((id) => id.toString()).toList(),
+              );
+              newTaskMap.remove('goalId'); // Ensure legacy field is removed
 
               // Ensure numeric fields are actually numbers and not null
               newTaskMap['title'] = title;
@@ -2006,34 +2099,6 @@ class DatabaseService {
                 }
               } else {
                 newTaskMap['categories'] = '[]';
-              }
-
-              // Map goalIds to new IDs if they changed
-              if (newTaskMap['goalIds'] != null) {
-                try {
-                  final dynamic goalsRaw = newTaskMap['goalIds'];
-                  List<dynamic> goals;
-                  if (goalsRaw is String) {
-                    goals = json.decode(goalsRaw);
-                  } else if (goalsRaw is List) {
-                    goals = goalsRaw;
-                  } else {
-                    goals = [];
-                  }
-
-                  final List<String> updatedGoalIds = [];
-                  for (var g in goals) {
-                    final oldGoalId = int.tryParse(g.toString());
-                    if (oldGoalId != null && goalIdMap.containsKey(oldGoalId)) {
-                      updatedGoalIds.add(goalIdMap[oldGoalId]!.toString());
-                    } else {
-                      updatedGoalIds.add(g.toString());
-                    }
-                  }
-                  newTaskMap['goalIds'] = json.encode(updatedGoalIds);
-                } catch (_) {
-                  newTaskMap['goalIds'] = '[]';
-                }
               }
 
               // Ensure tags is a JSON string
@@ -2141,14 +2206,13 @@ class DatabaseService {
         }
 
         // 5. Import Mood Tracking Data
-        Map<int, int> activityCategoryIdMap = {}; // oldId -> newId
         if (data['activity_categories'] != null) {
           final catList = (data['activity_categories'] as List)
               .cast<Map<String, dynamic>>();
           debugPrint('Importing ${catList.length} activity categories...');
           final existingCats = await txn.query('activity_categories');
           for (var catMap in catList) {
-            final oldId = catMap['id'] as int?;
+            final oldId = int.tryParse(catMap['id']?.toString() ?? '');
             final name = catMap['name'] as String? ?? '';
 
             final duplicate = existingCats.firstWhere(
@@ -2169,16 +2233,15 @@ class DatabaseService {
           }
         }
 
-        Map<int, int> activityIdMap = {}; // oldId -> newId
         if (data['activities'] != null) {
           final actList =
               (data['activities'] as List).cast<Map<String, dynamic>>();
           debugPrint('Importing ${actList.length} activities...');
           final existingActs = await txn.query('activities');
           for (var actMap in actList) {
-            final oldId = actMap['id'] as int?;
+            final oldId = int.tryParse(actMap['id']?.toString() ?? '');
             final name = actMap['name'] as String? ?? '';
-            final oldCatId = actMap['categoryId'] as int?;
+            final oldCatId = int.tryParse(actMap['categoryId']?.toString() ?? '');
             final newCatId =
                 oldCatId != null ? activityCategoryIdMap[oldCatId] : null;
 
@@ -2201,40 +2264,53 @@ class DatabaseService {
           }
         }
 
-        Map<int, int> moodIdMap = {}; // oldId -> newId
         if (data['mood_entries'] != null) {
           final moodList =
               (data['mood_entries'] as List).cast<Map<String, dynamic>>();
           debugPrint('Importing ${moodList.length} mood entries...');
           for (var moodMap in moodList) {
-            final oldId = moodMap['id'] as int?;
+            final oldId = int.tryParse(moodMap['id']?.toString() ?? '');
             final newMoodMap = Map<String, dynamic>.from(moodMap);
             newMoodMap.remove('id');
-            final newId = await txn.insert('mood_entries', newMoodMap);
-            if (oldId != null) moodIdMap[oldId] = newId;
-          }
-        }
 
-        if (data['mood_activities_link'] != null) {
-          final linkList =
-              (data['mood_activities_link'] as List).cast<Map<String, dynamic>>();
-          debugPrint('Importing ${linkList.length} mood-activity links...');
-          for (var linkMap in linkList) {
-            final oldMoodId = linkMap['moodId'] as int?;
-            final oldActId = linkMap['activityId'] as int?;
-            final newMoodId = oldMoodId != null ? moodIdMap[oldMoodId] : null;
-            final newActId = oldActId != null ? activityIdMap[oldActId] : null;
+            // Map activity IDs if they exist
+            if (newMoodMap['activityIds'] != null) {
+              try {
+                final dynamic actIdsRaw = newMoodMap['activityIds'];
+                List<dynamic> oldActIds;
+                if (actIdsRaw is String) {
+                  oldActIds = json.decode(actIdsRaw);
+                } else if (actIdsRaw is List) {
+                  oldActIds = actIdsRaw;
+                } else {
+                  oldActIds = [];
+                }
 
-            if (newMoodId != null && newActId != null) {
-              await txn.insert('mood_activities_link', {
-                'moodId': newMoodId,
-                'activityId': newActId,
-              }, conflictAlgorithm: ConflictAlgorithm.ignore);
+                final List<int> newActIds = [];
+                for (var oId in oldActIds) {
+                  final id = int.tryParse(oId.toString());
+                  if (id != null && activityIdMap.containsKey(id)) {
+                    newActIds.add(activityIdMap[id]!);
+                  }
+                }
+                newMoodMap['activityIds'] = json.encode(newActIds);
+              } catch (_) {}
             }
-          }
-        }
+
+            final newId = await txn.insert('mood_entries', newMoodMap);
+             if (oldId != null) moodIdMap[oldId] = newId;
+           }
+         }
       });
       debugPrint('Data import completed successfully!');
+      return {
+        'categoryIdMap': categoryIdMap,
+        'goalIdMap': goalIdMap,
+        'taskIdMap': taskIdMap,
+        'activityCategoryIdMap': activityCategoryIdMap,
+        'activityIdMap': activityIdMap,
+        'moodIdMap': moodIdMap,
+      };
     } catch (e) {
       debugPrint('Error during data import: $e');
       rethrow;
@@ -2458,40 +2534,60 @@ class DatabaseService {
         }
       }
 
-      // Import the data
-      await importData(data);
+      // Update mood_entries attachments to use new media IDs
+      if (data['mood_entries'] != null && oldMediaIdToNewMediaId.isNotEmpty) {
+        final moodList = data['mood_entries'] as List;
+        for (var mood in moodList) {
+          final moodMap = mood as Map<String, dynamic>;
+          final attachmentsJson = moodMap['attachments'] as String?;
 
-      // Update media entries with task IDs after import
-      if (data['tasks'] != null) {
-        final tasksList = data['tasks'] as List;
-
-        // Update media entries by matching tasks
-        for (var task in tasksList) {
-          final taskMap = task as Map<String, dynamic>;
-          final oldTaskId = taskMap['id'] as int?;
-          final attachmentsJson = taskMap['attachments'] as String?;
-
-          if (oldTaskId != null &&
-              attachmentsJson != null &&
-              attachmentsJson.isNotEmpty) {
+          if (attachmentsJson != null && attachmentsJson.isNotEmpty) {
             try {
               final attachments = json.decode(attachmentsJson) as List;
-              // Find the new task ID by matching title, description, and dueDate
-              final title = taskMap['title'] as String? ?? '';
-              final description = taskMap['description'] as String?;
-              final dueDate = taskMap['dueDate'] as String?;
+              final updatedAttachments = <String>[];
 
-              final newTask = await db.query(
-                'tasks',
-                where: 'title = ? AND description = ? AND dueDate = ?',
-                whereArgs: [title, description, dueDate],
-                limit: 1,
-              );
+              for (var attachment in attachments) {
+                final attachmentStr = attachment.toString();
+                if (RegExp(r'^\d+$').hasMatch(attachmentStr)) {
+                  final oldMediaId = int.parse(attachmentStr);
+                  final newMediaId = oldMediaIdToNewMediaId[oldMediaId];
+                  if (newMediaId != null) {
+                    updatedAttachments.add(newMediaId.toString());
+                  }
+                } else {
+                  updatedAttachments.add(attachmentStr);
+                }
+              }
 
-              if (newTask.isNotEmpty) {
-                final newTaskId = newTask.first['id'] as int;
+              moodMap['attachments'] = json.encode(updatedAttachments);
+            } catch (e) {
+              debugPrint('Error updating attachments for mood entry: $e');
+            }
+          }
+        }
+      }
 
-                // Update media entries with new task ID
+      // Import the data and get ID mapping maps
+      final idMaps = await importData(data);
+      final Map<int, int> taskIdMap = idMaps['taskIdMap'] as Map<int, int>? ?? {};
+      final Map<int, int> goalIdMap = idMaps['goalIdMap'] as Map<int, int>? ?? {};
+      final Map<int, int> moodIdMap = idMaps['moodIdMap'] as Map<int, int>? ?? {};
+
+      // Update media entries with correct taskId, goalId, and moodId
+      if (oldMediaIdToNewMediaId.isNotEmpty) {
+        // 1. Map task IDs for media
+        if (data['tasks'] != null) {
+          for (var task in data['tasks'] as List) {
+            final taskMap = task as Map<String, dynamic>;
+            final oldTaskId = int.tryParse(taskMap['id']?.toString() ?? '');
+            final newTaskId = oldTaskId != null ? taskIdMap[oldTaskId] : null;
+            final attachmentsJson = taskMap['attachments'] as String?;
+
+            if (newTaskId != null &&
+                attachmentsJson != null &&
+                attachmentsJson.isNotEmpty) {
+              try {
+                final attachments = json.decode(attachmentsJson) as List;
                 for (var attachment in attachments) {
                   final attachmentStr = attachment.toString();
                   if (RegExp(r'^\d+$').hasMatch(attachmentStr)) {
@@ -2504,41 +2600,24 @@ class DatabaseService {
                     );
                   }
                 }
-              }
-            } catch (e) {
-              debugPrint('Error updating media task IDs: $e');
+              } catch (_) {}
             }
           }
         }
-      }
 
-      // Update media entries with goal IDs after import
-      if (data['goals'] != null) {
-        final goalsList = data['goals'] as List;
+        // 2. Map goal IDs for media
+        if (data['goals'] != null) {
+          for (var goal in data['goals'] as List) {
+            final goalMap = goal as Map<String, dynamic>;
+            final oldGoalId = int.tryParse(goalMap['id']?.toString() ?? '');
+            final newGoalId = oldGoalId != null ? goalIdMap[oldGoalId] : null;
+            final attachmentsJson = goalMap['attachments'] as String?;
 
-        for (var goal in goalsList) {
-          final goalMap = goal as Map<String, dynamic>;
-          final oldGoalId = goalMap['id'] as int?;
-          final attachmentsJson = goalMap['attachments'] as String?;
-
-          if (oldGoalId != null &&
-              attachmentsJson != null &&
-              attachmentsJson.isNotEmpty) {
-            try {
-              final attachments = json.decode(attachmentsJson) as List;
-              final title = goalMap['title'] as String? ?? '';
-              final description = goalMap['description'] as String? ?? '';
-
-              final newGoal = await db.query(
-                'goals',
-                where: 'title = ? AND description = ?',
-                whereArgs: [title, description],
-                limit: 1,
-              );
-
-              if (newGoal.isNotEmpty) {
-                final newGoalId = newGoal.first['id'] as int;
-
+            if (newGoalId != null &&
+                attachmentsJson != null &&
+                attachmentsJson.isNotEmpty) {
+              try {
+                final attachments = json.decode(attachmentsJson) as List;
                 for (var attachment in attachments) {
                   final attachmentStr = attachment.toString();
                   if (RegExp(r'^\d+$').hasMatch(attachmentStr)) {
@@ -2551,9 +2630,37 @@ class DatabaseService {
                     );
                   }
                 }
-              }
-            } catch (e) {
-              debugPrint('Error updating media goal IDs: $e');
+              } catch (_) {}
+            }
+          }
+        }
+
+        // 3. Map mood IDs for media
+        if (data['mood_entries'] != null) {
+          for (var mood in data['mood_entries'] as List) {
+            final moodMap = mood as Map<String, dynamic>;
+            final oldMoodId = int.tryParse(moodMap['id']?.toString() ?? '');
+            final newMoodId = oldMoodId != null ? moodIdMap[oldMoodId] : null;
+            final attachmentsJson = moodMap['attachments'] as String?;
+
+            if (newMoodId != null &&
+                attachmentsJson != null &&
+                attachmentsJson.isNotEmpty) {
+              try {
+                final attachments = json.decode(attachmentsJson) as List;
+                for (var attachment in attachments) {
+                  final attachmentStr = attachment.toString();
+                  if (RegExp(r'^\d+$').hasMatch(attachmentStr)) {
+                    final mediaId = int.parse(attachmentStr);
+                    await db.update(
+                      'media',
+                      {'moodId': newMoodId},
+                      where: 'id = ?',
+                      whereArgs: [mediaId],
+                    );
+                  }
+                }
+              } catch (_) {}
             }
           }
         }
@@ -2743,7 +2850,6 @@ class DatabaseService {
       await txn.delete('goals');
       
       // Clear mood tables
-      await txn.delete('mood_activities_link');
       await txn.delete('activities');
       await txn.delete('activity_categories');
       await txn.delete('mood_entries');

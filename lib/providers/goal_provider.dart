@@ -23,6 +23,11 @@ class GoalsNotifier extends StateNotifier<List<Goal>> {
     }
   }
 
+  Future<void> reloadGoals() async {
+    _ref.read(goalLoadingProvider.notifier).state = true;
+    await _loadGoals();
+  }
+
   Future<void> addGoal(Goal goal) async {
     final id = await _dbService.insertGoal(goal);
     final newGoal = goal.copyWith(id: id);

@@ -34,7 +34,7 @@ class _MoodScreenState extends ConsumerState<MoodScreen> {
         children: [
           CustomScrollView(
             slivers: [
-              const SliverPadding(padding: EdgeInsets.only(top: 80)),
+              const SliverPadding(padding: EdgeInsets.only(top: 20)),
               
               if (moodState.isLoading)
                 const SliverFillRemaining(
