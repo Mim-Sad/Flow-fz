@@ -126,6 +126,38 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
     return HugeIcon(icon: iconData, size: size, color: color);
   }
 
+  Widget _buildDividerWithTitle(String title, dynamic iconData, ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+    final color = isDark ? Colors.white : Colors.black;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        children: [
+          Expanded(child: Divider(color: color.withValues(alpha: 0.2))),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildIconOrEmoji(iconData, size: 18, color: color),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(child: Divider(color: color.withValues(alpha: 0.2))),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -154,7 +186,63 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
             ),
           ),
           
-          if (_step == 1) _buildStep1(theme) else _buildStep2(theme),
+          Flexible(
+            child: Stack(
+              children: [
+                if (_step == 1) _buildStep1(theme) else _buildStep2(theme),
+                
+                // Sticky Bottom Button with Fade
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          theme.colorScheme.surface,
+                          theme.colorScheme.surface.withValues(alpha: 0.8),
+                          theme.colorScheme.surface.withValues(alpha: 0),
+                        ],
+                        stops: const [0, 0.6, 1.0],
+                      ),
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: FilledButton.icon(
+                        onPressed: _step == 1 ? _nextStep : _submit,
+                        icon: HugeIcon(
+                          icon: _step == 1 
+                              ? HugeIcons.strokeRoundedArrowRight01 
+                              : (widget.entry == null ? HugeIcons.strokeRoundedAddSquare : HugeIcons.strokeRoundedCheckmarkSquare04),
+                          size: 20,
+                          color: theme.colorScheme.onPrimary,
+                        ),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: theme.colorScheme.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
+                        label: Text(
+                          _step == 1 ? 'ادامه' : (widget.entry == null ? 'ثبت مود' : 'ذخیره تغییرات'),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.onPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -164,8 +252,8 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
     final jalali = Jalali.fromDateTime(_selectedDate);
     final f = jalali.formatter;
 
-    return Padding(
-      padding: const EdgeInsets.all(24),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
       child: Column(
         children: [
           Text(
@@ -175,45 +263,45 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
             ),
           ),
           const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            alignment: WrapAlignment.center,
             children: _moods.map((m) {
               final isSelected = _selectedMood == m['level'];
               return GestureDetector(
                 onTap: () => _onMoodSelected(m),
-                child: Column(
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isSelected ? m['color'] : theme.colorScheme.surfaceContainerHighest,
-                        shape: BoxShape.circle,
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: (m['color'] as Color).withValues(alpha: 0.4),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                )
-                              ]
-                            : [],
-                      ),
-                      child: _buildIconOrEmoji(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? (m['color'] as Color).withValues(alpha: 0.15)
+                        : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isSelected ? (m['color'] as Color).withValues(alpha: 0.5) : Colors.transparent,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildIconOrEmoji(
                         m['icon'],
-                        size: 32,
-                        color: isSelected ? Colors.white : theme.colorScheme.onSurfaceVariant,
+                        size: 24,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      m['label'],
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: isSelected ? m['color'] : theme.colorScheme.onSurfaceVariant,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      const SizedBox(width: 8),
+                      Text(
+                        m['label'],
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected ? m['color'] : theme.colorScheme.onSurface,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             }).toList(),
@@ -241,18 +329,6 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
               ),
             ),
           ),
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _nextStep,
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
-              child: const Text('ادامه'),
-            ),
-          ),
         ],
       ),
     );
@@ -262,183 +338,168 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
     final activityState = ref.watch(activityProvider);
     final moodColor = _moods.firstWhere((m) => m['level'] == _selectedMood)['color'] as Color;
 
-    return Flexible(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                onPressed: () => setState(() => _step = 1),
+                icon: const Icon(Icons.arrow_back),
+              ),
+              Text(
+                'جزئیات',
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(width: 48), // Balance
+            ],
+          ),
+        ),
+        Flexible(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IconButton(
-                  onPressed: () => setState(() => _step = 1),
-                  icon: const Icon(Icons.arrow_back),
+                // Categories & Activities
+                ...activityState.categories.map((cat) {
+                  final activities = activityState.activities.where((a) => a.categoryId == cat.id).toList();
+                  if (activities.isEmpty) return const SizedBox.shrink();
+
+                  return Column(
+                    children: [
+                      _buildDividerWithTitle(cat.name, _getIconData(cat.iconName), theme),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 10,
+                        alignment: WrapAlignment.center,
+                        children: activities.map((activity) {
+                          final isSelected = _selectedActivityIds.contains(activity.id);
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                if (isSelected) {
+                                  _selectedActivityIds.remove(activity.id);
+                                } else {
+                                  _selectedActivityIds.add(activity.id!);
+                                }
+                              });
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? moodColor.withValues(alpha: 0.15)
+                                    : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? moodColor.withValues(alpha: 0.5)
+                                      : Colors.transparent,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _buildIconOrEmoji(
+                                    _getIconData(activity.iconName),
+                                    size: 18,
+                                    color: isSelected ? moodColor : theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    activity.name,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                      color: isSelected ? moodColor : theme.colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  );
+                }),
+
+                const Divider(),
+                
+                // Note
+                TextField(
+                  controller: _noteController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    hintText: 'یادداشت (اختیاری)...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  ),
                 ),
-                Text(
-                  'جزئیات',
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                
+                const SizedBox(height: 16),
+                
+                // Attachments
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const HugeIcon(icon: HugeIcons.strokeRoundedAttachment01, size: 24),
+                      onPressed: _pickAttachment,
+                    ),
+                    const SizedBox(width: 8),
+                    if (_attachments.isNotEmpty)
+                      Expanded(
+                        child: SizedBox(
+                          height: 60,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _attachments.length,
+                            itemBuilder: (context, index) {
+                              return Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                width: 60,
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Center(
+                                  child: HugeIcon(icon: HugeIcons.strokeRoundedFile01, size: 20),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      )
+                    else
+                      Text(
+                        'ضمیمه کردن فایل...',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
                 ),
-                const SizedBox(width: 48), // Balance
+                  
+                const SizedBox(height: 24),
               ],
             ),
           ),
-          Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Categories & Activities
-                  ...activityState.categories.map((cat) {
-                    final activities = activityState.activities.where((a) => a.categoryId == cat.id).toList();
-                    if (activities.isEmpty) return const SizedBox.shrink();
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Row(
-                            children: [
-                              _buildIconOrEmoji(
-                                _getIconData(cat.iconName), 
-                                size: 18, 
-                                color: theme.colorScheme.primary
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                cat.name,
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  color: theme.colorScheme.primary,
-                                  fontWeight: FontWeight.bold
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: activities.map((activity) {
-                            final isSelected = _selectedActivityIds.contains(activity.id);
-                            return FilterChip(
-                              label: Text(activity.name),
-                              selected: isSelected,
-                              onSelected: (selected) {
-                                setState(() {
-                                  if (selected) {
-                                    _selectedActivityIds.add(activity.id!);
-                                  } else {
-                                    _selectedActivityIds.remove(activity.id);
-                                  }
-                                });
-                              },
-                              avatar: isSelected ? null : _buildIconOrEmoji(_getIconData(activity.iconName), size: 16, color: theme.colorScheme.onSurfaceVariant),
-                              selectedColor: moodColor.withValues(alpha: 0.2),
-                              checkmarkColor: moodColor,
-                              labelStyle: TextStyle(
-                                color: isSelected ? moodColor : theme.colorScheme.onSurface,
-                                fontSize: 12,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                side: BorderSide(
-                                  color: isSelected ? moodColor : theme.colorScheme.outlineVariant,
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                    );
-                  }),
-
-                  const Divider(),
-                  
-                  // Note
-                  TextField(
-                    controller: _noteController,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      hintText: 'یادداشت (اختیاری)...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Attachments
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const HugeIcon(icon: HugeIcons.strokeRoundedAttachment01, size: 24),
-                        onPressed: _pickAttachment,
-                      ),
-                      const SizedBox(width: 8),
-                      if (_attachments.isNotEmpty)
-                        Expanded(
-                          child: SizedBox(
-                            height: 60,
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: _attachments.length,
-                              itemBuilder: (context, index) {
-                                return Container(
-                                  margin: const EdgeInsets.only(right: 8),
-                                  width: 60,
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Center(
-                                    child: HugeIcon(icon: HugeIcons.strokeRoundedFile01, size: 20),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        )
-                      else
-                        Text(
-                          'ضمیمه کردن فایل...',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                    ],
-                  ),
-                    
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-          ),
-          
-          // Submit Button
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: _submit,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  backgroundColor: moodColor,
-                ),
-                child: const Text('ثبت'),
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

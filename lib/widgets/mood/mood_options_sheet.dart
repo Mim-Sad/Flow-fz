@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:shamsi_date/shamsi_date.dart';
-import 'package:intl/intl.dart' as intl;
 import '../../models/mood_entry.dart';
 import '../../models/activity.dart';
 import '../../providers/mood_provider.dart';
