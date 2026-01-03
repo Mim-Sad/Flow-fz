@@ -24,11 +24,12 @@ class _NavigationWrapperState extends ConsumerState<NavigationWrapper> {
   @override
   void initState() {
     super.initState();
-    _notificationSubscription = NotificationService().onNotificationClick.listen((payload) {
-      if (payload != null) {
-        _handleNotificationClick(payload);
-      }
-    });
+    _notificationSubscription = NotificationService().onNotificationClick
+        .listen((payload) {
+          if (payload != null) {
+            _handleNotificationClick(payload);
+          }
+        });
 
     // Check for initial payload if app was launched from notification
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -52,7 +53,9 @@ class _NavigationWrapperState extends ConsumerState<NavigationWrapper> {
 
     // Wait if tasks are still loading
     if (ref.read(tasksLoadingProvider)) {
-      debugPrint('⏳ Tasks still loading, waiting before handling notification...');
+      debugPrint(
+        '⏳ Tasks still loading, waiting before handling notification...',
+      );
       int attempts = 0;
       while (ref.read(tasksLoadingProvider) && attempts < 50) {
         await Future.delayed(const Duration(milliseconds: 100));
@@ -72,7 +75,7 @@ class _NavigationWrapperState extends ConsumerState<NavigationWrapper> {
       if (Navigator.canPop(context)) {
         Navigator.popUntil(context, (route) => route.isFirst);
       }
-      
+
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
@@ -96,15 +99,15 @@ class _NavigationWrapperState extends ConsumerState<NavigationWrapper> {
       showLogo = true;
     } else if (location == '/planning') {
       currentIndex = 1;
-      title = 'برنامه‌های‌من';
-      showLogo = true;
-    } else if (location == '/reports') {
-      currentIndex = 2;
-      title = 'گزارشات';
+      title = 'برنامه';
       showLogo = true;
     } else if (location == '/mood') {
-      currentIndex = 3;
+      currentIndex = 2;
       title = 'مود';
+      showLogo = true;
+    } else if (location == '/reports') {
+      currentIndex = 3;
+      title = 'گزارش';
       showLogo = true;
     }
 
@@ -128,7 +131,7 @@ class _NavigationWrapperState extends ConsumerState<NavigationWrapper> {
         surfaceTintColor: Colors.transparent,
         centerTitle: true,
         leadingWidth: showLogo ? 52 : 0,
-        leading: showLogo 
+        leading: showLogo
             ? Padding(
                 padding: const EdgeInsets.fromLTRB(4, 12, 20, 12),
                 child: SvgPicture.asset(
@@ -142,7 +145,6 @@ class _NavigationWrapperState extends ConsumerState<NavigationWrapper> {
                     icon: HugeIcons.strokeRoundedLoading03,
                     color: theme.colorScheme.primary,
                   ),
-                  
                 ),
               )
             : const SizedBox.shrink(),
@@ -189,47 +191,62 @@ class _NavigationWrapperState extends ConsumerState<NavigationWrapper> {
           backgroundColor: navigationBarColor,
           surfaceTintColor: Colors.transparent,
           selectedIndex: currentIndex,
-        onDestinationSelected: (index) {
-          switch (index) {
-            case 0:
-              context.go('/');
-              break;
-            case 1:
-              context.go('/planning');
-              break;
-            case 2:
-              context.go('/reports');
-              break;
-            case 3:
-              context.go('/mood');
-              break;
-          }
-        },
-        destinations: [
-          NavigationDestination(
-            icon: const HugeIcon(icon: HugeIcons.strokeRoundedHome01),
-            selectedIcon: HugeIcon(icon: HugeIcons.strokeRoundedHome01, color: theme.colorScheme.primary),
-            label: 'خانه',
-          ),
-          NavigationDestination(
-            icon: const HugeIcon(icon: HugeIcons.strokeRoundedCalendarCheckIn01),
-            selectedIcon: HugeIcon(icon: HugeIcons.strokeRoundedCalendarCheckIn01, color: theme.colorScheme.primary),
-            label: 'برنامه‌های‌من',
-          ),
-          NavigationDestination(
-            icon: const HugeIcon(icon: HugeIcons.strokeRoundedChartLineData01),
-            selectedIcon: HugeIcon(icon: HugeIcons.strokeRoundedChartLineData01, color: theme.colorScheme.primary),
-            label: 'گزارشات',
-          ),
-          NavigationDestination(
-            icon: const HugeIcon(icon: HugeIcons.strokeRoundedSmileDizzy),
-            selectedIcon: HugeIcon(icon: HugeIcons.strokeRoundedSmileDizzy, color: theme.colorScheme.primary),
-            label: 'مود',
-          ),
-        ],
+          onDestinationSelected: (index) {
+            switch (index) {
+              case 0:
+                context.go('/');
+                break;
+              case 1:
+                context.go('/planning');
+                break;
+              case 2:
+                context.go('/mood');
+                break;
+              case 3:
+                context.go('/reports');
+                break;
+            }
+          },
+          destinations: [
+            NavigationDestination(
+              icon: const HugeIcon(icon: HugeIcons.strokeRoundedHome01),
+              selectedIcon: HugeIcon(
+                icon: HugeIcons.strokeRoundedHome01,
+                color: theme.colorScheme.primary,
+              ),
+              label: 'خانه',
+            ),
+            NavigationDestination(
+              icon: const HugeIcon(
+                icon: HugeIcons.strokeRoundedCalendarCheckIn01,
+              ),
+              selectedIcon: HugeIcon(
+                icon: HugeIcons.strokeRoundedCalendarCheckIn01,
+                color: theme.colorScheme.primary,
+              ),
+              label: 'برنامه',
+            ),
+            NavigationDestination(
+              icon: const HugeIcon(icon: HugeIcons.strokeRoundedSmileDizzy),
+              selectedIcon: HugeIcon(
+                icon: HugeIcons.strokeRoundedSmileDizzy,
+                color: theme.colorScheme.primary,
+              ),
+              label: 'مود',
+            ),
+            NavigationDestination(
+              icon: const HugeIcon(
+                icon: HugeIcons.strokeRoundedChartLineData01,
+              ),
+              selectedIcon: HugeIcon(
+                icon: HugeIcons.strokeRoundedChartLineData01,
+                color: theme.colorScheme.primary,
+              ),
+              label: 'گزارش',
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
-}
-

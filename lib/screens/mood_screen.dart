@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/mood_provider.dart';
 import '../widgets/mood/add_mood_sheet.dart';
 import '../widgets/mood/mood_card.dart';
+import '../widgets/animations.dart';
 
 class MoodScreen extends ConsumerStatefulWidget {
   const MoodScreen({super.key});
@@ -13,6 +15,8 @@ class MoodScreen extends ConsumerStatefulWidget {
 }
 
 class _MoodScreenState extends ConsumerState<MoodScreen> {
+  final Set<int> _animatedEntryIds = {};
+
   void _openAddMoodSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -77,10 +81,26 @@ class _MoodScreenState extends ConsumerState<MoodScreen> {
                 SliverList(
                   delegate: SliverChildBuilderDelegate((context, index) {
                     final entry = moodState.entries[index];
-                    return MoodCard(
+                    final shouldAnimate =
+                        entry.id != null &&
+                        !_animatedEntryIds.contains(entry.id);
+                    if (shouldAnimate) {
+                      _animatedEntryIds.add(entry.id!);
+                    }
+
+                    final card = MoodCard(
                       entry: entry,
                       allActivities: activityState.activities,
                     );
+
+                    if (shouldAnimate) {
+                      return FadeInOnce(
+                        key: ValueKey('mood_${entry.id}'),
+                        delay: (index * 50).ms,
+                        child: card,
+                      );
+                    }
+                    return card;
                   }, childCount: moodState.entries.length),
                 ),
 

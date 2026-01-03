@@ -503,7 +503,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final diffText = diff == 0
         ? ''
         : (isPositive
-              ? '${isMoodValue ? diff.toStringAsFixed(1) : diff.toInt()}+  '
+              ? '+${isMoodValue ? diff.toStringAsFixed(1) : diff.toInt()}'
               : (isMoodValue
                     ? diff.toStringAsFixed(1)
                     : diff.toInt().toString()));
@@ -538,7 +538,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               if (diff != 0) ...[
                 const SizedBox(width: 8),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
+                  padding: const EdgeInsets.fromLTRB(8, 0, 4, 2),
                   child: Text(
                     _toPersianDigit(diffText),
                     style: theme.textTheme.labelSmall?.copyWith(

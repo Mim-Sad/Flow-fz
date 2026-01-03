@@ -2303,6 +2303,17 @@ class DatabaseService {
               } catch (_) {}
             }
 
+            // Map task ID if it exists
+            if (newMoodMap['taskId'] != null) {
+              final oldTaskId = int.tryParse(newMoodMap['taskId'].toString());
+              if (oldTaskId != null && taskIdMap.containsKey(oldTaskId)) {
+                newMoodMap['taskId'] = taskIdMap[oldTaskId];
+              } else {
+                // If the task wasn't imported or doesn't exist, clear the link
+                newMoodMap['taskId'] = null;
+              }
+            }
+
             final newId = await txn.insert('mood_entries', newMoodMap);
              if (oldId != null) moodIdMap[oldId] = newId;
            }
