@@ -111,6 +111,11 @@ class NotificationService {
 
   Future<void> scheduleTaskReminder(Task task) async {
     if (task.reminderDateTime == null || task.id == null) return;
+    
+    // CRITICAL: Cancel any existing reminders for this task before scheduling new ones
+    // This prevents duplicate notifications when a task is updated or re-scheduled
+    await cancelTaskReminder(task.id!);
+    
     debugPrint('🔔 Scheduling reminder for task: ${task.title} (ID: ${task.id})');
 
     // First request permissions
@@ -143,7 +148,9 @@ class NotificationService {
           );
           
           if (candidateReminder.isAfter(now)) {
-            final notificationId = task.id! * 100 + scheduledCount;
+            // Use a deterministic ID for each occurrence to avoid duplicates
+            // Base ID + (taskId * 10) + count
+            final notificationId = 1000000000 + (task.id! * 10) + scheduledCount;
             final scheduledDate = tz.TZDateTime.from(candidateReminder, tz.local);
             
             debugPrint('📅 Scheduling occurrence $scheduledCount at $candidateReminder (ID: $notificationId)');
@@ -199,7 +206,9 @@ class NotificationService {
       return;
     }
 
-    debugPrint('📅 Scheduling single reminder at $reminderTime (ID: ${task.id}) in timezone: ${tz.local.name}');
+    // Use task.id directly for non-recurring tasks as the primary ID
+    final notificationId = task.id!;
+    debugPrint('📅 Scheduling single reminder at $reminderTime (ID: $notificationId) in timezone: ${tz.local.name}');
     
     // Customizing the notification with better layout and details
     final notificationEmoji = task.taskEmoji ?? '🔔';
@@ -229,7 +238,7 @@ class NotificationService {
     );
 
     await _notificationsPlugin.zonedSchedule(
-      task.id!,
+      notificationId,
       task.title,
       task.description ?? 'زمان انجام تسک فرا رسیده است.',
       scheduledDate,
@@ -245,11 +254,20 @@ class NotificationService {
 
   Future<void> cancelTaskReminder(int taskId) async {
     debugPrint('🔕 Cancelling reminders for task ID: $taskId');
+    
+    // 1. Cancel the primary notification ID
     await _notificationsPlugin.cancel(taskId);
-    // Also cancel recurring occurrences
+    
+    // 2. Cancel old recurring range (backward compatibility)
     for (int i = 0; i < 7; i++) {
       await _notificationsPlugin.cancel(taskId * 100 + i);
     }
+    
+    // 3. Cancel new recurring range
+    for (int i = 0; i < 10; i++) { // Cancel up to 10 just to be safe
+      await _notificationsPlugin.cancel(1000000000 + (taskId * 10) + i);
+    }
+    
     debugPrint('✅ All reminders for task ID $taskId cancelled.');
   }
 
