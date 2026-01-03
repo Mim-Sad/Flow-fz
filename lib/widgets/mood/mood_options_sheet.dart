@@ -126,17 +126,21 @@ class MoodOptionsSheet extends ConsumerWidget {
                           const Divider(height: 1, thickness: 0.5),
                           const SizedBox(height: 16),
                           Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
+                            spacing: 6,
+                            runSpacing: 6,
                             textDirection: TextDirection.rtl,
                             children: entryActivities.map((activity) {
+                              final color = moodInfo['color'] as Color;
                               return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                                  borderRadius: BorderRadius.circular(12),
+                                  color: color.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                    color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                                    color: color.withValues(alpha: 0.1),
                                   ),
                                 ),
                                 child: Row(
@@ -145,13 +149,17 @@ class MoodOptionsSheet extends ConsumerWidget {
                                   children: [
                                     _buildIconOrEmoji(
                                       _getIconData(activity.iconName),
-                                      color: theme.colorScheme.primary,
-                                      size: 16,
+                                      color: color,
+                                      size: 14,
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 4),
                                     Text(
                                       activity.name,
-                                      style: theme.textTheme.labelMedium,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: color,
+                                      ),
                                     ),
                                   ],
                                 ),

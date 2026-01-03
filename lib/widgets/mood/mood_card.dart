@@ -148,15 +148,18 @@ class MoodCard extends StatelessWidget {
                   spacing: 6,
                   runSpacing: 6,
                   children: entryActivities.map((activity) {
+                    final color = moodInfo['color'] as Color;
                     return Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
-                        vertical: 4,
+                        vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(8),
+                        color: color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: color.withValues(alpha: 0.1),
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -164,13 +167,17 @@ class MoodCard extends StatelessWidget {
                           // Display activity icon if available
                           _buildIconOrEmoji(
                             _getIconData(activity.iconName),
-                            color: theme.colorScheme.primary,
-                            size: 14,
+                            color: color,
+                            size: 10,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             activity.name,
-                            style: theme.textTheme.labelSmall,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: color,
+                            ),
                           ),
                         ],
                       ),
