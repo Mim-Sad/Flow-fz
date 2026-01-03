@@ -69,10 +69,14 @@ class MoodNotifier extends StateNotifier<MoodState> {
   }
 
   Future<void> loadMoods() async {
-    state = state.copyWith(isLoading: true);
+    // Only show loading if we don't have entries already (initial load)
+    if (state.entries.isEmpty) {
+      state = state.copyWith(isLoading: true);
+    }
+    
     try {
       final entries = await _db.getAllMoodEntries();
-      state = state.copyWith(entries: entries, isLoading: false);
+      state = state.copyWith(entries: entries, isLoading: false, error: null);
     } catch (e) {
       state = state.copyWith(error: e.toString(), isLoading: false);
     }
@@ -98,10 +102,19 @@ class MoodNotifier extends StateNotifier<MoodState> {
 
   Future<void> deleteMood(int id) async {
     try {
+      // Optimistically remove from state for better UX
+      state = state.copyWith(
+        entries: state.entries.where((e) => e.id != id).toList(),
+      );
+
       await _db.deleteMoodEntry(id);
-      await loadMoods();
+      // Reload from DB to be sure
+      final freshEntries = await _db.getAllMoodEntries();
+      state = state.copyWith(entries: freshEntries, error: null);
     } catch (e) {
       state = state.copyWith(error: e.toString());
+      // Re-load to restore state on error
+      await loadMoods();
     }
   }
 }

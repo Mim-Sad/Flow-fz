@@ -293,10 +293,10 @@ class MoodOptionsSheet extends ConsumerWidget {
     );
   }
 
-  void _showDeleteConfirmation(BuildContext context, WidgetRef ref) {
-    showDialog(
+  void _showDeleteConfirmation(BuildContext context, WidgetRef ref) async {
+    final bool? confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('حذف مود', textAlign: TextAlign.right),
         content: const Text(
           'آیا از حذف این مود اطمینان دارید؟ این عمل قابل بازگشت نیست.',
@@ -304,21 +304,24 @@ class MoodOptionsSheet extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('انصراف'),
           ),
           TextButton(
-            onPressed: () {
-              ref.read(moodProvider.notifier).deleteMood(entry.id!);
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Close sheet
-            },
+            onPressed: () => Navigator.pop(dialogContext, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('حذف'),
           ),
         ],
       ),
     );
+
+    if (confirmed == true && context.mounted) {
+      // Close the options sheet first
+      Navigator.pop(context);
+      // Then perform the deletion
+      ref.read(moodProvider.notifier).deleteMood(entry.id!);
+    }
   }
 
   Widget _buildParenthesesStyledText(

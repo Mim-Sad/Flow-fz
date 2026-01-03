@@ -15,8 +15,6 @@ class MoodScreen extends ConsumerStatefulWidget {
 }
 
 class _MoodScreenState extends ConsumerState<MoodScreen> {
-  final Set<int> _animatedEntryIds = {};
-
   void _openAddMoodSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -33,80 +31,104 @@ class _MoodScreenState extends ConsumerState<MoodScreen> {
     final activityState = ref.watch(activityProvider);
 
     return Scaffold(
-      body: Stack(
-        children: [
-          CustomScrollView(
-            slivers: [
-              const SliverPadding(padding: EdgeInsets.only(top: 20)),
+      body: CustomScrollView(
+        slivers: [
+          const SliverPadding(padding: EdgeInsets.only(top: 20)),
 
-              if (moodState.isLoading)
-                const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (moodState.entries.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        HugeIcon(
-                          icon: HugeIcons.strokeRoundedSmileDizzy,
-                          size: 64,
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'هنوز هیچ مودی ثبت نشده!',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.6,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'همین الان اولین مود خودت رو ثبت کن',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
+          if (moodState.isLoading)
+            const SliverFillRemaining(
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (moodState.error != null)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const HugeIcon(
+                      icon: HugeIcons.strokeRoundedAlertCircle,
+                      size: 64,
+                      color: Colors.red,
                     ),
-                  ),
-                )
-              else
-                SliverList(
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final entry = moodState.entries[index];
-                    final shouldAnimate =
-                        entry.id != null &&
-                        !_animatedEntryIds.contains(entry.id);
-                    if (shouldAnimate) {
-                      _animatedEntryIds.add(entry.id!);
-                    }
-
-                    final card = MoodCard(
-                      entry: entry,
-                      allActivities: activityState.activities,
-                    );
-
-                    if (shouldAnimate) {
-                      return FadeInOnce(
-                        key: ValueKey('mood_${entry.id}'),
-                        delay: (index * 50).ms,
-                        child: card,
-                      );
-                    }
-                    return card;
-                  }, childCount: moodState.entries.length),
+                    const SizedBox(height: 16),
+                    Text(
+                      'خطایی رخ داده است',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      moodState.error!,
+                      style: theme.textTheme.bodySmall,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.tonal(
+                      onPressed: () =>
+                          ref.read(moodProvider.notifier).loadMoods(),
+                      child: const Text('تلاش مجدد'),
+                    ),
+                  ],
                 ),
+              ),
+            )
+          else if (moodState.entries.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    HugeIcon(
+                      icon: HugeIcons.strokeRoundedSmileDizzy,
+                      size: 64,
+                      color: theme.colorScheme.primary.withValues(
+                        alpha: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'هنوز هیچ مودی ثبت نشده!',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.6,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'همین الان اولین مود خودت رو ثبت کن',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  if (index >= moodState.entries.length) return null;
+                  final entry = moodState.entries[index];
 
-              const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
-            ],
-          ),
+                  final card = MoodCard(
+                    entry: entry,
+                    allActivities: activityState.activities,
+                  );
+
+                  return FadeInOnce(
+                    key: ValueKey('mood_${entry.id}_$index'),
+                    delay: (index * 50).ms,
+                    child: card,
+                  );
+                },
+                childCount: moodState.entries.length,
+              ),
+            ),
+
+          const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
