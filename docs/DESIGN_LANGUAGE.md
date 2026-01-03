@@ -78,13 +78,17 @@ The app uses a dynamic color system seeded from a primary brand color.
 - **Auto-Scroll**: Long labels or multiple categories in cards auto-scroll horizontally using a linear animation to prevent UI breakage.
 
 ### Category Progress Capsules (Reports)
-- **Purpose**: To show progress per category in the reports screen.
-- **Design**: Pill-shaped (radius 20) with a background alpha of `0.1` and a subtle border of `0.2` alpha of the category color.
+- **Purpose**: To show progress per category in the reports screen with high visual consistency.
+- **Design**: Pill-shaped (radius 14) to match the category selection style in the task creation screen.
+- **Background System**: 
+  - Base: `surfaceContainerHighest` with `0.3` alpha.
+  - Progress Layer: A `FractionallySizedBox` inside a `Stack` that fills from right to left (RTL) using the category color at `0.15` alpha, acting as a background progress bar.
+- **Border**: 1.5px thickness with the category color at `0.5` alpha.
 - **Components**:
-  - **Leading**: `LottieCategoryIcon` (size 18, non-animated).
+  - **Leading**: `LottieCategoryIcon` (size 22, non-animated).
   - **Center**: Category label (size 12, bold, category color).
-  - **Trailing**: Progress percentage badge (filled category color, white text, size 10, bold).
-- **Interaction**: `InkWell` (radius 20) redirects to the search screen filtered by category and current report range.
+  - **Trailing**: Progress percentage using Persian digits (size 12, extra-bold weight 900, category color).
+- **Interaction**: `InkWell` (radius 14) redirects to the search screen filtered by category and current report range.
 
 ### FlowToast (Smart Notifications)
 - **Purpose**: To provide non-intrusive feedback for actions or errors.
