@@ -1,7 +1,13 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/mood_entry.dart';
 import '../models/activity.dart';
 import '../services/database_service.dart';
+
+// Helper for date comparison
+bool isSameDay(DateTime d1, DateTime d2) {
+  return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
+}
 
 // --- Database Provider ---
 // Assuming databaseServiceProvider is defined elsewhere (e.g. task_provider.dart)
@@ -170,3 +176,16 @@ class ActivityNotifier extends StateNotifier<ActivityState> {
     } catch (_) {}
   }
 }
+
+// --- Range Provider ---
+final moodsForRangeProvider = Provider.family<List<MoodEntry>, DateTimeRange>((ref, range) {
+  final moodState = ref.watch(moodProvider);
+  
+  final startDate = DateTime(range.start.year, range.start.month, range.start.day);
+   final endDate = DateTime(range.end.year, range.end.month, range.end.day, 23, 59, 59);
+ 
+   return moodState.entries.where((entry) {
+     return entry.dateTime.isAfter(startDate.subtract(const Duration(seconds: 1))) && 
+            entry.dateTime.isBefore(endDate.add(const Duration(seconds: 1)));
+   }).toList();
+});

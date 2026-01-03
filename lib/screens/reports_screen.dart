@@ -10,9 +10,12 @@ import '../providers/task_provider.dart';
 import '../providers/goal_provider.dart';
 import '../providers/category_provider.dart';
 import '../models/task.dart';
+import '../models/mood_entry.dart';
+import '../models/activity.dart';
 import '../models/category_data.dart';
 import '../constants/duck_emojis.dart';
 import '../widgets/lottie_category_icon.dart';
+import '../providers/mood_provider.dart' hide isSameDay;
 import 'package:go_router/go_router.dart';
 import '../utils/route_builder.dart';
 import '../widgets/animations.dart';
@@ -358,33 +361,370 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         _buildCategoryCapsules(context, filteredTasks, range),
         const SizedBox(height: 32),
         _buildGoalsReport(context),
+        const SizedBox(height: 32),
+        _buildMoodReportSection(context, range),
       ]);
     } else {
-      content.add(
-        Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(height: 40),
-              Lottie.asset(
-                'assets/images/TheSoul/24 news b.json',
-                height: 120,
-                repeat: true,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'تسکی برای این بازه پیدا نکردم!',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
+      content.addAll([
+        _buildMoodReportSection(context, range),
+      ]);
+    }
+
+    return content;
+  }
+
+  Widget _buildMoodReportSection(BuildContext context, DateTimeRange range) {
+    final moods = ref.watch(moodsForRangeProvider(range));
+    final theme = Theme.of(context);
+
+    // Calculate Previous Range Stats
+    DateTimeRange prevRange;
+    if (_viewMode == 0) {
+      final prevDay = _selectedDate.subtract(const Duration(days: 1));
+      prevRange = DateTimeRange(start: prevDay, end: prevDay);
+    } else if (_viewMode == 1) {
+      final startOfWeek = _selectedDate.subtract(Duration(days: (_selectedDate.weekday + 1) % 7));
+      final prevStartOfWeek = startOfWeek.subtract(const Duration(days: 7));
+      final prevEndOfWeek = prevStartOfWeek.add(const Duration(days: 6));
+      prevRange = DateTimeRange(start: prevStartOfWeek, end: prevEndOfWeek);
+    } else {
+      final jSelected = Jalali.fromDateTime(_selectedDate);
+      final jPrev = jSelected.addMonths(-1);
+      prevRange = DateTimeRange(
+        start: jPrev.copy(day: 1).toDateTime(),
+        end: jPrev.copy(day: jPrev.monthLength).toDateTime(),
+      );
+    }
+    final prevMoods = ref.watch(moodsForRangeProvider(prevRange));
+
+    if (moods.isEmpty && prevMoods.isEmpty) {
+      return Center(
+        child: Column(
+          children: [
+            const SizedBox(height: 40),
+            Lottie.asset(
+              'assets/images/TheSoul/24 news b.json',
+              height: 120,
+              repeat: true,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'اطلاعاتی برای این بازه پیدا نکردم!',
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ],
         ),
       );
     }
 
-    return content;
+    // Calculations
+    final totalMoods = moods.length;
+    final prevTotalMoods = prevMoods.length;
+    
+    double avgMood = 0;
+    if (moods.isNotEmpty) {
+      avgMood = moods.map((m) => 5 - m.moodLevel.index).reduce((a, b) => a + b) / totalMoods;
+    }
+
+    double prevAvgMood = 0;
+    if (prevMoods.isNotEmpty) {
+      prevAvgMood = prevMoods.map((m) => 5 - m.moodLevel.index).reduce((a, b) => a + b) / prevTotalMoods;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Center(
+          child: Text(
+            'گزارش وضعیت روحی',
+            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+        ),
+        const SizedBox(height: 18),
+        
+        // Stats Boxes
+        Row(
+          children: [
+            Expanded(
+              child: _buildMoodStatCard(
+                context,
+                'تعداد ثبت شده',
+                totalMoods.toString(),
+                (totalMoods - prevTotalMoods).toDouble(),
+                HugeIcons.strokeRoundedActivity01,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildMoodStatCard(
+                context,
+                'میانگین مود',
+                avgMood.toStringAsFixed(1),
+                avgMood - prevAvgMood,
+                HugeIcons.strokeRoundedDashboardCircle,
+                isMoodValue: true,
+              ),
+            ),
+          ],
+        ),
+        
+        const SizedBox(height: 32),
+        Center(
+          child: Text(
+            'روند تغییرات مود',
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+        ),
+        const SizedBox(height: 18),
+        SizedBox(
+          height: 200,
+          child: _buildMoodTrendChart(moods, range),
+        ),
+
+        const SizedBox(height: 32),
+        Center(
+          child: Text(
+            'تاثیر فعالیت‌ها بر مود',
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+        ),
+        const SizedBox(height: 18),
+        _buildActivityImpactChart(context, moods),
+      ],
+    );
+  }
+
+  Widget _buildMoodStatCard(
+    BuildContext context,
+    String title,
+    String value,
+    double diff,
+    dynamic icon, {
+    bool isMoodValue = false,
+  }) {
+    final theme = Theme.of(context);
+    final isPositive = diff > 0;
+    final diffText = diff == 0 ? '' : (isPositive ? '+${isMoodValue ? diff.toStringAsFixed(1) : diff.toInt()}' : (isMoodValue ? diff.toStringAsFixed(1) : diff.toInt().toString()));
+    final diffColor = isPositive ? Colors.green : Colors.red;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              HugeIcon(
+                icon: icon,
+                size: 18,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                _toPersianDigit(value),
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (diff != 0) ...[
+                const SizedBox(width: 8),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    _toPersianDigit(diffText),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: diffColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMoodTrendChart(List<MoodEntry> moods, DateTimeRange range) {
+    if (moods.isEmpty) return const SizedBox.shrink();
+
+    // Group moods by day and calculate average
+    final Map<String, List<double>> dailyMoods = {};
+    for (var mood in moods) {
+      final key = intl.DateFormat('yyyy-MM-dd').format(mood.dateTime);
+      dailyMoods.putIfAbsent(key, () => []).add((5 - mood.moodLevel.index).toDouble());
+    }
+
+    final List<FlSpot> spots = [];
+    final List<String> dates = [];
+    
+    DateTime current = range.start;
+    int index = 0;
+    while (current.isBefore(range.end) || isSameDay(current, range.end)) {
+      final key = intl.DateFormat('yyyy-MM-dd').format(current);
+      final dayMoods = dailyMoods[key];
+      if (dayMoods != null) {
+        final avg = dayMoods.reduce((a, b) => a + b) / dayMoods.length;
+        spots.add(FlSpot(index.toDouble(), avg));
+      }
+      dates.add(intl.DateFormat('MM/dd').format(current));
+      current = current.add(const Duration(days: 1));
+      index++;
+    }
+
+    if (spots.isEmpty) return const SizedBox.shrink();
+
+    return LineChart(
+      LineChartData(
+        gridData: const FlGridData(show: false),
+        titlesData: FlTitlesData(
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) => Text(
+                _toPersianDigit(value.toInt().toString()),
+                style: const TextStyle(fontSize: 10),
+              ),
+              reservedSize: 22,
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                if (dates.isEmpty) return const SizedBox.shrink();
+                final interval = (dates.length / 5).ceil();
+                if (value % (interval == 0 ? 1 : interval) != 0) return const SizedBox.shrink();
+                final idx = value.toInt();
+                if (idx < 0 || idx >= dates.length) return const SizedBox.shrink();
+                return Text(
+                  _toPersianDigit(dates[idx]),
+                  style: const TextStyle(fontSize: 10),
+                );
+              },
+            ),
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            color: Theme.of(context).colorScheme.primary,
+            barWidth: 4,
+            isStrokeCapRound: true,
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+            ),
+          ),
+        ],
+        minY: 1,
+        maxY: 5,
+      ),
+    );
+  }
+
+  Widget _buildActivityImpactChart(BuildContext context, List<MoodEntry> moods) {
+    if (moods.isEmpty) return const SizedBox.shrink();
+
+    final activityState = ref.watch(activityProvider);
+    final allActivities = activityState.activities;
+    
+    // Map activity ID to its average mood impact
+    final Map<int, List<double>> activityMoods = {};
+    for (var mood in moods) {
+      for (var activityId in mood.activityIds) {
+        activityMoods.putIfAbsent(activityId, () => []).add((5 - mood.moodLevel.index).toDouble());
+      }
+    }
+
+    final impacts = activityMoods.entries.map((e) {
+      final avg = e.value.reduce((a, b) => a + b) / e.value.length;
+      final activity = allActivities.firstWhere((a) => a.id == e.key, orElse: () => Activity(id: e.key, name: 'Unknown', categoryId: 0, iconName: '❓'));
+      return MapEntry(activity, avg);
+    }).toList();
+
+    // Sort by impact
+    impacts.sort((a, b) => b.value.compareTo(a.value));
+
+    // Show top 5 activities
+    final displayImpacts = impacts.take(5).toList();
+
+    return Column(
+      children: displayImpacts.map((entry) {
+        final activity = entry.key;
+        final avg = entry.value;
+        final theme = Theme.of(context);
+        
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              Text(activity.iconName, style: const TextStyle(fontSize: 20)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      activity.name,
+                      style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: avg / 5,
+                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                        color: _getMoodColor(avg),
+                        minHeight: 8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                _toPersianDigit(avg.toStringAsFixed(1)),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: _getMoodColor(avg),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Color _getMoodColor(double value) {
+    if (value >= 4.5) return Colors.greenAccent;
+    if (value >= 3.5) return Colors.lightGreen;
+    if (value >= 2.5) return Colors.orangeAccent;
+    if (value >= 1.5) return Colors.orange;
+    return Colors.redAccent;
   }
 
   @override

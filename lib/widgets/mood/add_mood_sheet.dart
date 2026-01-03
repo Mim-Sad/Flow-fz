@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:shamsi_date/shamsi_date.dart';
@@ -54,16 +55,17 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
 
   // Mood Data
   final List<Map<String, dynamic>> _moods = [
-    {'level': MoodLevel.rad, 'icon': '🤩', 'color': const Color(0xFF4CAF50), 'label': 'عالی'},
-    {'level': MoodLevel.good, 'icon': '😊', 'color': const Color(0xFF8BC34A), 'label': 'خوب'},
-    {'level': MoodLevel.meh, 'icon': '😐', 'color': const Color(0xFF2196F3), 'label': 'معمولی'},
-    {'level': MoodLevel.bad, 'icon': '☹️', 'color': const Color(0xFFFF9800), 'label': 'بد'},
-    {'level': MoodLevel.awful, 'icon': '😫', 'color': const Color(0xFFF44336), 'label': 'افتضاح'},
+    {'level': MoodLevel.rad, 'icon': 'assets/images/MoodsIcon/1.svg', 'color': const Color(0xFF4CAF50), 'label': 'عالی'},
+    {'level': MoodLevel.good, 'icon': 'assets/images/MoodsIcon/2.svg', 'color': const Color(0xFF8BC34A), 'label': 'خوب'},
+    {'level': MoodLevel.meh, 'icon': 'assets/images/MoodsIcon/3.svg', 'color': const Color(0xFF2196F3), 'label': 'معمولی'},
+    {'level': MoodLevel.bad, 'icon': 'assets/images/MoodsIcon/4.svg', 'color': const Color(0xFFFF9800), 'label': 'بد'},
+    {'level': MoodLevel.awful, 'icon': 'assets/images/MoodsIcon/5.svg', 'color': const Color(0xFFF44336), 'label': 'افتضاح'},
   ];
 
   void _onMoodSelected(Map<String, dynamic> mood) {
     setState(() {
       _selectedMood = mood['level'];
+      _step = 2;
     });
   }
 
@@ -179,6 +181,9 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
 
   Widget _buildIconOrEmoji(dynamic iconData, {required double size, Color? color}) {
     if (iconData is String) {
+      if (iconData.endsWith('.svg')) {
+        return SvgPicture.asset(iconData, width: size, height: size);
+      }
       return Text(iconData, style: TextStyle(fontSize: size));
     }
     return HugeIcon(icon: iconData, size: size, color: color);
@@ -249,8 +254,9 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
               children: [
                 if (_step == 1) _buildStep1(theme) else _buildStep2(theme),
                 
-                // Sticky Bottom Button with Fade
-                Positioned(
+                // Sticky Bottom Button with Fade (Only for step 2)
+                if (_step == 2)
+                  Positioned(
                   bottom: 0,
                   left: 0,
                   right: 0,
@@ -311,51 +317,40 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
     final f = jalali.formatter;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
       child: Column(
         children: [
           Text(
             'حالت چطوره؟',
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
+              fontSize: 20,
             ),
           ),
           const SizedBox(height: 32),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            alignment: WrapAlignment.center,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: _moods.map((m) {
-              final isSelected = _selectedMood == m['level'];
-              return GestureDetector(
-                onTap: () => _onMoodSelected(m),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? (m['color'] as Color).withValues(alpha: 0.15)
-                        : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isSelected ? (m['color'] as Color).withValues(alpha: 0.5) : Colors.transparent,
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Row(
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => _onMoodSelected(m),
+                  behavior: HitTestBehavior.opaque,
+                  child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildIconOrEmoji(
+                      SvgPicture.asset(
                         m['icon'],
-                        size: 24,
+                        width: 48,
+                        height: 48,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(height: 8),
                       Text(
                         m['label'],
+                        textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                          color: isSelected ? m['color'] : theme.colorScheme.onSurface,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: m['color'],
                         ),
                       ),
                     ],
@@ -364,7 +359,7 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
               );
             }).toList(),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 48),
           InkWell(
             onTap: _pickDateTime,
             borderRadius: BorderRadius.circular(12),
