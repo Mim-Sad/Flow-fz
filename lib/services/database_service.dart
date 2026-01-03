@@ -1974,9 +1974,7 @@ class DatabaseService {
                       await txn.update(
                         'tasks',
                         {
-                          'goalIds': json.encode(
-                            mergedIds.map((id) => id.toString()).toList(),
-                          ),
+                          'goalIds': json.encode(mergedIds),
                         },
                         where: 'id = ?',
                         whereArgs: [existingTaskId],
@@ -2029,9 +2027,7 @@ class DatabaseService {
                 // Removed the "else add old ID" part as it's safer for goal links
               }
 
-              newTaskMap['goalIds'] = json.encode(
-                updatedGoalIds.map((id) => id.toString()).toList(),
-              );
+              newTaskMap['goalIds'] = json.encode(updatedGoalIds);
               newTaskMap.remove('goalId'); // Ensure legacy field is removed
 
               // Ensure numeric fields are actually numbers and not null
