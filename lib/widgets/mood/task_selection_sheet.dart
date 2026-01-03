@@ -4,6 +4,8 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../models/task.dart';
 import '../../providers/task_provider.dart';
 
+import 'package:shamsi_date/shamsi_date.dart';
+
 class TaskSelectionSheet extends ConsumerWidget {
   final DateTime date;
   final int? selectedTaskId;
@@ -18,6 +20,7 @@ class TaskSelectionSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activeTasks = ref.watch(activeTasksProvider(date));
     final theme = Theme.of(context);
+    final jalali = Jalali.fromDateTime(date);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -33,7 +36,7 @@ class TaskSelectionSheet extends ConsumerWidget {
             textDirection: TextDirection.rtl,
             children: [
               Text(
-                'انتخاب تسک مرتبط',
+                'تسک‌های ${jalali.formatter.d} ${jalali.formatter.mN}',
                 style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const Spacer(),

@@ -19,7 +19,8 @@ import '../flow_toast.dart';
 
 class AddMoodSheet extends ConsumerStatefulWidget {
   final MoodEntry? entry;
-  const AddMoodSheet({super.key, this.entry});
+  final DateTime? initialDate;
+  const AddMoodSheet({super.key, this.entry, this.initialDate});
 
   @override
   ConsumerState<AddMoodSheet> createState() => _AddMoodSheetState();
@@ -28,7 +29,7 @@ class AddMoodSheet extends ConsumerStatefulWidget {
 class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
   int _step = 1;
   MoodLevel? _selectedMood;
-  DateTime _selectedDate = DateTime.now();
+  late DateTime _selectedDate;
   final TextEditingController _noteController = TextEditingController();
   final Set<int> _selectedActivityIds = {};
   final List<String> _attachments = [];
@@ -41,6 +42,7 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
   @override
   void initState() {
     super.initState();
+    _selectedDate = widget.initialDate ?? DateTime.now();
     if (widget.entry != null) {
       _selectedMood = widget.entry!.moodLevel;
       _selectedDate = widget.entry!.dateTime;
@@ -131,6 +133,15 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
           _selectedDate = pickedDate.toDateTime().add(
                 Duration(hours: pickedTime.hour, minutes: pickedTime.minute),
               );
+          
+          // Clear selected task if it's not active on the new date
+          if (_selectedTaskId != null) {
+            final tasks = ref.read(tasksProvider);
+            final task = tasks.where((t) => t.id == _selectedTaskId).firstOrNull;
+            if (task != null && !task.isActiveOnDate(_selectedDate)) {
+              _selectedTaskId = null;
+            }
+          }
         });
       }
     }
@@ -585,6 +596,8 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
                       final selectedTask = _selectedTaskId != null 
                           ? tasks.where((t) => t.id == _selectedTaskId).firstOrNull 
                           : null;
+                      
+                      final jalali = Jalali.fromDateTime(_selectedDate);
 
                       return InkWell(
                         onTap: _pickTask,
@@ -607,7 +620,7 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  selectedTask?.title ?? 'انتخاب تسک مرتبط',
+                                  selectedTask?.title ?? 'انتخاب تسک (${jalali.formatter.d} ${jalali.formatter.mN})',
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: selectedTask != null ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant,
