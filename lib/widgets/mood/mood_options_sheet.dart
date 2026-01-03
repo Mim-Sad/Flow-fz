@@ -6,6 +6,7 @@ import 'package:shamsi_date/shamsi_date.dart';
 import '../../models/mood_entry.dart';
 import '../../models/activity.dart';
 import '../../providers/mood_provider.dart';
+import '../../providers/task_provider.dart';
 import 'add_mood_sheet.dart';
 
 class MoodOptionsSheet extends ConsumerWidget {
@@ -148,6 +149,44 @@ class MoodOptionsSheet extends ConsumerWidget {
                             ),
                           ],
                         ),
+
+                        if (entry.taskId != null) ...[
+                          const SizedBox(height: 16),
+                          const Divider(height: 1, thickness: 0.5),
+                          const SizedBox(height: 16),
+                          Consumer(
+                            builder: (context, ref, child) {
+                              final tasks = ref.watch(tasksProvider);
+                              final linkedTask = tasks.where((t) => t.id == entry.taskId).firstOrNull;
+                              if (linkedTask == null) {
+                                return const SizedBox.shrink();
+                              }
+
+                              return Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                textDirection: TextDirection.rtl,
+                                children: [
+                                  HugeIcon(
+                                    icon: HugeIcons.strokeRoundedTask01,
+                                    size: 18,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _buildParenthesesStyledText(
+                                      "تسک مرتبط: ${linkedTask.title}",
+                                      TextStyle(
+                                        fontSize: 13,
+                                        color: theme.colorScheme.onSurface,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ],
 
                         if (entry.note != null && entry.note!.isNotEmpty) ...[
                           const SizedBox(height: 16),
@@ -445,7 +484,9 @@ class MoodOptionsSheet extends ConsumerWidget {
   }
 
   dynamic _getIconData(String name) {
-    if (!name.startsWith('strokeRounded')) return name;
+    if (!name.startsWith('strokeRounded')) {
+      return name;
+    }
     switch (name) {
       case 'strokeRoundedFavourite':
         return HugeIcons.strokeRoundedFavourite;

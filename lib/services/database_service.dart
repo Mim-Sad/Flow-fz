@@ -36,6 +36,7 @@ class DatabaseService {
         note TEXT,
         activityIds TEXT,
         attachments TEXT,
+        taskId INTEGER,
         createdAt TEXT NOT NULL,
         updatedAt TEXT
       )
@@ -395,7 +396,7 @@ class DatabaseService {
     try {
       db = await openDatabase(
         path,
-        version: 27,
+        version: 28,
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       );
@@ -829,14 +830,23 @@ class DatabaseService {
       await _createMoodTables(db);
     }
     if (oldVersion < 27) {
-        // Version 27: Drop unused mood_activities_link table
-        try {
-          await db.execute('DROP TABLE IF EXISTS mood_activities_link');
-          debugPrint('✅ Dropped unused mood_activities_link table');
-        } catch (e) {
-          debugPrint('Error dropping mood_activities_link: $e');
-        }
+      // Version 27: Drop unused mood_activities_link table
+      try {
+        await db.execute('DROP TABLE IF EXISTS mood_activities_link');
+        debugPrint('✅ Dropped unused mood_activities_link table');
+      } catch (e) {
+        debugPrint('Error dropping mood_activities_link: $e');
       }
+    }
+    if (oldVersion < 28) {
+      // Version 28: Add taskId to mood_entries
+      try {
+        await db.execute('ALTER TABLE mood_entries ADD COLUMN taskId INTEGER');
+        debugPrint('✅ Added taskId column to mood_entries table');
+      } catch (e) {
+        debugPrint('Error adding taskId column to mood_entries: $e');
+      }
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {

@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:shamsi_date/shamsi_date.dart';
 import 'package:intl/intl.dart' as intl;
 import '../../models/mood_entry.dart';
 import '../../models/activity.dart';
+import '../../providers/task_provider.dart';
 import 'mood_options_sheet.dart';
 
-class MoodCard extends StatelessWidget {
+class MoodCard extends ConsumerWidget {
   final MoodEntry entry;
   final List<Activity> allActivities;
 
@@ -20,17 +22,23 @@ class MoodCard extends StatelessWidget {
   }) {
     if (iconData is String) {
       if (iconData.endsWith('.svg')) {
-        return SvgPicture.asset(iconData, width: size, height: size);
+        return SvgPicture.asset(
+          iconData,
+          width: size,
+          height: size,
+          colorFilter:
+              color != null ? ColorFilter.mode(color, BlendMode.srcIn) : null,
+        );
       } else if (iconData.endsWith('.png') || iconData.endsWith('.jpg')) {
         return Image.asset(iconData, width: size, height: size);
       }
-      return Text(iconData, style: TextStyle(fontSize: size));
+      return Text(iconData, style: TextStyle(fontSize: size, color: color));
     }
     return HugeIcon(icon: iconData, size: size, color: color);
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final moodInfo = _getMoodInfo(entry.moodLevel);
     final displayLabel = moodInfo['label'] as String;
@@ -209,6 +217,49 @@ class MoodCard extends StatelessWidget {
                 ),
               ],
 
+              // Linked Task
+              if (entry.taskId != null) ...[
+                const SizedBox(height: 12),
+                Consumer(
+                  builder: (context, ref, child) {
+                    final tasks = ref.watch(tasksProvider);
+                    final linkedTask = tasks.where((t) => t.id == entry.taskId).firstOrNull;
+                    if (linkedTask == null) {
+                      return const SizedBox.shrink();
+                    }
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          HugeIcon(
+                            icon: HugeIcons.strokeRoundedTask01,
+                            size: 14,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            linkedTask.title,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurface,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+
               // Attachments Indicator
               if (entry.attachments.isNotEmpty) ...[
                 const SizedBox(height: 12),
@@ -235,7 +286,9 @@ class MoodCard extends StatelessWidget {
 
   // Helper to map string names to HugeIcons data
   dynamic _getIconData(String name) {
-    if (!name.startsWith('strokeRounded')) return name;
+    if (!name.startsWith('strokeRounded')) {
+      return name;
+    }
     switch (name) {
       case 'strokeRoundedFavourite':
         return HugeIcons.strokeRoundedFavourite;

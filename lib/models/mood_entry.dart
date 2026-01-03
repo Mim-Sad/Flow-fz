@@ -59,6 +59,7 @@ class MoodEntry {
   final String? note;
   final List<String> attachments; // Paths to files/photos
   final List<int> activityIds; // Linked activities
+  final int? taskId; // Linked task
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -69,6 +70,7 @@ class MoodEntry {
     this.note,
     this.attachments = const [],
     this.activityIds = const [],
+    this.taskId,
     required this.createdAt,
     this.updatedAt,
   });
@@ -81,6 +83,7 @@ class MoodEntry {
       'note': note,
       'activityIds': json.encode(activityIds),
       'attachments': json.encode(attachments),
+      'taskId': taskId,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
@@ -98,6 +101,7 @@ class MoodEntry {
       attachments: map['attachments'] != null
           ? List<String>.from(json.decode(map['attachments']))
           : [],
+      taskId: map['taskId'],
       createdAt: DateTime.parse(map['createdAt']),
       updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
     );
@@ -110,6 +114,7 @@ class MoodEntry {
     String? note,
     List<String>? attachments,
     List<int>? activityIds,
+    int? taskId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -120,6 +125,7 @@ class MoodEntry {
       note: note ?? this.note,
       attachments: attachments ?? this.attachments,
       activityIds: activityIds ?? this.activityIds,
+      taskId: taskId ?? this.taskId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

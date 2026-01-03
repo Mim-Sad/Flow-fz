@@ -683,11 +683,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               showTitles: true,
               interval: 1,
               getTitlesWidget: (value, meta) {
-                if (value % 1 != 0 || value < 1 || value > 5)
+                if (value % 1 != 0 || value < 1 || value > 5) {
                   return const SizedBox.shrink();
+                }
                 final idx = 5 - value.toInt();
-                if (idx < 0 || idx >= MoodLevel.values.length)
+                if (idx < 0 || idx >= MoodLevel.values.length) {
                   return const SizedBox.shrink();
+                }
                 final mood = MoodLevel.values[idx];
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),

@@ -11,7 +11,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 import '../audio_waveform_player.dart';
 import '../../models/mood_entry.dart';
+import '../../models/task.dart';
 import '../../providers/mood_provider.dart';
+import '../../providers/task_provider.dart';
+import './task_selection_sheet.dart';
 import '../flow_toast.dart';
 
 class AddMoodSheet extends ConsumerStatefulWidget {
@@ -29,6 +32,7 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
   final TextEditingController _noteController = TextEditingController();
   final Set<int> _selectedActivityIds = {};
   final List<String> _attachments = [];
+  int? _selectedTaskId;
 
   // Audio Recording
   final AudioRecorder _audioRecorder = AudioRecorder();
@@ -43,6 +47,7 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
       _noteController.text = widget.entry!.note ?? '';
       _selectedActivityIds.addAll(widget.entry!.activityIds);
       _attachments.addAll(widget.entry!.attachments);
+      _selectedTaskId = widget.entry!.taskId;
     }
   }
 
@@ -77,7 +82,9 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
   }
 
   void _submit() {
-    if (_selectedMood == null) return;
+    if (_selectedMood == null) {
+      return;
+    }
 
     final entry = MoodEntry(
       id: widget.entry?.id,
@@ -86,6 +93,7 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
       note: _noteController.text.isEmpty ? null : _noteController.text,
       activityIds: _selectedActivityIds.toList(),
       attachments: _attachments,
+      taskId: _selectedTaskId,
       createdAt: widget.entry?.createdAt ?? DateTime.now(),
       updatedAt: widget.entry != null ? DateTime.now() : null,
     );
@@ -110,7 +118,9 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
     );
 
     if (pickedDate != null) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       final pickedTime = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.fromDateTime(_selectedDate),
@@ -130,7 +140,9 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
     try {
       final result = await OpenFilex.open(path);
       if (result.type != ResultType.done) {
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         FlowToast.show(
           context,
           message: 'خطا در باز کردن فایل: ${result.message}',
@@ -139,7 +151,9 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
       }
     } catch (e) {
       debugPrint('Error opening file: $e');
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       FlowToast.show(
         context,
         message: 'خطا در باز کردن فایل',
@@ -175,6 +189,24 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
         await _audioRecorder.start(const RecordConfig(), path: path);
         setState(() => _isRecording = true);
       }
+    }
+  }
+
+  Future<void> _pickTask() async {
+    final result = await showModalBottomSheet<Task?>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => TaskSelectionSheet(
+        date: _selectedDate,
+        selectedTaskId: _selectedTaskId,
+      ),
+    );
+
+    if (mounted && result != null) {
+      setState(() {
+        _selectedTaskId = result.id == -1 ? null : result.id;
+      });
     }
   }
 
@@ -332,6 +364,7 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: _moods.map((m) {
+              final isSelected = _selectedMood == m['level'];
               return Expanded(
                 child: GestureDetector(
                   onTap: () => _onMoodSelected(m),
@@ -339,9 +372,29 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildIconOrEmoji(
-                        m['icon'],
-                        size: 48,
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? (m['color'] as Color).withValues(alpha: 0.15)
+                              : Colors.transparent,
+                          shape: BoxShape.circle,
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: (m['color'] as Color)
+                                        .withValues(alpha: 0.1),
+                                    blurRadius: 15,
+                                    spreadRadius: 2,
+                                  )
+                                ]
+                              : [],
+                        ),
+                        child: _buildIconOrEmoji(
+                          m['icon'],
+                          size: 48,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -349,7 +402,8 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.bold,
                           color: m['color'],
                         ),
                       ),
@@ -519,6 +573,70 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
                     ],
                   );
                 }),
+
+                // Task Selection
+                _buildDividerWithTitle('تسک مرتبط', HugeIcons.strokeRoundedTask01, theme),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Consumer(
+                    builder: (context, ref, child) {
+                      final tasks = ref.watch(tasksProvider);
+                      final selectedTask = _selectedTaskId != null 
+                          ? tasks.where((t) => t.id == _selectedTaskId).firstOrNull 
+                          : null;
+
+                      return InkWell(
+                        onTap: _pickTask,
+                        borderRadius: BorderRadius.circular(15),
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(6, 6, 16, 6),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                            ),
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Row(
+                            children: [
+                              HugeIcon(
+                                icon: HugeIcons.strokeRoundedTask01,
+                                size: 20,
+                                color: selectedTask != null ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  selectedTask?.title ?? 'انتخاب تسک مرتبط',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: selectedTask != null ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant,
+                                    fontWeight: selectedTask != null ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                              if (selectedTask != null)
+                                IconButton(
+                                  onPressed: () => setState(() => _selectedTaskId = null),
+                                  icon: const HugeIcon(icon: HugeIcons.strokeRoundedCancel01, size: 16),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                )
+                              else
+                              IconButton(
+                                  onPressed: null,
+                                  icon: const HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, size: 16),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                )
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
 
                 // Note
                 Padding(
@@ -695,7 +813,9 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
 
   // Helper to map string names to HugeIcons data
   dynamic _getIconData(String name) {
-    if (!name.startsWith('strokeRounded')) return name;
+    if (!name.startsWith('strokeRounded')) {
+      return name;
+    }
     switch (name) {
       case 'strokeRoundedFavourite':
         return HugeIcons.strokeRoundedFavourite;
