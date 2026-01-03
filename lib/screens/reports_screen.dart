@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import '../providers/task_provider.dart';
@@ -365,9 +364,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         _buildMoodReportSection(context, range),
       ]);
     } else {
-      content.addAll([
-        _buildMoodReportSection(context, range),
-      ]);
+      content.addAll([_buildMoodReportSection(context, range)]);
     }
 
     return content;
@@ -375,7 +372,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   Widget _buildMoodReportSection(BuildContext context, DateTimeRange range) {
     final moods = ref.watch(moodsForRangeProvider(range));
-    final theme = Theme.of(context);
 
     // Calculate Previous Range Stats
     DateTimeRange prevRange;
@@ -383,7 +379,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       final prevDay = _selectedDate.subtract(const Duration(days: 1));
       prevRange = DateTimeRange(start: prevDay, end: prevDay);
     } else if (_viewMode == 1) {
-      final startOfWeek = _selectedDate.subtract(Duration(days: (_selectedDate.weekday + 1) % 7));
+      final startOfWeek = _selectedDate.subtract(
+        Duration(days: (_selectedDate.weekday + 1) % 7),
+      );
       final prevStartOfWeek = startOfWeek.subtract(const Duration(days: 7));
       final prevEndOfWeek = prevStartOfWeek.add(const Duration(days: 6));
       prevRange = DateTimeRange(start: prevStartOfWeek, end: prevEndOfWeek);
@@ -397,38 +395,26 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     }
     final prevMoods = ref.watch(moodsForRangeProvider(prevRange));
 
-    if (moods.isEmpty && prevMoods.isEmpty) {
-      return Center(
-        child: Column(
-          children: [
-            const SizedBox(height: 40),
-            Lottie.asset(
-              'assets/images/TheSoul/24 news b.json',
-              height: 120,
-              repeat: true,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'اطلاعاتی برای این بازه پیدا نکردم!',
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-            ),
-          ],
-        ),
-      );
+    if (moods.isEmpty) {
+      return const SizedBox.shrink();
     }
 
     // Calculations
     final totalMoods = moods.length;
     final prevTotalMoods = prevMoods.length;
-    
+
     double avgMood = 0;
     if (moods.isNotEmpty) {
-      avgMood = moods.map((m) => 5 - m.moodLevel.index).reduce((a, b) => a + b) / totalMoods;
+      avgMood =
+          moods.map((m) => 5 - m.moodLevel.index).reduce((a, b) => a + b) /
+          totalMoods;
     }
 
     double prevAvgMood = 0;
     if (prevMoods.isNotEmpty) {
-      prevAvgMood = prevMoods.map((m) => 5 - m.moodLevel.index).reduce((a, b) => a + b) / prevTotalMoods;
+      prevAvgMood =
+          prevMoods.map((m) => 5 - m.moodLevel.index).reduce((a, b) => a + b) /
+          prevTotalMoods;
     }
 
     return Column(
@@ -437,13 +423,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         Center(
           child: Text(
             'گزارش وضعیت مودی',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
         ),
         const SizedBox(height: 18),
-        
+
         // Stats Boxes
         Row(
           children: [
@@ -469,35 +455,35 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
           ],
         ),
-        
+
         const SizedBox(height: 32),
-      if (_viewMode != 0) ...[
+        if (_viewMode != 0) ...[
+          Center(
+            child: Text(
+              'روند تغییرات مود',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: SizedBox(
+              height: 200,
+              child: _buildMoodTrendChart(moods, range, avgMood),
+            ),
+          ),
+          const SizedBox(height: 32),
+        ],
         Center(
           child: Text(
-            'روند تغییرات مود',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            'تاثیر فعالیت‌ها بر مود',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
         ),
-        const SizedBox(height: 18),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: SizedBox(
-            height: 200,
-            child: _buildMoodTrendChart(moods, range, avgMood),
-          ),
-        ),
-        const SizedBox(height: 32),
-      ],
-      Center(
-        child: Text(
-          'تاثیر فعالیت‌ها بر مود',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-        ),
-      ),
         const SizedBox(height: 18),
         _buildActivityImpactChart(context, moods),
       ],
@@ -514,7 +500,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }) {
     final theme = Theme.of(context);
     final isPositive = diff > 0;
-    final diffText = diff == 0 ? '' : (isPositive ? '+${isMoodValue ? diff.toStringAsFixed(1) : diff.toInt()}' : (isMoodValue ? diff.toStringAsFixed(1) : diff.toInt().toString()));
+    final diffText = diff == 0
+        ? ''
+        : (isPositive
+              ? '${isMoodValue ? diff.toStringAsFixed(1) : diff.toInt()}+  '
+              : (isMoodValue
+                    ? diff.toStringAsFixed(1)
+                    : diff.toInt().toString()));
     final diffColor = isPositive ? Colors.green : Colors.red;
 
     return Container(
@@ -528,11 +520,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         children: [
           Row(
             children: [
-              HugeIcon(
-                icon: icon,
-                size: 18,
-                color: theme.colorScheme.primary,
-              ),
+              HugeIcon(icon: icon, size: 18, color: theme.colorScheme.primary),
               const SizedBox(width: 8),
               Text(
                 title,
@@ -547,16 +535,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Text(
-                _toPersianDigit(value),
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
               if (diff != 0) ...[
                 const SizedBox(width: 8),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
+                  padding: const EdgeInsets.only(bottom: 2),
                   child: Text(
                     _toPersianDigit(diffText),
                     style: theme.textTheme.labelSmall?.copyWith(
@@ -566,6 +548,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ),
                 ),
               ],
+              Text(
+                _toPersianDigit(value),
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ],
@@ -573,162 +561,156 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  Widget _buildMoodTrendChart(List<MoodEntry> moods, DateTimeRange range, double rangeAvg) {
-  if (moods.isEmpty) return const SizedBox.shrink();
+  Widget _buildMoodTrendChart(
+    List<MoodEntry> moods,
+    DateTimeRange range,
+    double rangeAvg,
+  ) {
+    if (moods.isEmpty) return const SizedBox.shrink();
 
-  // Group moods by day and calculate average
-  final Map<String, List<double>> dailyMoods = {};
-  for (var mood in moods) {
-    final key = intl.DateFormat('yyyy-MM-dd').format(mood.dateTime);
-    dailyMoods.putIfAbsent(key, () => []).add((5 - mood.moodLevel.index).toDouble());
-  }
-
-  final List<FlSpot> spots = [];
-  final List<String> labels = [];
-  
-  if (_viewMode == 1) {
-    // Weekly
-    final startOfWeek = range.start;
-    for (int i = 0; i < 7; i++) {
-      final day = startOfWeek.add(Duration(days: i));
-      final key = intl.DateFormat('yyyy-MM-dd').format(day);
-      final dayMoods = dailyMoods[key];
-      if (dayMoods != null) {
-        final avg = dayMoods.reduce((a, b) => a + b) / dayMoods.length;
-        spots.add(FlSpot(i.toDouble(), avg));
-      }
-      final j = Jalali.fromDateTime(day);
-      labels.add('${j.formatter.wN.substring(0, 1)} ${j.day}');
+    // Group moods by day and calculate average
+    final Map<String, List<double>> dailyMoods = {};
+    for (var mood in moods) {
+      final key = intl.DateFormat('yyyy-MM-dd').format(mood.dateTime);
+      dailyMoods
+          .putIfAbsent(key, () => [])
+          .add((5 - mood.moodLevel.index).toDouble());
     }
-  } else if (_viewMode == 2) {
-    // Monthly
-    final jalali = Jalali.fromDateTime(range.start);
-    final daysInMonth = jalali.monthLength;
-    for (int i = 1; i <= daysInMonth; i++) {
-      final day = Jalali(jalali.year, jalali.month, i).toDateTime();
-      final key = intl.DateFormat('yyyy-MM-dd').format(day);
-      final dayMoods = dailyMoods[key];
-      if (dayMoods != null) {
-        final avg = dayMoods.reduce((a, b) => a + b) / dayMoods.length;
-        spots.add(FlSpot(i.toDouble(), avg));
+
+    final List<FlSpot> spots = [];
+    final List<String> labels = [];
+
+    if (_viewMode == 1) {
+      // Weekly
+      final startOfWeek = range.start;
+      for (int i = 0; i < 7; i++) {
+        final day = startOfWeek.add(Duration(days: i));
+        final key = intl.DateFormat('yyyy-MM-dd').format(day);
+        final dayMoods = dailyMoods[key];
+        if (dayMoods != null) {
+          final avg = dayMoods.reduce((a, b) => a + b) / dayMoods.length;
+          spots.add(FlSpot(i.toDouble(), avg));
+        }
+        final j = Jalali.fromDateTime(day);
+        labels.add('${j.formatter.wN.substring(0, 1)} ${j.day}');
       }
-      if (i % 5 == 0 || i == 1 || i == daysInMonth) {
-        labels.add(i.toString());
-      } else {
-        labels.add('');
+    } else if (_viewMode == 2) {
+      // Monthly
+      final jalali = Jalali.fromDateTime(range.start);
+      final daysInMonth = jalali.monthLength;
+      for (int i = 1; i <= daysInMonth; i++) {
+        final day = Jalali(jalali.year, jalali.month, i).toDateTime();
+        final key = intl.DateFormat('yyyy-MM-dd').format(day);
+        final dayMoods = dailyMoods[key];
+        if (dayMoods != null) {
+          final avg = dayMoods.reduce((a, b) => a + b) / dayMoods.length;
+          spots.add(FlSpot(i.toDouble(), avg));
+        }
+        if (i % 5 == 0 || i == 1 || i == daysInMonth) {
+          labels.add(i.toString());
+        } else {
+          labels.add('');
+        }
       }
     }
-  }
 
-  if (spots.isEmpty) return const SizedBox.shrink();
+    if (spots.isEmpty) return const SizedBox.shrink();
 
-  final moodColor = _getMoodColor(rangeAvg);
-  final theme = Theme.of(context);
+    final moodColor = _getMoodColor(rangeAvg);
+    final theme = Theme.of(context);
 
-  double minX = 0;
-  double maxX = 6;
-  if (_viewMode == 2) {
-    final jalali = Jalali.fromDateTime(range.start);
-    minX = 1;
-    maxX = jalali.monthLength.toDouble();
-  }
+    double minX = 0;
+    double maxX = 6;
+    if (_viewMode == 2) {
+      final jalali = Jalali.fromDateTime(range.start);
+      minX = 1;
+      maxX = jalali.monthLength.toDouble();
+    }
 
-  return LineChart(
-    LineChartData(
-      minX: minX,
-      maxX: maxX,
-      minY: 0.5,
-      maxY: 5.5,
-      gridData: FlGridData(
-        show: true,
-        drawVerticalLine: true,
-        horizontalInterval: 1,
-        verticalInterval: 1,
-        getDrawingVerticalLine: (value) => FlLine(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-          strokeWidth: 1,
-        ),
-        getDrawingHorizontalLine: (value) => FlLine(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-          strokeWidth: 1,
-        ),
-      ),
-      extraLinesData: ExtraLinesData(
-        horizontalLines: [
-          if (rangeAvg > 0)
-            HorizontalLine(
-              y: rangeAvg,
-              color: moodColor.withValues(alpha: 0.4),
-              strokeWidth: 1,
-              dashArray: [4, 4],
-              label: HorizontalLineLabel(
-                show: true,
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.only(right: -18, bottom: 2),
-                style: TextStyle(
-                  color: moodColor.withValues(alpha: 0.6),
-                  fontSize: 8,
-                  fontWeight: FontWeight.bold,
-                  fontFeatures: const [FontFeature.enable('ss01')],
-                ),
-                labelResolver: (line) => _toPersianDigit(rangeAvg.toStringAsFixed(1)),
-              ),
-            ),
-        ],
-      ),
-      titlesData: FlTitlesData(
-        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        leftTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            interval: 1,
-            getTitlesWidget: (value, meta) {
-              if (value % 1 != 0 || value < 1 || value > 5) return const SizedBox.shrink();
-              final idx = 5 - value.toInt();
-              if (idx < 0 || idx >= MoodLevel.values.length) return const SizedBox.shrink();
-              final mood = MoodLevel.values[idx];
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Center(
-                  child: Image.asset(
-                    mood.iconPath,
-                    width: 20,
-                    height: 20,
-                  ),
-                ),
-              );
-            },
-            reservedSize: 32,
+    return LineChart(
+      LineChartData(
+        minX: minX,
+        maxX: maxX,
+        minY: 0.5,
+        maxY: 5.5,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: true,
+          horizontalInterval: 1,
+          verticalInterval: 1,
+          getDrawingVerticalLine: (value) => FlLine(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+            strokeWidth: 1,
+          ),
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+            strokeWidth: 1,
           ),
         ),
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            interval: 1,
-            getTitlesWidget: (value, meta) {
-              int index = value.toInt();
-              if (_viewMode == 1) {
-                if (index >= 0 && index < labels.length) {
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      _toPersianDigit(labels[index]),
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  );
-                }
-              } else if (_viewMode == 2) {
-                if (index > 0 && index <= labels.length) {
-                  final label = labels[index - 1];
-                  if (label.isNotEmpty) {
+        extraLinesData: ExtraLinesData(
+          horizontalLines: [
+            if (rangeAvg > 0)
+              HorizontalLine(
+                y: rangeAvg,
+                color: moodColor.withValues(alpha: 0.4),
+                strokeWidth: 1,
+                dashArray: [4, 4],
+                label: HorizontalLineLabel(
+                  show: true,
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: -18, bottom: 2),
+                  style: TextStyle(
+                    color: moodColor.withValues(alpha: 0.6),
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                    fontFeatures: const [FontFeature.enable('ss01')],
+                  ),
+                  labelResolver: (line) =>
+                      _toPersianDigit(rangeAvg.toStringAsFixed(1)),
+                ),
+              ),
+          ],
+        ),
+        titlesData: FlTitlesData(
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 1,
+              getTitlesWidget: (value, meta) {
+                if (value % 1 != 0 || value < 1 || value > 5)
+                  return const SizedBox.shrink();
+                final idx = 5 - value.toInt();
+                if (idx < 0 || idx >= MoodLevel.values.length)
+                  return const SizedBox.shrink();
+                final mood = MoodLevel.values[idx];
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Center(
+                    child: Image.asset(mood.iconPath, width: 20, height: 20),
+                  ),
+                );
+              },
+              reservedSize: 32,
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 1,
+              getTitlesWidget: (value, meta) {
+                int index = value.toInt();
+                if (_viewMode == 1) {
+                  if (index >= 0 && index < labels.length) {
                     return Padding(
                       padding: const EdgeInsets.only(top: 8.0),
                       child: Text(
-                        _toPersianDigit(label),
+                        _toPersianDigit(labels[index]),
                         style: TextStyle(
                           fontSize: 9,
                           color: theme.colorScheme.onSurfaceVariant,
@@ -736,122 +718,233 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       ),
                     );
                   }
+                } else if (_viewMode == 2) {
+                  if (index > 0 && index <= labels.length) {
+                    final label = labels[index - 1];
+                    if (label.isNotEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          _toPersianDigit(label),
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      );
+                    }
+                  }
                 }
-              }
-              return const SizedBox.shrink();
-            },
-            reservedSize: 30,
-          ),
-        ),
-      ),
-      borderData: FlBorderData(show: false),
-      lineBarsData: [
-        LineChartBarData(
-          spots: spots,
-          isCurved: true,
-          gradient: LinearGradient(
-            colors: [
-              MoodLevel.awful.color,
-              MoodLevel.bad.color,
-              MoodLevel.meh.color,
-              MoodLevel.good.color,
-              MoodLevel.rad.color,
-            ],
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            stops: const [0.1, 0.3, 0.5, 0.7, 0.9],
-          ),
-          barWidth: 4,
-          isStrokeCapRound: true,
-          dotData: const FlDotData(show: false),
-          belowBarData: BarAreaData(
-            show: true,
-            gradient: LinearGradient(
-              colors: [
-                MoodLevel.rad.color.withValues(alpha: 0.2),
-                MoodLevel.awful.color.withValues(alpha: 0.0),
-              ],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+                return const SizedBox.shrink();
+              },
+              reservedSize: 30,
             ),
           ),
         ),
-      ],
-    ),
-  );
-}
+        borderData: FlBorderData(show: false),
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            gradient: LinearGradient(
+              colors: [
+                MoodLevel.awful.color,
+                MoodLevel.bad.color,
+                MoodLevel.meh.color,
+                MoodLevel.good.color,
+                MoodLevel.rad.color,
+              ],
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+              stops: const [0.1, 0.3, 0.5, 0.7, 0.9],
+            ),
+            barWidth: 4,
+            isStrokeCapRound: true,
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                colors: [
+                  MoodLevel.rad.color.withValues(alpha: 0.2),
+                  MoodLevel.awful.color.withValues(alpha: 0.0),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-  Widget _buildActivityImpactChart(BuildContext context, List<MoodEntry> moods) {
+  Widget _buildActivityImpactChart(
+    BuildContext context,
+    List<MoodEntry> moods,
+  ) {
     if (moods.isEmpty) return const SizedBox.shrink();
 
     final activityState = ref.watch(activityProvider);
     final allActivities = activityState.activities;
-    
+
     // Map activity ID to its average mood impact
     final Map<int, List<double>> activityMoods = {};
     for (var mood in moods) {
       for (var activityId in mood.activityIds) {
-        activityMoods.putIfAbsent(activityId, () => []).add((5 - mood.moodLevel.index).toDouble());
+        activityMoods
+            .putIfAbsent(activityId, () => [])
+            .add((5 - mood.moodLevel.index).toDouble());
       }
     }
 
     final impacts = activityMoods.entries.map((e) {
       final avg = e.value.reduce((a, b) => a + b) / e.value.length;
-      final activity = allActivities.firstWhere((a) => a.id == e.key, orElse: () => Activity(id: e.key, name: 'Unknown', categoryId: 0, iconName: '❓'));
+      final activity = allActivities.firstWhere(
+        (a) => a.id == e.key,
+        orElse: () =>
+            Activity(id: e.key, name: 'Unknown', categoryId: 0, iconName: '❓'),
+      );
       return MapEntry(activity, avg);
     }).toList();
 
-    // Sort by impact
-    impacts.sort((a, b) => b.value.compareTo(a.value));
+    // Sort to find best and worst
+    final goodImpacts = [...impacts]
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final badImpacts = [...impacts]..sort((a, b) => a.value.compareTo(b.value));
 
-    // Show top 5 activities
-    final displayImpacts = impacts.take(5).toList();
+    // Thresholds: > 3.0 is generally good, < 3.0 is generally bad
+    final topGood = goodImpacts.where((e) => e.value >= 3.0).take(5).toList();
+    final topBad = badImpacts.where((e) => e.value < 3.0).take(5).toList();
 
-    return Column(
-      children: displayImpacts.map((entry) {
-        final activity = entry.key;
-        final avg = entry.value;
-        final theme = Theme.of(context);
-        
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
+    if (topGood.isEmpty && topBad.isEmpty) return const SizedBox.shrink();
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Bad impacts (Left)
+        Expanded(
+          child: Column(
             children: [
-              Text(activity.iconName, style: const TextStyle(fontSize: 20)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      activity.name,
-                      style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: avg / 5,
-                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                        color: _getMoodColor(avg),
-                        minHeight: 8,
-                      ),
-                    ),
-                  ],
+              if (topBad.isNotEmpty)
+                ...topBad.map(
+                  (entry) => _buildCompactImpactTile(context, entry, false),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                _toPersianDigit(avg.toStringAsFixed(1)),
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: _getMoodColor(avg),
+              if (topBad.isEmpty)
+                Center(
+                  child: Text(
+                    'موردی یافت نشد',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                    ),
+                  ),
                 ),
-              ),
             ],
           ),
-        );
-      }).toList(),
+        ),
+        const SizedBox(width: 12),
+        // Good impacts (Right)
+        Expanded(
+          child: Column(
+            children: [
+              if (topGood.isNotEmpty)
+                ...topGood.map(
+                  (entry) => _buildCompactImpactTile(context, entry, true),
+                ),
+              if (topGood.isEmpty)
+                Center(
+                  child: Text(
+                    'موردی یافت نشد',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCompactImpactTile(
+    BuildContext context,
+    MapEntry<Activity, double> entry,
+    bool isPositive,
+  ) {
+    final theme = Theme.of(context);
+    final color = isPositive ? Colors.green : Colors.red;
+    final progress = isPositive
+        ? (entry.value / 5.0)
+        : ((5.0 - entry.value) / 5.0);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            // Progress Background
+            Positioned.fill(
+              child: Container(color: theme.colorScheme.surfaceContainerLow),
+            ),
+            Positioned.fill(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Row(
+                    children: [
+                      if (!isPositive) const Spacer(),
+                      Container(
+                        width: constraints.maxWidth * progress.clamp(0.0, 1.0),
+                        color: color.withValues(alpha: 0.15),
+                      ),
+                      if (isPositive) const Spacer(),
+                    ],
+                  );
+                },
+              ),
+            ),
+            // Content
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              decoration: BoxDecoration(
+                border: Border.all(color: color.withValues(alpha: 0.2)),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    entry.key.iconName,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      entry.key.name,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    _toPersianDigit(entry.value.toStringAsFixed(1)),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                      fontFeatures: const [FontFeature.enable('ss01')],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1117,7 +1210,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         // Group tasks by category
         final Map<String, List<Task>> categoryTasks = {};
         for (final task in filteredTasks) {
-          final catId = task.categories.isNotEmpty ? task.categories.first : 'uncategorized';
+          final catId = task.categories.isNotEmpty
+              ? task.categories.first
+              : 'uncategorized';
           categoryTasks.putIfAbsent(catId, () => []).add(task);
         }
 
@@ -1211,7 +1306,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       borderRadius: BorderRadius.circular(14),
       child: Container(
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          color: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(14),
         ),
         child: IntrinsicWidth(
@@ -1239,7 +1336,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     width: 1.5,
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1414,20 +1514,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(4),
                                       child: LinearProgressIndicator(
-                                      value: progress! / 100,
-                                      backgroundColor: Theme.of(
-                                        context,
-                                      ).colorScheme.surfaceContainerHighest,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      minHeight: 6,
+                                        value: progress! / 100,
+                                        backgroundColor: Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceContainerHighest,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        minHeight: 6,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '${_toPersianDigit(progress.toStringAsFixed(0))}%',
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${_toPersianDigit(progress.toStringAsFixed(0))}%',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
@@ -2002,7 +2102,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             if (rangeAvg > 0)
               HorizontalLine(
                 y: rangeAvg,
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.4),
                 strokeWidth: 1,
                 dashArray: [4, 4],
                 label: HorizontalLineLabel(
@@ -2010,12 +2112,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: -18, bottom: 2),
                   style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.6),
                     fontSize: 8,
                     fontWeight: FontWeight.bold,
                     fontFeatures: const [FontFeature.enable('ss01')],
                   ),
-                  labelResolver: (line) => '${_toPersianDigit(rangeAvg.toInt().toString())}٪',
+                  labelResolver: (line) =>
+                      '${_toPersianDigit(rangeAvg.toInt().toString())}٪',
                 ),
               ),
           ],
