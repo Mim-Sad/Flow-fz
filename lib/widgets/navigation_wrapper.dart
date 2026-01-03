@@ -29,6 +29,15 @@ class _NavigationWrapperState extends ConsumerState<NavigationWrapper> {
         _handleNotificationClick(payload);
       }
     });
+
+    // Check for initial payload if app was launched from notification
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final initialPayload = NotificationService().consumeInitialPayload();
+      if (initialPayload != null) {
+        debugPrint('🔔 Handling initial notification payload: $initialPayload');
+        _handleNotificationClick(initialPayload);
+      }
+    });
   }
 
   @override
@@ -37,9 +46,19 @@ class _NavigationWrapperState extends ConsumerState<NavigationWrapper> {
     super.dispose();
   }
 
-  void _handleNotificationClick(String payload) {
+  Future<void> _handleNotificationClick(String payload) async {
     final taskId = int.tryParse(payload);
     if (taskId == null) return;
+
+    // Wait if tasks are still loading
+    if (ref.read(tasksLoadingProvider)) {
+      debugPrint('⏳ Tasks still loading, waiting before handling notification...');
+      int attempts = 0;
+      while (ref.read(tasksLoadingProvider) && attempts < 50) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        attempts++;
+      }
+    }
 
     // Use ref.read to get the current list of tasks
     final allTasks = ref.read(tasksProvider);

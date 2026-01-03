@@ -10,13 +10,13 @@ class MoodCard extends StatelessWidget {
   final MoodEntry entry;
   final List<Activity> allActivities;
 
-  const MoodCard({
-    super.key,
-    required this.entry,
-    required this.allActivities,
-  });
+  const MoodCard({super.key, required this.entry, required this.allActivities});
 
-  Widget _buildIconOrEmoji(dynamic iconData, {required double size, Color? color}) {
+  Widget _buildIconOrEmoji(
+    dynamic iconData, {
+    required double size,
+    Color? color,
+  }) {
     if (iconData is String) {
       return Text(iconData, style: TextStyle(fontSize: size));
     }
@@ -34,7 +34,9 @@ class MoodCard extends StatelessWidget {
     final f = jalali.formatter;
 
     // Filter activities for this entry
-    final entryActivities = allActivities.where((a) => entry.activityIds.contains(a.id)).toList();
+    final entryActivities = allActivities
+        .where((a) => entry.activityIds.contains(a.id))
+        .toList();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12, left: 16, right: 16),
@@ -52,131 +54,149 @@ class MoodCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header: Icon, Mood Name, Time, and More Button
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: (moodInfo['color'] as Color).withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: _buildIconOrEmoji(
-                    displayEmoji,
-                    color: moodInfo['color'] as Color,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        displayLabel,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: moodInfo['color'] as Color,
-                        ),
-                      ),
-                      Text(
-                        '${f.wN} ${f.d} ${f.mN} • ${intl.DateFormat('HH:mm').format(entry.dateTime)}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () {
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      useSafeArea: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (context) => MoodOptionsSheet(
-                        entry: entry,
-                        allActivities: allActivities,
-                      ),
-                    );
-                  },
-                  icon: Icon(
-                    Icons.more_vert,
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                  ),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
-            ),
-            
-            // Note
-            if (entry.note != null && entry.note!.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                entry.note!,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-            ],
-
-            // Activities Chips
-            if (entryActivities.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: entryActivities.map((activity) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Card(
+        margin: EdgeInsets.zero,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.only(
+            left: 6,
+            right: 12,
+            top: 12,
+            bottom: 12,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header: Icon, Mood Name, Time, and More Button
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(8),
+                      color: (moodInfo['color'] as Color).withValues(
+                        alpha: 0.1,
+                      ),
+                      shape: BoxShape.circle,
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                    child: _buildIconOrEmoji(
+                      displayEmoji,
+                      color: moodInfo['color'] as Color,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Display activity icon if available
-                        _buildIconOrEmoji(
-                          _getIconData(activity.iconName),
-                          color: theme.colorScheme.primary,
-                          size: 14,
-                        ),
-                        const SizedBox(width: 4),
                         Text(
-                          activity.name,
-                          style: theme.textTheme.labelSmall,
+                          displayLabel,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: moodInfo['color'] as Color,
+                          ),
+                        ),
+                        Text(
+                          '${f.wN} ${f.d} ${f.mN} • ${intl.DateFormat('HH:mm').format(entry.dateTime)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ],
                     ),
-                  );
-                }).toList(),
-              ),
-            ],
-
-            // Attachments Indicator
-            if (entry.attachments.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const Text('📎', style: TextStyle(fontSize: 14)),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${entry.attachments.length} فایل ضمیمه',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.primary,
+                  ),
+                  IconButton(
+                    icon: const HugeIcon(
+                      icon: HugeIcons.strokeRoundedMoreVertical,
+                      size: 22,
+                      color: Colors.grey,
                     ),
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                    constraints: const BoxConstraints(),
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        useSafeArea: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) => MoodOptionsSheet(
+                          entry: entry,
+                          allActivities: allActivities,
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
+
+              // Note
+              if (entry.note != null && entry.note!.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  entry.note!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+              ],
+
+              // Activities Chips
+              if (entryActivities.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: entryActivities.map((activity) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Display activity icon if available
+                          _buildIconOrEmoji(
+                            _getIconData(activity.iconName),
+                            color: theme.colorScheme.primary,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            activity.name,
+                            style: theme.textTheme.labelSmall,
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+
+              // Attachments Indicator
+              if (entry.attachments.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Text('📎', style: TextStyle(fontSize: 14)),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${entry.attachments.length} فایل ضمیمه',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

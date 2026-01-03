@@ -17,6 +17,8 @@ class NotificationService {
   final _onNotificationClick = StreamController<String?>.broadcast();
   Stream<String?> get onNotificationClick => _onNotificationClick.stream;
 
+  String? _initialPayload;
+
   Future<void> init() async {
     // Initialize timezone
     tz_data.initializeTimeZones();
@@ -66,11 +68,21 @@ class NotificationService {
     if (notificationAppLaunchDetails?.didNotificationLaunchApp ?? false) {
       final payload = notificationAppLaunchDetails?.notificationResponse?.payload;
       debugPrint('🔔 App launched from notification with payload: $payload');
-      // Delay slightly to ensure listeners are ready
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _onNotificationClick.add(payload);
-      });
+      _initialPayload = payload;
+      
+      // Also add to stream with a longer delay as a fallback for early listeners
+      if (payload != null) {
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          _onNotificationClick.add(payload);
+        });
+      }
     }
+  }
+
+  String? consumeInitialPayload() {
+    final payload = _initialPayload;
+    _initialPayload = null;
+    return payload;
   }
 
   Future<bool> requestPermissions() async {

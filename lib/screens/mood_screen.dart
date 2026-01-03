@@ -13,7 +13,6 @@ class MoodScreen extends ConsumerStatefulWidget {
 }
 
 class _MoodScreenState extends ConsumerState<MoodScreen> {
-  
   void _openAddMoodSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -35,7 +34,7 @@ class _MoodScreenState extends ConsumerState<MoodScreen> {
           CustomScrollView(
             slivers: [
               const SliverPadding(padding: EdgeInsets.only(top: 20)),
-              
+
               if (moodState.isLoading)
                 const SliverFillRemaining(
                   child: Center(child: CircularProgressIndicator()),
@@ -50,13 +49,17 @@ class _MoodScreenState extends ConsumerState<MoodScreen> {
                         HugeIcon(
                           icon: HugeIcons.strokeRoundedSmileDizzy,
                           size: 64,
-                          color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.5,
+                          ),
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'هنوز هیچ مودی ثبت نشده!',
                           style: theme.textTheme.titleMedium?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.6,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -72,18 +75,15 @@ class _MoodScreenState extends ConsumerState<MoodScreen> {
                 )
               else
                 SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final entry = moodState.entries[index];
-                      return MoodCard(
-                        entry: entry,
-                        allActivities: activityState.activities,
-                      );
-                    },
-                    childCount: moodState.entries.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final entry = moodState.entries[index];
+                    return MoodCard(
+                      entry: entry,
+                      allActivities: activityState.activities,
+                    );
+                  }, childCount: moodState.entries.length),
                 ),
-                
+
               const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
             ],
           ),
@@ -91,7 +91,10 @@ class _MoodScreenState extends ConsumerState<MoodScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openAddMoodSheet(context),
-        label: const Text('ثبت مود'),
+        label: const Text(
+          'ثبت مود',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         icon: HugeIcon(
           icon: HugeIcons.strokeRoundedAdd01,
           color: theme.colorScheme.onPrimaryContainer,
