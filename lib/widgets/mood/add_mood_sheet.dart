@@ -379,7 +379,8 @@ class _AddMoodSheetState extends ConsumerState<AddMoodSheet> {
                           color: isSelected
                               ? (m['color'] as Color).withValues(alpha: 0.15)
                               : Colors.transparent,
-                          shape: BoxShape.circle,
+                          shape: BoxShape.rectangle,
+                          borderRadius: BorderRadius.circular(18),
                           boxShadow: isSelected
                               ? [
                                   BoxShadow(
