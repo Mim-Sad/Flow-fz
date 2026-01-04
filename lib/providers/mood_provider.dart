@@ -21,22 +21,34 @@ class MoodState {
   final List<MoodEntry> entries;
   final bool isLoading;
   final String? error;
+  final int currentStreak;
+  final int longestStreak;
+  final List<DateTime> lastSevenDays;
 
   MoodState({
     this.entries = const [],
     this.isLoading = false,
     this.error,
+    this.currentStreak = 0,
+    this.longestStreak = 0,
+    this.lastSevenDays = const [],
   });
 
   MoodState copyWith({
     List<MoodEntry>? entries,
     bool? isLoading,
     String? error,
+    int? currentStreak,
+    int? longestStreak,
+    List<DateTime>? lastSevenDays,
   }) {
     return MoodState(
       entries: entries ?? this.entries,
       isLoading: isLoading ?? this.isLoading,
       error: error,
+      currentStreak: currentStreak ?? this.currentStreak,
+      longestStreak: longestStreak ?? this.longestStreak,
+      lastSevenDays: lastSevenDays ?? this.lastSevenDays,
     );
   }
 }
@@ -76,10 +88,78 @@ class MoodNotifier extends StateNotifier<MoodState> {
     
     try {
       final entries = await _db.getAllMoodEntries();
-      state = state.copyWith(entries: entries, isLoading: false, error: null);
+      final (current, longest) = _calculateStreaks(entries);
+      final lastSeven = _getLastSevenDays();
+      
+      state = state.copyWith(
+        entries: entries,
+        isLoading: false,
+        error: null,
+        currentStreak: current,
+        longestStreak: longest,
+        lastSevenDays: lastSeven,
+      );
     } catch (e) {
       state = state.copyWith(error: e.toString(), isLoading: false);
     }
+  }
+
+  (int, int) _calculateStreaks(List<MoodEntry> entries) {
+    if (entries.isEmpty) return (0, 0);
+
+    // Get unique days with entries
+    final trackedDays = entries
+        .map((e) => DateTime(e.dateTime.year, e.dateTime.month, e.dateTime.day))
+        .toSet()
+        .toList()
+      ..sort((a, b) => b.compareTo(a)); // Newest first
+
+    if (trackedDays.isEmpty) return (0, 0);
+
+    int currentStreak = 0;
+    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    // Check if the streak is still alive (today or yesterday)
+    bool streakAlive = trackedDays.any((d) => isSameDay(d, today) || isSameDay(d, yesterday));
+
+    if (streakAlive) {
+      DateTime checkDate = trackedDays.any((d) => isSameDay(d, today)) ? today : yesterday;
+      
+      while (trackedDays.any((d) => isSameDay(d, checkDate))) {
+        currentStreak++;
+        checkDate = checkDate.subtract(const Duration(days: 1));
+      }
+    }
+
+    // Calculate longest streak
+    int longestStreak = 0;
+    int tempStreak = 0;
+    
+    // Sort oldest first for longest streak calculation
+    final sortedDays = trackedDays.reversed.toList();
+    if (sortedDays.isNotEmpty) {
+      tempStreak = 1;
+      longestStreak = 1;
+      for (int i = 1; i < sortedDays.length; i++) {
+        final diff = sortedDays[i].difference(sortedDays[i - 1]).inDays;
+        if (diff == 1) {
+          tempStreak++;
+        } else if (diff > 1) {
+          tempStreak = 1;
+        }
+        if (tempStreak > longestStreak) {
+          longestStreak = tempStreak;
+        }
+      }
+    }
+
+    return (currentStreak, longestStreak);
+  }
+
+  List<DateTime> _getLastSevenDays() {
+    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    return List.generate(7, (index) => today.subtract(Duration(days: 6 - index)));
   }
 
   Future<void> addMood(MoodEntry entry) async {
@@ -102,19 +182,10 @@ class MoodNotifier extends StateNotifier<MoodState> {
 
   Future<void> deleteMood(int id) async {
     try {
-      // Optimistically remove from state for better UX
-      state = state.copyWith(
-        entries: state.entries.where((e) => e.id != id).toList(),
-      );
-
       await _db.deleteMoodEntry(id);
-      // Reload from DB to be sure
-      final freshEntries = await _db.getAllMoodEntries();
-      state = state.copyWith(entries: freshEntries, error: null);
+      await loadMoods();
     } catch (e) {
       state = state.copyWith(error: e.toString());
-      // Re-load to restore state on error
-      await loadMoods();
     }
   }
 }

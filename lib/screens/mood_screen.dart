@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/mood_provider.dart';
 import '../widgets/mood/add_mood_sheet.dart';
 import '../widgets/mood/mood_card.dart';
+import '../widgets/mood/streak_card.dart';
 import '../widgets/animations.dart';
 
 class MoodScreen extends ConsumerStatefulWidget {
@@ -34,6 +35,14 @@ class _MoodScreenState extends ConsumerState<MoodScreen> {
       body: CustomScrollView(
         slivers: [
           const SliverPadding(padding: EdgeInsets.only(top: 20)),
+
+          if (!moodState.isLoading && moodState.error == null)
+            SliverToBoxAdapter(
+              child: FadeInOnce(
+                delay: 100.ms,
+                child: StreakCard(moodState: moodState),
+              ),
+            ),
 
           if (moodState.isLoading)
             const SliverFillRemaining(
