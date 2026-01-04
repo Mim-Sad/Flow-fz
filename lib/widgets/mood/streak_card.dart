@@ -18,7 +18,7 @@ class StreakCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
@@ -47,10 +47,10 @@ class StreakCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const HugeIcon(
+              HugeIcon(
                 icon: HugeIcons.strokeRoundedCalendar02,
                 size: 20,
-                color: Colors.amber,
+                color: theme.colorScheme.onPrimaryContainer,
               ),
               const SizedBox(width: 4),
               Text(
@@ -195,22 +195,22 @@ class StreakCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: colorScheme.primaryContainer.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.redAccent.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           HugeIcon(
             icon: HugeIcons.strokeRoundedFire03,
-            color: colorScheme.primary,
+            color: Colors.redAccent,
             size: 16,
           ),
           const SizedBox(width: 6),
           Text(
             _toPersianDigit(moodState.currentStreak.toString()),
             style: theme.textTheme.labelLarge?.copyWith(
-              color: colorScheme.primary,
+              color: Colors.redAccent,
               fontWeight: FontWeight.w900,
               fontFamily: 'IRANSansX',
             ),
@@ -219,7 +219,7 @@ class StreakCard extends StatelessWidget {
           Text(
             'روز',
             style: theme.textTheme.labelSmall?.copyWith(
-              color: colorScheme.primary,
+              color: Colors.redAccent,
               fontWeight: FontWeight.w500,
               fontFamily: 'IRANSansX',
             ),

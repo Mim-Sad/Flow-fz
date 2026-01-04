@@ -3,6 +3,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:flutter/foundation.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:async';
 import '../models/task.dart';
 
@@ -101,10 +102,18 @@ class NotificationService {
           _notificationsPlugin.resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>();
       
+      // Request notification permission (Android 13+)
       final bool? grantedNotification = await androidImplementation?.requestNotificationsPermission();
-      final bool? grantedExactAlarm = await androidImplementation?.requestExactAlarmsPermission();
       
-      return (grantedNotification ?? false) && (grantedExactAlarm ?? true);
+      // Exact alarm permission is requested but we don't block if it's not granted
+      // We will handle it by falling back to inexact scheduling
+      try {
+        await androidImplementation?.requestExactAlarmsPermission();
+      } catch (e) {
+        debugPrint('⚠️ Error requesting exact alarm permission: $e');
+      }
+      
+      return grantedNotification ?? true;
     }
     return false;
   }
@@ -112,163 +121,240 @@ class NotificationService {
   Future<void> scheduleTaskReminder(Task task) async {
     if (task.reminderDateTime == null || task.id == null) return;
     
-    // CRITICAL: Cancel any existing reminders for this task before scheduling new ones
-    // This prevents duplicate notifications when a task is updated or re-scheduled
-    await cancelTaskReminder(task.id!);
-    
-    debugPrint('🔔 Scheduling reminder for task: ${task.title} (ID: ${task.id})');
-
-    // First request permissions
-    final hasPermission = await requestPermissions();
-    if (!hasPermission) {
-      debugPrint('❌ Notification permissions not granted. Cannot schedule reminder.');
-      return;
-    }
-
-    DateTime reminderTime = task.reminderDateTime!;
-    final now = DateTime.now();
-
-    // If it's a recurring task, schedule multiple future reminders
-    if (task.recurrence != null && task.recurrence!.type != RecurrenceType.none) {
-      debugPrint('🔄 Recurring task detected. Scheduling multiple reminders...');
-      // Start searching from today
-      DateTime searchDate = DateTime(now.year, now.month, now.day);
+    try {
+      // CRITICAL: Cancel any existing reminders for this task before scheduling new ones
+      await cancelTaskReminder(task.id!);
       
-      int scheduledCount = 0;
-      // Schedule up to 7 future occurrences
-      for (int i = 0; i <= 366 && scheduledCount < 7; i++) {
-        final candidateDate = searchDate.add(Duration(days: i));
-        if (task.isActiveOnDate(candidateDate)) {
-          final candidateReminder = DateTime(
-            candidateDate.year,
-            candidateDate.month,
-            candidateDate.day,
-            reminderTime.hour,
-            reminderTime.minute,
-          );
-          
-          if (candidateReminder.isAfter(now)) {
-            // Use a deterministic ID for each occurrence to avoid duplicates
-            // Base ID + (taskId * 10) + count
-            final notificationId = 1000000000 + (task.id! * 10) + scheduledCount;
-            final scheduledDate = tz.TZDateTime.from(candidateReminder, tz.local);
-            
-            debugPrint('📅 Scheduling occurrence $scheduledCount at $candidateReminder (ID: $notificationId)');
-            
-            final notificationEmoji = task.taskEmoji ?? '🔔';
-            final androidDetails = AndroidNotificationDetails(
-              'task_reminders_v3',
-              'یادآور تسک‌ها',
-              channelDescription: 'اعلان‌های مربوط به یادآور تسک‌ها',
-              importance: Importance.max,
-              priority: Priority.high,
-              showWhen: true,
-              playSound: true,
-              enableVibration: true,
-              styleInformation: BigTextStyleInformation(
-                task.description ?? 'زمان انجام تسک فرا رسیده است.',
-                contentTitle: '$notificationEmoji ${task.title}',
-                summaryText: 'یادآور تسک تکرار شونده',
-              ),
-              category: AndroidNotificationCategory.reminder,
-            );
+      debugPrint('🔔 Scheduling reminder for task: ${task.title} (ID: ${task.id})');
 
-            await _notificationsPlugin.zonedSchedule(
-              notificationId,
-              task.title,
-              task.description ?? 'زمان انجام تسک فرا رسیده است.',
-              scheduledDate,
-              NotificationDetails(
-                android: androidDetails,
-                iOS: const DarwinNotificationDetails(
-                  presentAlert: true,
-                  presentBadge: true,
-                  presentSound: true,
-                  interruptionLevel: InterruptionLevel.timeSensitive,
-                ),
-              ),
-              androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-              payload: task.id.toString(),
+      // First check permissions
+      final hasNotificationPermission = await requestPermissions();
+      if (!hasNotificationPermission) {
+        debugPrint('❌ Notification permissions not granted. Cannot schedule reminder.');
+        return;
+      }
+
+      // Use permission_handler to check exact alarm permission on Android
+      bool canScheduleExact = true;
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        canScheduleExact = await Permission.scheduleExactAlarm.isGranted;
+      }
+      
+      final scheduleMode = canScheduleExact 
+          ? AndroidScheduleMode.exactAllowWhileIdle 
+          : AndroidScheduleMode.inexactAllowWhileIdle;
+
+      DateTime reminderTime = task.reminderDateTime!;
+      final now = DateTime.now();
+
+      // If it's a recurring task, schedule multiple future reminders
+      if (task.recurrence != null && task.recurrence!.type != RecurrenceType.none) {
+        debugPrint('🔄 Recurring task detected. Scheduling multiple reminders...');
+        DateTime searchDate = DateTime(now.year, now.month, now.day);
+        
+        int scheduledCount = 0;
+        // Schedule up to 7 future occurrences
+        for (int i = 0; i <= 366 && scheduledCount < 7; i++) {
+          final candidateDate = searchDate.add(Duration(days: i));
+          if (task.isActiveOnDate(candidateDate)) {
+            final candidateReminder = DateTime(
+              candidateDate.year,
+              candidateDate.month,
+              candidateDate.day,
+              reminderTime.hour,
+              reminderTime.minute,
             );
-            scheduledCount++;
+            
+            if (candidateReminder.isAfter(now)) {
+              // Safer ID generation: taskId * 10 + count
+              // We use an offset of 100,000 to keep it within safe 32-bit range
+              final notificationId = 100000 + (task.id! * 10) + scheduledCount;
+              final scheduledDate = tz.TZDateTime.from(candidateReminder, tz.local);
+              
+              debugPrint('📅 Scheduling occurrence $scheduledCount at $candidateReminder (ID: $notificationId)');
+              
+              final notificationEmoji = task.taskEmoji ?? '🔔';
+              final androidDetails = AndroidNotificationDetails(
+                'task_reminders_v3',
+                'یادآور تسک‌ها',
+                channelDescription: 'اعلان‌های مربوط به یادآور تسک‌ها',
+                importance: Importance.max,
+                priority: Priority.high,
+                showWhen: true,
+                playSound: true,
+                enableVibration: true,
+                styleInformation: BigTextStyleInformation(
+                  task.description ?? 'زمان انجام تسک فرا رسیده است.',
+                  contentTitle: '$notificationEmoji ${task.title}',
+                  summaryText: 'یادآور تسک تکرار شونده',
+                ),
+                category: AndroidNotificationCategory.reminder,
+              );
+
+              try {
+                await _notificationsPlugin.zonedSchedule(
+                  notificationId,
+                  task.title,
+                  task.description ?? 'زمان انجام تسک فرا رسیده است.',
+                  scheduledDate,
+                  NotificationDetails(
+                    android: androidDetails,
+                    iOS: const DarwinNotificationDetails(
+                      presentAlert: true,
+                      presentBadge: true,
+                      presentSound: true,
+                      interruptionLevel: InterruptionLevel.timeSensitive,
+                    ),
+                  ),
+                  androidScheduleMode: scheduleMode,
+                  payload: task.id.toString(),
+                );
+              } catch (e) {
+                debugPrint('❌ Error in zonedSchedule for recurring task: $e');
+                // Fallback to allowWhileIdle if exact scheduling failed
+                if (scheduleMode == AndroidScheduleMode.exactAllowWhileIdle) {
+                  debugPrint('🔄 Attempting fallback to inexact scheduling for recurring task...');
+                  await _notificationsPlugin.zonedSchedule(
+                    notificationId,
+                    task.title,
+                    task.description ?? 'زمان انجام تسک فرا رسیده است.',
+                    scheduledDate,
+                    NotificationDetails(
+                      android: androidDetails,
+                      iOS: const DarwinNotificationDetails(
+                        presentAlert: true,
+                        presentBadge: true,
+                        presentSound: true,
+                        interruptionLevel: InterruptionLevel.timeSensitive,
+                      ),
+                    ),
+                    androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+                    payload: task.id.toString(),
+                  );
+                }
+              }
+              scheduledCount++;
+            }
           }
         }
+        debugPrint('✅ Scheduled $scheduledCount reminders for recurring task.');
+        return;
       }
-      debugPrint('✅ Scheduled $scheduledCount reminders for recurring task.');
-      return;
+
+      // Non-recurring task logic
+      final scheduledDate = tz.TZDateTime.from(reminderTime, tz.local);
+      
+      // Allow a small buffer (1 minute) for "past" reminders to account for slight delays
+      if (scheduledDate.isBefore(tz.TZDateTime.now(tz.local).subtract(const Duration(minutes: 1)))) {
+        debugPrint('⚠️ Reminder time is in the past: $reminderTime. Skipping.');
+        return;
+      }
+
+      final notificationId = task.id!;
+      debugPrint('📅 Scheduling single reminder at $reminderTime (ID: $notificationId) in timezone: ${tz.local.name}');
+      
+      final notificationEmoji = task.taskEmoji ?? '🔔';
+      final androidDetails = AndroidNotificationDetails(
+        'task_reminders_v3',
+        'یادآور تسک‌ها',
+        channelDescription: 'اعلان‌های مربوط به یادآور تسک‌ها',
+        importance: Importance.max,
+        priority: Priority.high,
+        showWhen: true,
+        playSound: true,
+        enableVibration: true,
+        styleInformation: BigTextStyleInformation(
+          task.description ?? 'زمان انجام تسک فرا رسیده است.',
+          contentTitle: '$notificationEmoji ${task.title}',
+          summaryText: 'یادآور تسک',
+        ),
+        category: AndroidNotificationCategory.reminder,
+        // REMOVED: fullScreenIntent: true (Requires extra permission not in manifest)
+      );
+
+      try {
+        await _notificationsPlugin.zonedSchedule(
+          notificationId,
+          task.title,
+          task.description ?? 'زمان انجام تسک فرا رسیده است.',
+          scheduledDate,
+          NotificationDetails(
+            android: androidDetails,
+            iOS: const DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
+              interruptionLevel: InterruptionLevel.timeSensitive,
+            ),
+          ),
+          androidScheduleMode: scheduleMode,
+          payload: task.id.toString(),
+        );
+        debugPrint('✅ Single reminder scheduled successfully at $scheduledDate.');
+      } catch (e) {
+        debugPrint('❌ Error in zonedSchedule for single reminder: $e');
+        // Fallback to allowWhileIdle if exact scheduling failed
+        if (scheduleMode == AndroidScheduleMode.exactAllowWhileIdle) {
+          debugPrint('🔄 Attempting fallback to inexact scheduling...');
+          await _notificationsPlugin.zonedSchedule(
+            notificationId,
+            task.title,
+            task.description ?? 'زمان انجام تسک فرا رسیده است.',
+            scheduledDate,
+            NotificationDetails(
+              android: androidDetails,
+              iOS: const DarwinNotificationDetails(
+                presentAlert: true,
+                presentBadge: true,
+                presentSound: true,
+                interruptionLevel: InterruptionLevel.timeSensitive,
+              ),
+            ),
+            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            payload: task.id.toString(),
+          );
+          debugPrint('✅ Single reminder scheduled successfully with fallback.');
+        } else {
+          rethrow;
+        }
+      }
+    } catch (e, stack) {
+      debugPrint('❌ Error scheduling notification: $e');
+      debugPrint(stack.toString());
     }
-
-    // Non-recurring task logic
-    final scheduledDate = tz.TZDateTime.from(reminderTime, tz.local);
-    
-    if (scheduledDate.isBefore(tz.TZDateTime.now(tz.local))) {
-      debugPrint('⚠️ Reminder time is in the past: $reminderTime. Skipping.');
-      return;
-    }
-
-    // Use task.id directly for non-recurring tasks as the primary ID
-    final notificationId = task.id!;
-    debugPrint('📅 Scheduling single reminder at $reminderTime (ID: $notificationId) in timezone: ${tz.local.name}');
-    
-    // Customizing the notification with better layout and details
-    final notificationEmoji = task.taskEmoji ?? '🔔';
-    final androidDetails = AndroidNotificationDetails(
-      'task_reminders_v3', // Incremented version for new layout
-      'یادآور تسک‌ها',
-      channelDescription: 'اعلان‌های مربوط به یادآور تسک‌ها',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: true,
-      playSound: true,
-      enableVibration: true,
-      styleInformation: BigTextStyleInformation(
-        task.description ?? 'زمان انجام تسک فرا رسیده است.',
-        contentTitle: '$notificationEmoji ${task.title}',
-        summaryText: 'یادآور تسک',
-      ),
-      category: AndroidNotificationCategory.reminder,
-      fullScreenIntent: true, // For critical reminders
-    );
-
-    const iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-      interruptionLevel: InterruptionLevel.timeSensitive,
-    );
-
-    await _notificationsPlugin.zonedSchedule(
-      notificationId,
-      task.title,
-      task.description ?? 'زمان انجام تسک فرا رسیده است.',
-      scheduledDate,
-      NotificationDetails(
-        android: androidDetails,
-        iOS: iosDetails,
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      payload: task.id.toString(),
-    );
-    debugPrint('✅ Single reminder scheduled successfully.');
   }
 
   Future<void> cancelTaskReminder(int taskId) async {
-    debugPrint('🔕 Cancelling reminders for task ID: $taskId');
-    
-    // 1. Cancel the primary notification ID
-    await _notificationsPlugin.cancel(taskId);
-    
-    // 2. Cancel old recurring range (backward compatibility)
-    for (int i = 0; i < 7; i++) {
-      await _notificationsPlugin.cancel(taskId * 100 + i);
+    try {
+      debugPrint('🔕 Cancelling reminders for task ID: $taskId');
+      
+      // Create a list of all possible notification IDs to cancel
+      final List<int> idsToCancel = [
+        taskId, // Primary ID
+      ];
+      
+      // Old recurring range (backward compatibility)
+      for (int i = 0; i < 7; i++) {
+        idsToCancel.add(taskId * 100 + i);
+      }
+      
+      // Range from previous failed update
+      for (int i = 0; i < 10; i++) {
+        idsToCancel.add(1000000000 + (taskId * 10) + i);
+      }
+      
+      // New recurring range
+      for (int i = 0; i < 10; i++) {
+        idsToCancel.add(100000 + (taskId * 10) + i);
+      }
+      
+      // Cancel all in parallel for performance
+      await Future.wait(idsToCancel.map((id) => _notificationsPlugin.cancel(id)));
+      
+      debugPrint('✅ All reminders for task ID $taskId cancelled.');
+    } catch (e) {
+      debugPrint('⚠️ Error cancelling reminders: $e');
     }
-    
-    // 3. Cancel new recurring range
-    for (int i = 0; i < 10; i++) { // Cancel up to 10 just to be safe
-      await _notificationsPlugin.cancel(1000000000 + (taskId * 10) + i);
-    }
-    
-    debugPrint('✅ All reminders for task ID $taskId cancelled.');
   }
 
   Future<void> cancelAllNotifications() async {
