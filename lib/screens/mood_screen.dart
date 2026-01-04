@@ -38,10 +38,7 @@ class _MoodScreenState extends ConsumerState<MoodScreen> {
 
           if (!moodState.isLoading && moodState.error == null)
             SliverToBoxAdapter(
-              child: FadeInOnce(
-                delay: 100.ms,
-                child: StreakCard(moodState: moodState),
-              ),
+              child: StreakCard(moodState: moodState),
             ),
 
           if (moodState.isLoading)

@@ -879,25 +879,37 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     if (topGood.isEmpty && topBad.isEmpty) return const SizedBox.shrink();
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
         // Bad impacts (Left)
         Expanded(
           child: Column(
+            mainAxisAlignment:
+                topBad.isEmpty
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.start,
             children: [
               if (topBad.isNotEmpty)
                 ...topBad.map(
                   (entry) => _buildCompactImpactTile(context, entry, false),
                 ),
               if (topBad.isEmpty)
-                Center(
+                Container(
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 64,
+                    horizontal: 8,
+                  ),
                   child: Text(
-                    'موردی یافت نشد',
+                    ' 🔍 مورد تأثیرگذار منفی یافت نشد!',
+                    textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                      height: 1.5,
                     ),
                   ),
                 ),
@@ -908,19 +920,30 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         // Good impacts (Right)
         Expanded(
           child: Column(
+            mainAxisAlignment:
+                topGood.isEmpty
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.start,
             children: [
               if (topGood.isNotEmpty)
                 ...topGood.map(
                   (entry) => _buildCompactImpactTile(context, entry, true),
                 ),
               if (topGood.isEmpty)
-                Center(
+                Container(
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 64,
+                    horizontal: 8,
+                  ),
                   child: Text(
-                    'موردی یافت نشد',
+                    ' 🔍 مورد تأثیرگذار مثبت یافت نشد!',
+                    textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                      height: 1.5,
                     ),
                   ),
                 ),
@@ -928,8 +951,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildCompactImpactTile(
     BuildContext context,
