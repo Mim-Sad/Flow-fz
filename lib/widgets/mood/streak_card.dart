@@ -30,10 +30,11 @@ class StreakCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'روزهای متوالی',
+                'روزهای متوالی ثبت مود',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   fontFamily: 'IRANSansX',
+                  fontSize: 14,
                 ),
               ),
               _buildStreakCounter(context),
@@ -54,7 +55,7 @@ class StreakCard extends StatelessWidget {
               ),
               const SizedBox(width: 4),
               Text(
-                'طولانی‌ترین زنجیره: ',
+                'طولانی‌ترین زنجیره ثبت مود: ',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                   fontSize: 12,
@@ -190,8 +191,6 @@ class StreakCard extends StatelessWidget {
 
   Widget _buildStreakCounter(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(

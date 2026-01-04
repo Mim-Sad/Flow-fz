@@ -561,6 +561,74 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
+  Color _getExactMoodColor(double value) {
+    // Clamp value
+    double t = value.clamp(1.0, 5.0);
+
+    // Map values to colors
+    final stops = [1.0, 2.0, 3.0, 4.0, 5.0];
+    final colors = [
+      MoodLevel.awful.color,
+      MoodLevel.bad.color,
+      MoodLevel.meh.color,
+      MoodLevel.good.color,
+      MoodLevel.rad.color,
+    ];
+
+    for (int i = 0; i < stops.length - 1; i++) {
+      if (t >= stops[i] && t <= stops[i + 1]) {
+        double localT = (t - stops[i]) / (stops[i + 1] - stops[i]);
+        return Color.lerp(colors[i], colors[i + 1], localT)!;
+      }
+    }
+    return colors.last;
+  }
+
+  LinearGradient _calculateMoodGradient(List<FlSpot> spots) {
+    if (spots.isEmpty) {
+      final primaryColor = Theme.of(context).colorScheme.primary;
+      return LinearGradient(colors: [primaryColor, primaryColor]);
+    }
+
+    double minY = spots.map((e) => e.y).reduce((a, b) => a < b ? a : b);
+    double maxY = spots.map((e) => e.y).reduce((a, b) => a > b ? a : b);
+
+    // If flat line, handle gracefully
+    if ((maxY - minY).abs() < 0.1) {
+      Color c = _getExactMoodColor(maxY);
+      return LinearGradient(colors: [c, c]);
+    }
+
+    // Spectrum stops for Mood (1 to 5)
+    final spectrumStops = [1.0, 2.0, 3.0, 4.0, 5.0];
+
+    List<Color> gradientColors = [];
+    List<double> gradientStops = [];
+
+    // Add start point
+    gradientColors.add(_getExactMoodColor(minY));
+    gradientStops.add(0.0);
+
+    // Add intermediate spectrum stops that fall within range
+    for (var stop in spectrumStops) {
+      if (stop > minY && stop < maxY) {
+        gradientColors.add(_getExactMoodColor(stop));
+        gradientStops.add((stop - minY) / (maxY - minY));
+      }
+    }
+
+    // Add end point
+    gradientColors.add(_getExactMoodColor(maxY));
+    gradientStops.add(1.0);
+
+    return LinearGradient(
+      colors: gradientColors,
+      stops: gradientStops,
+      begin: Alignment.bottomCenter,
+      end: Alignment.topCenter,
+    );
+  }
+
   Widget _buildMoodTrendChart(
     List<MoodEntry> moods,
     DateTimeRange range,
@@ -626,6 +694,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       minX = 1;
       maxX = jalali.monthLength.toDouble();
     }
+
+    final moodGradient = _calculateMoodGradient(spots);
 
     return LineChart(
       LineChartData(
@@ -748,30 +818,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           LineChartBarData(
             spots: spots,
             isCurved: true,
-            gradient: LinearGradient(
-              colors: [
-                MoodLevel.awful.color,
-                MoodLevel.bad.color,
-                MoodLevel.meh.color,
-                MoodLevel.good.color,
-                MoodLevel.rad.color,
-              ],
-              begin: Alignment.bottomCenter,
-              end: Alignment.topCenter,
-              stops: const [0.1, 0.3, 0.5, 0.7, 0.9],
-            ),
+            gradient: moodGradient,
             barWidth: 4,
             isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
               gradient: LinearGradient(
-                colors: [
-                  MoodLevel.rad.color.withValues(alpha: 0.2),
-                  MoodLevel.awful.color.withValues(alpha: 0.0),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+                colors: moodGradient.colors
+                    .map((c) => c.withValues(alpha: 0.2))
+                    .toList(),
+                stops: moodGradient.stops,
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
               ),
             ),
           ),
