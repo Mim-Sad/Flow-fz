@@ -743,10 +743,28 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     fontFeatures: const [FontFeature.enable('ss01')],
                   ),
                   labelResolver: (line) =>
-                      _toPersianDigit(rangeAvg.toStringAsFixed(1)),
+                      _toPersianDigit(rangeAvg.toStringAsFixed(2)),
                 ),
               ),
           ],
+        ),
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (spot) =>
+                theme.colorScheme.surfaceContainerHighest,
+            getTooltipItems: (List<LineBarSpot> touchedSpots) {
+              return touchedSpots.map((LineBarSpot touchedSpot) {
+                return LineTooltipItem(
+                  _toPersianDigit(touchedSpot.y.toStringAsFixed(2)),
+                  TextStyle(
+                    color: _getExactMoodColor(touchedSpot.y),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10,
+                  ),
+                );
+              }).toList();
+            },
+          ),
         ),
         titlesData: FlTitlesData(
           rightTitles: const AxisTitles(
@@ -2154,7 +2172,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   );
                 }
                 return LineTooltipItem(
-                  '${_toPersianDigit(touchedSpot.y.toInt().toString())}٪',
+                  '${_toPersianDigit(touchedSpot.y.toStringAsFixed(2))}٪',
                   TextStyle(
                     color: _getSpectrumColor(touchedSpot.y),
                     fontWeight: FontWeight.bold,
@@ -2212,7 +2230,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     fontFeatures: const [FontFeature.enable('ss01')],
                   ),
                   labelResolver: (line) =>
-                      '${_toPersianDigit(rangeAvg.toInt().toString())}٪',
+                      '${_toPersianDigit(rangeAvg.toStringAsFixed(2))}٪',
                 ),
               ),
           ],
