@@ -21,6 +21,7 @@ import 'package:go_router/go_router.dart';
 import '../utils/route_builder.dart';
 import 'add_task_screen.dart';
 import '../widgets/flow_toast.dart';
+import '../widgets/dashboard/home_dashboard.dart';
 
 enum SortMode { manual, defaultSort }
 
@@ -191,6 +192,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             CustomScrollView(
               slivers: [
                 const SliverPadding(padding: EdgeInsets.only(top: 80)),
+                if (!isLoading) const SliverToBoxAdapter(child: HomeDashboard()),
                 SliverPadding(
                   padding: const EdgeInsets.only(
                     left: 12,
