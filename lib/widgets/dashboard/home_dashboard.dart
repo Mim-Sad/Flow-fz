@@ -14,6 +14,13 @@ import '../../utils/string_utils.dart';
 const _kPersianDigitFeatures = [FontFeature.enable('ss01')];
 const _kEnglishDigitFeatures = [FontFeature.enable('ss00')];
 
+const _kTitleStyle = TextStyle(
+  fontSize: 12,
+  color: Colors.white,
+  fontWeight: FontWeight.w600,
+  height: 1.3,
+);
+
 class HomeDashboard extends ConsumerWidget {
   const HomeDashboard({super.key});
 
@@ -81,6 +88,12 @@ class _DateCard extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
+            const Text(
+              'امروز',
+              textAlign: TextAlign.center,
+              style: _kTitleStyle,
+            ),
+            const SizedBox(height: 4),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -88,35 +101,24 @@ class _DateCard extends StatelessWidget {
                   Text(
                     StringUtils.toPersianDigit('${jalali.day} ${formatter.mN}'),
                     style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
                       color: Colors.white,
                       height: 1.0,
                       fontFeatures: _kPersianDigitFeatures,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     intl.DateFormat('MMMM d').format(now),
                     style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
-                      fontWeight: FontWeight.w500,
+                      fontSize: 10,
+                      color: Colors.white.withValues(alpha: 0.4),
+                      fontWeight: FontWeight.w400,
                       fontFeatures: _kEnglishDigitFeatures,
                     ),
                   ),
                 ],
-              ),
-            ),
-            
-            Text(
-              'امروز',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.white.withValues(alpha: 0.4),
-                fontWeight: FontWeight.bold,
-                height: 1.1,
               ),
             ),
           ],
@@ -150,15 +152,10 @@ class _ProductivityCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
+            const Text(
               'بهره‌وری این هفته ات',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 18,
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.5,
-              ),
+              style: _kTitleStyle,
             ),
             const SizedBox(height: 16),
             Expanded(
@@ -194,16 +191,13 @@ class _ProductivityCard extends ConsumerWidget {
                     child: Text(
                       percentText,
                       style: const TextStyle(
-                        fontSize: 32,
+                        fontSize: 36,
                         fontWeight: FontWeight.w200,
                         color: neonGreen,
                         height: 1.0,
                         fontFeatures: _kEnglishDigitFeatures,
                         shadows: [
-                          Shadow(
-                            color: Colors.black26,
-                            blurRadius: 10,
-                          ),
+                          Shadow(color: Colors.black26, blurRadius: 10),
                         ],
                       ),
                     ),
@@ -230,7 +224,8 @@ class _ProductivityCard extends ConsumerWidget {
     return LineChart(
       LineChartData(
         minX: 0,
-        maxX: 10, // تنظیم روی ۱۰ برای اینکه بازه ۰ تا ۶ (۷ روز) دقیقاً بشود ۶۰ درصد عرض
+        maxX:
+            10, // تنظیم روی ۱۰ برای اینکه بازه ۰ تا ۶ (۷ روز) دقیقاً بشود ۶۰ درصد عرض
         minY: -10,
         maxY: 110,
         gridData: FlGridData(
@@ -239,14 +234,10 @@ class _ProductivityCard extends ConsumerWidget {
           drawHorizontalLine: true,
           horizontalInterval: 20,
           verticalInterval: 1,
-          getDrawingVerticalLine: (value) => FlLine(
-            color: gridColor,
-            strokeWidth: 1,
-          ),
-          getDrawingHorizontalLine: (value) => FlLine(
-            color: gridColor,
-            strokeWidth: 1,
-          ),
+          getDrawingVerticalLine: (value) =>
+              FlLine(color: gridColor, strokeWidth: 1),
+          getDrawingHorizontalLine: (value) =>
+              FlLine(color: gridColor, strokeWidth: 1),
         ),
         titlesData: const FlTitlesData(show: false),
         borderData: FlBorderData(show: false),
@@ -256,10 +247,7 @@ class _ProductivityCard extends ConsumerWidget {
             isCurved: true,
             curveSmoothness: 0.35,
             gradient: LinearGradient(
-              colors: [
-                color.withValues(alpha: 0.1),
-                color,
-              ],
+              colors: [color.withValues(alpha: 0.1), color],
             ),
             barWidth: 3,
             isStrokeCapRound: true,
@@ -318,7 +306,9 @@ class _ProductivityCard extends ConsumerWidget {
     }
 
     final totalRelevant = totalSuccess + totalFailed;
-    final percentage = totalRelevant == 0 ? 0 : ((totalSuccess / totalRelevant) * 100).round();
+    final percentage = totalRelevant == 0
+        ? 0
+        : ((totalSuccess / totalRelevant) * 100).round();
     return _WeeklyProductivity(spots: spots, maxX: 6, percentage: percentage);
   }
 }
@@ -378,7 +368,11 @@ class _MoodCard extends ConsumerWidget {
                         ],
                       ),
                       child: Center(
-                        child: Image.asset(moodLevel.iconPath, width: 58, height: 58),
+                        child: Image.asset(
+                          moodLevel.iconPath,
+                          width: 52,
+                          height: 52,
+                        ),
                       ),
                     )
                   else
@@ -388,7 +382,10 @@ class _MoodCard extends ConsumerWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.white.withValues(alpha: 0.04),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.08),
+                          width: 1,
+                        ),
                       ),
                     ),
                   const SizedBox(height: 10),
@@ -405,16 +402,11 @@ class _MoodCard extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              'میانگین مود \n این هفته ات',
+            const SizedBox(height: 8),
+            const Text(
+              'میانگین مود\nاین هفته ات',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.white.withValues(alpha: 0.4),
-                fontWeight: FontWeight.bold,
-                height: 1.5,
-              ),
+              style: _kTitleStyle,
             ),
           ],
         ),
@@ -425,12 +417,13 @@ class _MoodCard extends ConsumerWidget {
   double _calculateWeeklyMoodAverage(List<MoodEntry> entries) {
     final now = DateUtils.dateOnly(DateTime.now());
     final startOfWeek = now.subtract(Duration(days: (now.weekday + 1) % 7));
-    final endOfWeek = DateUtils.dateOnly(startOfWeek.add(const Duration(days: 6)))
-        .add(const Duration(days: 1))
-        .subtract(const Duration(milliseconds: 1));
+    final endOfWeek = DateUtils.dateOnly(
+      startOfWeek.add(const Duration(days: 6)),
+    ).add(const Duration(days: 1)).subtract(const Duration(milliseconds: 1));
 
     final weeklyEntries = entries.where((e) {
-      return !e.dateTime.isBefore(startOfWeek) && !e.dateTime.isAfter(endOfWeek);
+      return !e.dateTime.isBefore(startOfWeek) &&
+          !e.dateTime.isAfter(endOfWeek);
     }).toList();
 
     if (weeklyEntries.isEmpty) return 0.0;
@@ -458,12 +451,12 @@ class _StreakCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tasks = ref.watch(tasksProvider);
     final moodState = ref.watch(moodProvider);
-    
+
     final streak = _calculateActivityStreak(tasks, moodState.entries);
 
     final borderColor = Colors.white.withValues(alpha: 0.1);
     final cardColor = Theme.of(context).colorScheme.surfaceContainerLow;
-    
+
     return Container(
       decoration: BoxDecoration(
         color: cardColor,
@@ -480,11 +473,16 @@ class _StreakCard extends ConsumerWidget {
                 children: [
                   // Badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFEF4444).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.2)),
+                      border: Border.all(
+                        color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -541,37 +539,40 @@ class _StreakCard extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
+            const SizedBox(height: 8),
+            const Text(
               'زنجیره در جریان بودنت',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.white.withValues(alpha: 0.4),
-                fontWeight: FontWeight.bold,
-                height: 1.5,
-              ),
+              style: _kTitleStyle,
             ),
           ],
         ),
       ),
     );
   }
-  
+
   Widget _buildActiveLink(BuildContext context, {double size = 44}) {
-     return Container(
-       width: size,
-       height: size,
-       margin: const EdgeInsets.symmetric(horizontal: 2),
-       decoration: BoxDecoration(
-         shape: BoxShape.circle,
-         color: Theme.of(context).colorScheme.onSurface,
-       ),
-       child: Icon(Icons.check, color: Theme.of(context).colorScheme.surface, size: size * 0.6),
-     );
+    return Container(
+      width: size,
+      height: size,
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Theme.of(context).colorScheme.onSurface,
+      ),
+      child: Icon(
+        Icons.check,
+        color: Theme.of(context).colorScheme.surface,
+        size: size * 0.6,
+      ),
+    );
   }
-  
-  Widget _buildChainLink(BuildContext context, bool isFilled, {double size = 32}) {
+
+  Widget _buildChainLink(
+    BuildContext context,
+    bool isFilled, {
+    double size = 32,
+  }) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: size,
@@ -579,11 +580,22 @@ class _StreakCard extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isFilled ?  colorScheme.surfaceContainerHighest : colorScheme.surfaceContainerLow,
-        border: isFilled ? null : Border.all(color: colorScheme.surfaceContainerHighest, width: 1.5),
+        color: isFilled
+            ? colorScheme.surfaceContainerHighest
+            : colorScheme.surfaceContainerLow,
+        border: isFilled
+            ? null
+            : Border.all(
+                color: colorScheme.surfaceContainerHighest,
+                width: 1.5,
+              ),
       ),
-      child: isFilled 
-          ? Icon(Icons.check, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6), size: size * 0.5)
+      child: isFilled
+          ? Icon(
+              Icons.check,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              size: size * 0.5,
+            )
           : null,
     );
   }
@@ -602,7 +614,8 @@ class _StreakCard extends ConsumerWidget {
 
     // 2. Collect Mood Entries
     for (final entry in moodEntries) {
-      final dateStr = '${entry.dateTime.year}-${entry.dateTime.month.toString().padLeft(2, '0')}-${entry.dateTime.day.toString().padLeft(2, '0')}';
+      final dateStr =
+          '${entry.dateTime.year}-${entry.dateTime.month.toString().padLeft(2, '0')}-${entry.dateTime.day.toString().padLeft(2, '0')}';
       activeDates.add(dateStr);
     }
 
@@ -610,17 +623,20 @@ class _StreakCard extends ConsumerWidget {
     if (activeDates.isEmpty) return 0;
 
     final todayStr = _formatDate(DateTime.now());
-    final yesterdayStr = _formatDate(DateTime.now().subtract(const Duration(days: 1)));
+    final yesterdayStr = _formatDate(
+      DateTime.now().subtract(const Duration(days: 1)),
+    );
 
     // Check if streak is alive (active today or yesterday)
     // If not, streak is 0
-    if (!activeDates.contains(todayStr) && !activeDates.contains(yesterdayStr)) {
+    if (!activeDates.contains(todayStr) &&
+        !activeDates.contains(yesterdayStr)) {
       return 0;
     }
 
     int streak = 0;
     DateTime currentCheck = DateTime.now();
-    
+
     // If today is not active (but yesterday was), start counting from yesterday
     if (!activeDates.contains(todayStr)) {
       currentCheck = currentCheck.subtract(const Duration(days: 1));
@@ -638,7 +654,7 @@ class _StreakCard extends ConsumerWidget {
 
     return streak;
   }
-  
+
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
