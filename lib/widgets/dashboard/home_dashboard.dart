@@ -467,10 +467,17 @@ class _StreakCard extends ConsumerWidget {
     final moodState = ref.watch(moodProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
-    final streak = _calculateActivityStreak(tasks, moodState.entries);
+    final activeDates = _getActiveDatesSet(tasks, moodState.entries);
+    final streak = _calculateActivityStreakFromSet(activeDates);
 
     final borderColor = colorScheme.onSurface.withValues(alpha: 0.1);
     final cardColor = colorScheme.surfaceContainerLow;
+
+    // محاسبه وضعیت ۵ روز برای نمایش در دایره‌ها
+    // [امروز+2, امروز+1, امروز, دیروز, دو روز پیش] -> به دلیل LTR بودن Row و طراحی بصری
+    // اما برای اینکه حس پیشرفت داشته باشد، از چپ به راست: [دو روز پیش, دیروز, امروز, فردا, پس‌فردا]
+    final now = DateTime.now();
+    final days = List.generate(5, (index) => now.add(Duration(days: index - 2)));
 
     return Container(
       decoration: BoxDecoration(
@@ -509,7 +516,7 @@ class _StreakCard extends ConsumerWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          StringUtils.toPersianDigit('$streak روز'),
+                          StringUtils.toPersianDigit('$streak روز متوالی'),
                           style: const TextStyle(
                             color: Color(0xFFEF4444),
                             fontSize: 11,
@@ -541,11 +548,11 @@ class _StreakCard extends ConsumerWidget {
                           textDirection: TextDirection.ltr,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _buildChainLink(context, false, size: 18),
-                            _buildChainLink(context, false, size: 24),
-                            _buildActiveLink(context, size: 34),
-                            _buildChainLink(context, true, size: 24),
-                            _buildChainLink(context, true, size: 18),
+                            _buildChainLink(context, activeDates.contains(_formatDate(days[0])), size: 22),
+                            _buildChainLink(context, activeDates.contains(_formatDate(days[1])), size: 28),
+                            _buildActiveLink(context, activeDates.contains(_formatDate(days[2])), size: 38),
+                            _buildChainLink(context, activeDates.contains(_formatDate(days[3])), size: 28),
+                            _buildChainLink(context, activeDates.contains(_formatDate(days[4])), size: 22),
                           ],
                         ),
                       ],
@@ -566,19 +573,31 @@ class _StreakCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildActiveLink(BuildContext context, {double size = 44}) {
+  Widget _buildActiveLink(BuildContext context, bool isActive, {double size = 44}) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: size,
       height: size,
       margin: const EdgeInsets.symmetric(horizontal: 2),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Theme.of(context).colorScheme.onSurface,
+        color: isActive ? colorScheme.primary : colorScheme.surfaceContainerHighest,
+        border: isActive 
+          ? null 
+          : Border.all(color: colorScheme.onSurface.withValues(alpha: 0.1), width: 1),
       ),
-      child: Icon(
-        Icons.check,
-        color: Theme.of(context).colorScheme.surface,
-        size: size * 0.6,
+      child: Center(
+        child: isActive 
+          ? Icon(
+              Icons.check,
+              color: colorScheme.onPrimary,
+              size: size * 0.6,
+            )
+          : Icon(
+              Icons.question_mark,
+              color: colorScheme.primary,
+              size: size * 0.5,
+            )
       ),
     );
   }
@@ -596,7 +615,7 @@ class _StreakCard extends ConsumerWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: isFilled
-            ? colorScheme.surfaceContainerHighest
+            ? colorScheme.primary.withValues(alpha: 0.8)
             : colorScheme.surfaceContainerLow,
         border: isFilled
             ? null
@@ -606,22 +625,24 @@ class _StreakCard extends ConsumerWidget {
               ),
       ),
       child: isFilled
-          ? Icon(
-              Icons.check,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-              size: size * 0.5,
+          ? Center(
+              child: Icon(
+                Icons.check,
+                color: colorScheme.onPrimary,
+                size: size * 0.5,
+              ),
             )
           : null,
     );
   }
 
-  int _calculateActivityStreak(List<Task> tasks, List<MoodEntry> moodEntries) {
+  Set<String> _getActiveDatesSet(List<Task> tasks, List<MoodEntry> moodEntries) {
     final Set<String> activeDates = {};
 
     // 1. Collect Task Completions
     for (final task in tasks) {
       task.statusHistory.forEach((dateStr, statusIndex) {
-        if (TaskStatus.values[statusIndex] == TaskStatus.success) {
+        if (statusIndex == TaskStatus.success.index) {
           activeDates.add(dateStr);
         }
       });
@@ -629,12 +650,13 @@ class _StreakCard extends ConsumerWidget {
 
     // 2. Collect Mood Entries
     for (final entry in moodEntries) {
-      final dateStr =
-          '${entry.dateTime.year}-${entry.dateTime.month.toString().padLeft(2, '0')}-${entry.dateTime.day.toString().padLeft(2, '0')}';
-      activeDates.add(dateStr);
+      activeDates.add(_formatDate(entry.dateTime));
     }
 
-    // 3. Calculate Streak
+    return activeDates;
+  }
+
+  int _calculateActivityStreakFromSet(Set<String> activeDates) {
     if (activeDates.isEmpty) return 0;
 
     final todayStr = _formatDate(DateTime.now());
@@ -642,8 +664,6 @@ class _StreakCard extends ConsumerWidget {
       DateTime.now().subtract(const Duration(days: 1)),
     );
 
-    // Check if streak is alive (active today or yesterday)
-    // If not, streak is 0
     if (!activeDates.contains(todayStr) &&
         !activeDates.contains(yesterdayStr)) {
       return 0;
@@ -652,7 +672,6 @@ class _StreakCard extends ConsumerWidget {
     int streak = 0;
     DateTime currentCheck = DateTime.now();
 
-    // If today is not active (but yesterday was), start counting from yesterday
     if (!activeDates.contains(todayStr)) {
       currentCheck = currentCheck.subtract(const Duration(days: 1));
     }
