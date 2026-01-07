@@ -14,12 +14,19 @@ import '../../utils/string_utils.dart';
 const _kPersianDigitFeatures = [FontFeature.enable('ss01')];
 const _kEnglishDigitFeatures = [FontFeature.enable('ss00')];
 
-const _kTitleStyle = TextStyle(
-  fontSize: 12,
-  color: Colors.white,
-  fontWeight: FontWeight.w600,
-  height: 1.3,
-);
+TextStyle _getTitleStyle(BuildContext context) => TextStyle(
+      fontSize: 12,
+      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+      fontWeight: FontWeight.w600,
+      height: 1.3,
+    );
+
+Color _getProductivityColor(BuildContext context, int percentage) {
+  if (percentage >= 80) return Colors.greenAccent;
+  if (percentage >= 50) return Theme.of(context).colorScheme.primary;
+  if (percentage >= 30) return Colors.orangeAccent;
+  return Colors.redAccent;
+}
 
 class HomeDashboard extends ConsumerWidget {
   const HomeDashboard({super.key});
@@ -74,9 +81,10 @@ class _DateCard extends StatelessWidget {
     final now = DateTime.now();
     final jalali = Jalali.fromDateTime(now);
     final formatter = jalali.formatter;
+    final colorScheme = Theme.of(context).colorScheme;
 
-    final borderColor = Colors.white.withValues(alpha: 0.1);
-    final cardColor = Theme.of(context).colorScheme.surfaceContainerLow;
+    final borderColor = colorScheme.onSurface.withValues(alpha: 0.1);
+    final cardColor = colorScheme.surfaceContainerLow;
 
     return Container(
       decoration: BoxDecoration(
@@ -88,10 +96,10 @@ class _DateCard extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            const Text(
+            Text(
               'امروز',
               textAlign: TextAlign.center,
-              style: _kTitleStyle,
+              style: _getTitleStyle(context),
             ),
             const SizedBox(height: 4),
             Expanded(
@@ -100,10 +108,10 @@ class _DateCard extends StatelessWidget {
                 children: [
                   Text(
                     StringUtils.toPersianDigit('${jalali.day} ${formatter.mN}'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: Colors.white,
+                      color: colorScheme.onSurface,
                       height: 1.0,
                       fontFeatures: _kPersianDigitFeatures,
                     ),
@@ -113,7 +121,7 @@ class _DateCard extends StatelessWidget {
                     intl.DateFormat('MMMM d').format(now),
                     style: TextStyle(
                       fontSize: 10,
-                      color: Colors.white.withValues(alpha: 0.4),
+                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                       fontWeight: FontWeight.w400,
                       fontFeatures: _kEnglishDigitFeatures,
                     ),
@@ -136,10 +144,11 @@ class _ProductivityCard extends ConsumerWidget {
     final tasks = ref.watch(tasksProvider);
     final weekly = _calculateWeeklyProductivity(tasks);
     final percentText = '${weekly.percentage}%';
+    final colorScheme = Theme.of(context).colorScheme;
 
-    final borderColor = Colors.white.withValues(alpha: 0.1);
-    final cardColor = Theme.of(context).colorScheme.surfaceContainerLow;
-    const neonGreen = Color(0xFF34D399); // سبز نئونی نزدیک به تصویر
+    final borderColor = colorScheme.onSurface.withValues(alpha: 0.1);
+    final cardColor = colorScheme.surfaceContainerLow;
+    final dynamicColor = _getProductivityColor(context, weekly.percentage);
 
     return Container(
       decoration: BoxDecoration(
@@ -152,10 +161,10 @@ class _ProductivityCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
+            Text(
               'بهره‌وری این هفته ات',
               textAlign: TextAlign.center,
-              style: _kTitleStyle,
+              style: _getTitleStyle(context),
             ),
             const SizedBox(height: 16),
             Expanded(
@@ -182,7 +191,7 @@ class _ProductivityCard extends ConsumerWidget {
                         context,
                         spots: weekly.spots,
                         maxX: weekly.maxX,
-                        color: neonGreen,
+                        color: dynamicColor,
                       ),
                     ),
                   ),
@@ -190,14 +199,17 @@ class _ProductivityCard extends ConsumerWidget {
                     padding: const EdgeInsets.only(right: 8),
                     child: Text(
                       percentText,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 36,
                         fontWeight: FontWeight.w200,
-                        color: neonGreen,
+                        color: dynamicColor,
                         height: 1.0,
                         fontFeatures: _kEnglishDigitFeatures,
                         shadows: [
-                          Shadow(color: Colors.black26, blurRadius: 10),
+                          Shadow(
+                            color: colorScheme.shadow.withValues(alpha: 0.1),
+                            blurRadius: 10,
+                          ),
                         ],
                       ),
                     ),
@@ -219,7 +231,8 @@ class _ProductivityCard extends ConsumerWidget {
   }) {
     if (spots.isEmpty) return const SizedBox.shrink();
 
-    final gridColor = Colors.white.withValues(alpha: 0.04);
+    final colorScheme = Theme.of(context).colorScheme;
+    final gridColor = colorScheme.outlineVariant.withValues(alpha: 0.2);
 
     return LineChart(
       LineChartData(
@@ -332,11 +345,12 @@ class _MoodCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final moodState = ref.watch(moodProvider);
     final avgMood = _calculateWeeklyMoodAverage(moodState.entries);
+    final colorScheme = Theme.of(context).colorScheme;
 
     final moodLevel = _moodLevelForValue(avgMood);
-    final color = moodLevel?.color ?? Colors.white.withValues(alpha: 0.35);
-    final borderColor = Colors.white.withValues(alpha: 0.1);
-    final cardColor = Theme.of(context).colorScheme.surfaceContainerLow;
+    final color = moodLevel?.color ?? colorScheme.onSurface.withValues(alpha: 0.35);
+    final borderColor = colorScheme.onSurface.withValues(alpha: 0.1);
+    final cardColor = colorScheme.surfaceContainerLow;
     final avgText = avgMood > 0 ? avgMood.toStringAsFixed(1) : '-';
 
     return Container(
@@ -361,9 +375,9 @@ class _MoodCard extends ConsumerWidget {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: moodLevel.color.withValues(alpha: 0.25),
-                            blurRadius: 30,
-                            spreadRadius: 4,
+                            color: moodLevel.color.withValues(alpha: 0.2),
+                            blurRadius: 25,
+                            spreadRadius: 0,
                           ),
                         ],
                       ),
@@ -381,9 +395,9 @@ class _MoodCard extends ConsumerWidget {
                       height: 64,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.04),
+                        color: colorScheme.onSurface.withValues(alpha: 0.04),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.08),
+                          color: colorScheme.onSurface.withValues(alpha: 0.08),
                           width: 1,
                         ),
                       ),
@@ -403,10 +417,10 @@ class _MoodCard extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'میانگین مود\nاین هفته ات',
               textAlign: TextAlign.center,
-              style: _kTitleStyle,
+              style: _getTitleStyle(context),
             ),
           ],
         ),
@@ -451,11 +465,12 @@ class _StreakCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tasks = ref.watch(tasksProvider);
     final moodState = ref.watch(moodProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     final streak = _calculateActivityStreak(tasks, moodState.entries);
 
-    final borderColor = Colors.white.withValues(alpha: 0.1);
-    final cardColor = Theme.of(context).colorScheme.surfaceContainerLow;
+    final borderColor = colorScheme.onSurface.withValues(alpha: 0.1);
+    final cardColor = colorScheme.surfaceContainerLow;
 
     return Container(
       decoration: BoxDecoration(
@@ -518,7 +533,7 @@ class _StreakCard extends ConsumerWidget {
                           child: Container(
                             height: 1,
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.08),
+                              color: colorScheme.onSurface.withValues(alpha: 0.08),
                             ),
                           ),
                         ),
@@ -540,10 +555,10 @@ class _StreakCard extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'زنجیره در جریان بودنت',
               textAlign: TextAlign.center,
-              style: _kTitleStyle,
+              style: _getTitleStyle(context),
             ),
           ],
         ),
