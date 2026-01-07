@@ -137,64 +137,78 @@ class _ProductivityCard extends ConsumerWidget {
 
     final borderColor = Colors.white.withValues(alpha: 0.1);
     final cardColor = Theme.of(context).colorScheme.surfaceContainerLow;
-    const green = Color(0xFF22C55E);
+    const neonGreen = Color(0xFF34D399); // سبز نئونی نزدیک به تصویر
 
     return Container(
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: borderColor, width: 1),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 0, right: 0, top: 40, bottom: 0),
-                        child: Opacity(
-                          opacity: 0.8,
-                          child: _buildChart(
-                            context,
-                            spots: weekly.spots,
-                            maxX: weekly.maxX,
-                            color: green,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      right: 4,
-                      top: 0,
-                      child: Text(
-                        percentText,
-                        style: TextStyle(
-                          fontSize: 38,
-                          fontWeight: FontWeight.w200,
-                          color: green,
-                          height: 1.0,
-                          fontFeatures: _kEnglishDigitFeatures,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+            Text(
+              'بهره‌وری این هفته ات',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 18,
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              'بهره وری این هفته ات',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.white.withValues(alpha: 0.4),
-                fontWeight: FontWeight.bold,
-                height: 1.1,
+            const SizedBox(height: 16),
+            Expanded(
+              child: Stack(
+                alignment: Alignment.centerRight,
+                children: [
+                  Positioned.fill(
+                    child: ShaderMask(
+                      shaderCallback: (rect) {
+                        return LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            Colors.black.withValues(alpha: 0),
+                            Colors.black,
+                            Colors.black,
+                            Colors.black.withValues(alpha: 0),
+                          ],
+                          stops: const [0.0, 0.15, 0.85, 1.0],
+                        ).createShader(rect);
+                      },
+                      blendMode: BlendMode.dstIn,
+                      child: _buildChart(
+                        context,
+                        spots: weekly.spots,
+                        maxX: weekly.maxX,
+                        color: neonGreen,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Text(
+                      percentText,
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w200,
+                        color: neonGreen,
+                        height: 1.0,
+                        fontFeatures: _kEnglishDigitFeatures,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black26,
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -211,18 +225,19 @@ class _ProductivityCard extends ConsumerWidget {
   }) {
     if (spots.isEmpty) return const SizedBox.shrink();
 
-    final gridColor = Colors.white.withValues(alpha: 0.06);
+    final gridColor = Colors.white.withValues(alpha: 0.04);
 
     return LineChart(
       LineChartData(
         minX: 0,
-        maxX: maxX.toDouble(),
-        minY: -5,
-        maxY: 105,
+        maxX: 10, // تنظیم روی ۱۰ برای اینکه بازه ۰ تا ۶ (۷ روز) دقیقاً بشود ۶۰ درصد عرض
+        minY: -10,
+        maxY: 110,
         gridData: FlGridData(
           show: true,
           drawVerticalLine: true,
-          horizontalInterval: 25,
+          drawHorizontalLine: true,
+          horizontalInterval: 20,
           verticalInterval: 1,
           getDrawingVerticalLine: (value) => FlLine(
             color: gridColor,
@@ -239,8 +254,14 @@ class _ProductivityCard extends ConsumerWidget {
           LineChartBarData(
             spots: spots,
             isCurved: true,
-            color: color,
-            barWidth: 4,
+            curveSmoothness: 0.35,
+            gradient: LinearGradient(
+              colors: [
+                color.withValues(alpha: 0.1),
+                color,
+              ],
+            ),
+            barWidth: 3,
             isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
@@ -249,8 +270,8 @@ class _ProductivityCard extends ConsumerWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  color.withValues(alpha: 0.22),
-                  color.withValues(alpha: 0.02),
+                  color.withValues(alpha: 0.2),
+                  color.withValues(alpha: 0.0),
                 ],
               ),
             ),
@@ -263,15 +284,15 @@ class _ProductivityCard extends ConsumerWidget {
 
   _WeeklyProductivity _calculateWeeklyProductivity(List<Task> tasks) {
     final now = DateUtils.dateOnly(DateTime.now());
-    final startOfWeek = now.subtract(Duration(days: (now.weekday + 1) % 7));
-    final todayIndex = now.difference(startOfWeek).inDays.clamp(0, 6);
+    // محاسبه ۷ روز اخیر (از ۶ روز پیش تا امروز)
+    final startDate = now.subtract(const Duration(days: 6));
 
     int totalSuccess = 0;
     int totalFailed = 0;
     final spots = <FlSpot>[];
 
-    for (int i = 0; i <= todayIndex; i++) {
-      final day = DateUtils.dateOnly(startOfWeek.add(Duration(days: i)));
+    for (int i = 0; i <= 6; i++) {
+      final day = DateUtils.dateOnly(startDate.add(Duration(days: i)));
       int success = 0;
       int failed = 0;
 
@@ -288,6 +309,7 @@ class _ProductivityCard extends ConsumerWidget {
       final denom = success + failed;
       if (denom > 0) {
         final rate = (success / denom) * 100;
+        // x از ۰ تا ۶ خواهد بود که نیمه اول بازه ۰ تا ۱۲ است
         spots.add(FlSpot(i.toDouble(), rate));
       }
 
@@ -297,7 +319,7 @@ class _ProductivityCard extends ConsumerWidget {
 
     final totalRelevant = totalSuccess + totalFailed;
     final percentage = totalRelevant == 0 ? 0 : ((totalSuccess / totalRelevant) * 100).round();
-    return _WeeklyProductivity(spots: spots, maxX: todayIndex, percentage: percentage);
+    return _WeeklyProductivity(spots: spots, maxX: 6, percentage: percentage);
   }
 }
 

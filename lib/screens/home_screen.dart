@@ -206,7 +206,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           Theme.of(context)
                               .colorScheme
                               .surface
-                              .withValues(alpha: 0.9),
+                              .withValues(alpha: 0.8),
                           Theme.of(context)
                               .colorScheme
                               .surface
