@@ -90,6 +90,17 @@ The app uses a dynamic color system seeded from a primary brand color.
   - **Trailing**: Progress percentage using Persian digits (size 12, extra-bold weight 900, category color).
 - **Interaction**: `InkWell` (radius 14) redirects to the search screen filtered by category and current report range.
 
+### Active Links (Streak Visualization)
+- **Purpose**: To visually connect consecutive active days (tasks completed or mood logged) in a vertical timeline.
+- **Sizes**:
+  - **Active Link**: `4.0` width.
+  - **Chain Link (Large)**: `12.0` height (used for top/bottom caps).
+  - **Chain Link (Small)**: `8.0` height (used for connecting nodes).
+- **Theming**: Uses `Theme.of(context).colorScheme.primary` with various alpha levels:
+  - Full link: `primary.withValues(alpha: 0.5)`.
+  - Cap dots: `primary.withValues(alpha: 0.8)`.
+- **Accessibility**: Wrapped in `Semantics` with Persian labels (e.g., "روز فعال", "شروع زنجیره") to describe the continuity of the user's activity.
+
 ### FlowToast (Smart Notifications)
 - **Purpose**: To provide non-intrusive feedback for actions or errors.
 - **Design**: 

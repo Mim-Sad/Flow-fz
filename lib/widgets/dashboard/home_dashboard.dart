@@ -785,11 +785,35 @@ class _StreakCard extends ConsumerWidget {
   ) {
     final Set<String> activeDates = {};
 
-    // 1. Collect Task Completions
+    // 1. Collect Task Completions from Status Logs (Actual Time of Work)
     for (final task in tasks) {
+      if (task.statusLogs.isNotEmpty) {
+        for (final log in task.statusLogs) {
+          final payload = log['payload'];
+          final occurredAtStr = log['occurredAt'];
+          
+          if (payload is Map && 
+              payload['status'] == TaskStatus.success.index && 
+              occurredAtStr != null) {
+            try {
+              final occurredAt = DateTime.parse(occurredAtStr);
+              activeDates.add(_formatDate(occurredAt));
+            } catch (_) {
+              // If log parsing fails, fallback to statusHistory might happen below
+            }
+          }
+        }
+      }
+      
+      // Fallback/Legacy: Also check statusHistory if no logs exist for that success
+      // Note: This ensures we don't lose old streaks before statusLogs was implemented
       task.statusHistory.forEach((dateStr, statusIndex) {
         if (statusIndex == TaskStatus.success.index) {
-          activeDates.add(dateStr);
+          // Only add if not already present from logs (logs are more accurate)
+          if (!activeDates.contains(dateStr)) {
+            // We still add this for compatibility, but logs take precedence for "today's work"
+            activeDates.add(dateStr);
+          }
         }
       });
     }
