@@ -51,24 +51,36 @@ final _router = GoRouter(
         ),
         GoRoute(
           path: '/planning',
-          pageBuilder: (context, state) => NoTransitionPage(
-            key: state.pageKey,
-            child: const PlanningScreen(),
-          ),
+          pageBuilder: (context, state) {
+            final viewModeStr = state.uri.queryParameters['viewMode'];
+            final viewMode = viewModeStr != null ? int.tryParse(viewModeStr) : null;
+            return NoTransitionPage(
+              key: state.pageKey,
+              child: PlanningScreen(initialViewMode: viewMode),
+            );
+          },
         ),
         GoRoute(
           path: '/reports',
-          pageBuilder: (context, state) => NoTransitionPage(
-            key: state.pageKey,
-            child: const ReportsScreen(),
-          ),
+          pageBuilder: (context, state) {
+            final viewModeStr = state.uri.queryParameters['viewMode'];
+            final viewMode = viewModeStr != null ? int.tryParse(viewModeStr) : null;
+            return NoTransitionPage(
+              key: state.pageKey,
+              child: ReportsScreen(initialViewMode: viewMode),
+            );
+          },
         ),
         GoRoute(
           path: '/mood',
-          pageBuilder: (context, state) => NoTransitionPage(
-            key: state.pageKey,
-            child: const MoodScreen(),
-          ),
+          pageBuilder: (context, state) {
+            final showAddStr = state.uri.queryParameters['showAdd'];
+            final showAdd = showAddStr == 'true';
+            return NoTransitionPage(
+              key: state.pageKey,
+              child: MoodScreen(showAddSheet: showAdd),
+            );
+          },
         ),
         GoRoute(
           path: '/search',

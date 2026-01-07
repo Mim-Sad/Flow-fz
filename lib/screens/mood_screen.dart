@@ -9,13 +9,24 @@ import '../widgets/mood/streak_card.dart';
 import '../widgets/animations.dart';
 
 class MoodScreen extends ConsumerStatefulWidget {
-  const MoodScreen({super.key});
+  final bool showAddSheet;
+  const MoodScreen({super.key, this.showAddSheet = false});
 
   @override
   ConsumerState<MoodScreen> createState() => _MoodScreenState();
 }
 
 class _MoodScreenState extends ConsumerState<MoodScreen> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.showAddSheet) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _openAddMoodSheet(context);
+      });
+    }
+  }
+
   void _openAddMoodSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,

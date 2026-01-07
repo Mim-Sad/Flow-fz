@@ -20,7 +20,8 @@ import '../utils/route_builder.dart';
 import '../widgets/animations.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
-  const ReportsScreen({super.key});
+  final int? initialViewMode;
+  const ReportsScreen({super.key, this.initialViewMode});
 
   @override
   ConsumerState<ReportsScreen> createState() => _ReportsScreenState();
@@ -28,7 +29,13 @@ class ReportsScreen extends ConsumerStatefulWidget {
 
 class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   DateTime _selectedDate = DateTime.now();
-  int _viewMode = 0; // 0: Daily, 1: Weekly, 2: Monthly
+  late int _viewMode; // 0: Daily, 1: Weekly, 2: Monthly
+
+  @override
+  void initState() {
+    super.initState();
+    _viewMode = widget.initialViewMode ?? 0;
+  }
 
   String _toPersianDigit(String input) {
     const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];

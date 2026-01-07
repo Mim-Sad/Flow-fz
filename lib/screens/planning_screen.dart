@@ -22,16 +22,23 @@ import '../utils/route_builder.dart';
 // Removed unused import: add_task_screen.dart as it is handled in TaskSheets
 
 class PlanningScreen extends ConsumerStatefulWidget {
-  const PlanningScreen({super.key});
+  final int? initialViewMode;
+  const PlanningScreen({super.key, this.initialViewMode});
 
   @override
   ConsumerState<PlanningScreen> createState() => _PlanningScreenState();
 }
 
 class _PlanningScreenState extends ConsumerState<PlanningScreen> {
-  int _viewMode = 0; // 0: Daily, 1: Weekly, 2: Monthly
+  late int _viewMode; // 0: Daily, 1: Weekly, 2: Monthly
   DateTime _selectedDate = DateTime.now();
   final Set<String> _animatedKeys = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _viewMode = widget.initialViewMode ?? 0;
+  }
 
   // Selection Mode State
   bool _isSelectionMode = false;

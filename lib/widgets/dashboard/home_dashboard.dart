@@ -4,22 +4,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:shamsi_date/shamsi_date.dart';
 import 'package:intl/intl.dart' as intl;
+import 'package:go_router/go_router.dart';
 
 import '../../models/mood_entry.dart';
 import '../../models/task.dart';
 import '../../providers/mood_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../utils/string_utils.dart';
+import '../../utils/route_builder.dart';
 
 const _kPersianDigitFeatures = [FontFeature.enable('ss01')];
 const _kEnglishDigitFeatures = [FontFeature.enable('ss00')];
 
 TextStyle _getTitleStyle(BuildContext context) => TextStyle(
-      fontSize: 12,
-      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-      fontWeight: FontWeight.w600,
-      height: 1.3,
-    );
+  fontSize: 12,
+  color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+  fontWeight: FontWeight.w600,
+  height: 1.3,
+);
 
 Color _getProductivityColor(BuildContext context, int percentage) {
   if (percentage >= 80) return Colors.greenAccent;
@@ -86,50 +88,60 @@ class _DateCard extends StatelessWidget {
     final borderColor = colorScheme.onSurface.withValues(alpha: 0.1);
     final cardColor = colorScheme.surfaceContainerLow;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: borderColor, width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Text(
-              'امروز',
-              textAlign: TextAlign.center,
-              style: _getTitleStyle(context),
-            ),
-            const SizedBox(height: 4),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    StringUtils.toPersianDigit('${jalali.day} ${formatter.mN}'),
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: colorScheme.onSurface,
-                      height: 1.0,
-                      fontFeatures: _kPersianDigitFeatures,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    intl.DateFormat('MMMM d').format(now),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                      fontWeight: FontWeight.w400,
-                      fontFeatures: _kEnglishDigitFeatures,
-                    ),
-                  ),
-                ],
+    return InkWell(
+      onTap: () {
+        context.push(SearchRouteBuilder.buildSearchUrl(specificDate: now));
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: borderColor, width: 1),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
+              Text(
+                'امروز',
+                textAlign: TextAlign.center,
+                style: _getTitleStyle(context),
               ),
-            ),
-          ],
+              const SizedBox(height: 4),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      StringUtils.toPersianDigit(
+                        '${jalali.day} ${formatter.mN}',
+                      ),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: colorScheme.onSurface,
+                        height: 1.0,
+                        fontFeatures: _kPersianDigitFeatures,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      intl.DateFormat('MMMM d').format(now),
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.4,
+                        ),
+                        fontWeight: FontWeight.w400,
+                        fontFeatures: _kEnglishDigitFeatures,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -149,75 +161,111 @@ class _ProductivityCard extends ConsumerWidget {
     final borderColor = colorScheme.onSurface.withValues(alpha: 0.1);
     final cardColor = colorScheme.surfaceContainerLow;
     final dynamicColor = _getProductivityColor(context, weekly.percentage);
+    final hasData = tasks.isNotEmpty && weekly.spots.isNotEmpty;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: borderColor, width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'بهره‌وری این هفته ات',
-              textAlign: TextAlign.center,
-              style: _getTitleStyle(context),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: Stack(
-                alignment: Alignment.centerRight,
-                children: [
-                  Positioned.fill(
-                    child: ShaderMask(
-                      shaderCallback: (rect) {
-                        return LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [
-                            Colors.black.withValues(alpha: 0),
-                            Colors.black,
-                            Colors.black,
-                            Colors.black.withValues(alpha: 0),
-                          ],
-                          stops: const [0.0, 0.15, 0.85, 1.0],
-                        ).createShader(rect);
-                      },
-                      blendMode: BlendMode.dstIn,
-                      child: _buildChart(
-                        context,
-                        spots: weekly.spots,
-                        maxX: weekly.maxX,
-                        color: dynamicColor,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Text(
-                      percentText,
-                      style: TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.w200,
-                        color: dynamicColor,
-                        height: 1.0,
-                        fontFeatures: _kEnglishDigitFeatures,
-                        shadows: [
-                          Shadow(
-                            color: colorScheme.shadow.withValues(alpha: 0.1),
-                            blurRadius: 10,
+    return InkWell(
+      onTap: () => context.push('/planning?viewMode=1'),
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: borderColor, width: 1),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'بهره‌وری این هفته ات',
+                textAlign: TextAlign.center,
+                style: _getTitleStyle(context),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: hasData
+                    ? Stack(
+                        alignment: Alignment.centerRight,
+                        children: [
+                          Positioned.fill(
+                            child: ShaderMask(
+                              shaderCallback: (rect) {
+                                return LinearGradient(
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                  colors: [
+                                    Colors.black.withValues(alpha: 0),
+                                    Colors.black,
+                                    Colors.black,
+                                    Colors.black.withValues(alpha: 0),
+                                  ],
+                                  stops: const [0.0, 0.15, 0.85, 1.0],
+                                ).createShader(rect);
+                              },
+                              blendMode: BlendMode.dstIn,
+                              child: _buildChart(
+                                context,
+                                spots: weekly.spots,
+                                maxX: weekly.maxX,
+                                color: dynamicColor,
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: Text(
+                              percentText,
+                              style: TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.w200,
+                                color: dynamicColor,
+                                height: 1.0,
+                                fontFeatures: _kEnglishDigitFeatures,
+                                shadows: [
+                                  Shadow(
+                                    color: colorScheme.shadow.withValues(
+                                      alpha: 0.1,
+                                    ),
+                                    blurRadius: 10,
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ],
+                      )
+                    : Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              height: 36,
+                              child: FilledButton.icon(
+                                onPressed: () => context.push('/planning'),
+                                style: FilledButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                icon: const HugeIcon(
+                                  icon: HugeIcons.strokeRoundedAdd01,
+                                  size: 16,
+                                ),
+                                label: const Text('ایجاد تسک'),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ),
-                ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -348,81 +396,122 @@ class _MoodCard extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     final moodLevel = _moodLevelForValue(avgMood);
-    final color = moodLevel?.color ?? colorScheme.onSurface.withValues(alpha: 0.35);
+    final color =
+        moodLevel?.color ?? colorScheme.onSurface.withValues(alpha: 0.35);
     final borderColor = colorScheme.onSurface.withValues(alpha: 0.1);
     final cardColor = colorScheme.surfaceContainerLow;
     final avgText = avgMood > 0 ? avgMood.toStringAsFixed(1) : '-';
+    final hasData = avgMood > 0;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: borderColor, width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (moodLevel != null)
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: moodLevel.color.withValues(alpha: 0.2),
-                            blurRadius: 25,
-                            spreadRadius: 0,
+    return InkWell(
+      onTap: () => context.push('/mood?showAdd=true'),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: borderColor, width: 1),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
+              Expanded(
+                child: hasData
+                    ? Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (moodLevel != null)
+                            Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: moodLevel.color.withValues(
+                                      alpha: 0.2,
+                                    ),
+                                    blurRadius: 25,
+                                    spreadRadius: 0,
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Image.asset(
+                                  moodLevel.iconPath,
+                                  width: 52,
+                                  height: 52,
+                                ),
+                              ),
+                            )
+                          else
+                            Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: colorScheme.onSurface.withValues(
+                                  alpha: 0.04,
+                                ),
+                                border: Border.all(
+                                  color: colorScheme.onSurface.withValues(
+                                    alpha: 0.08,
+                                  ),
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 10),
+                          Text(
+                            avgText,
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w200,
+                              color: color,
+                              height: 1.0,
+                              fontFeatures: _kEnglishDigitFeatures,
+                            ),
                           ),
                         ],
-                      ),
-                      child: Center(
-                        child: Image.asset(
-                          moodLevel.iconPath,
-                          width: 52,
-                          height: 52,
+                      )
+                    : Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              height: 36,
+                              child: FilledButton.icon(
+                                onPressed: () => context.push('/mood?showAdd=true'),
+                                style: FilledButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                icon: const HugeIcon(
+                                  icon: HugeIcons.strokeRoundedAdd01,
+                                  size: 16,
+                                ),
+                                label: const Text('ثبت مود'),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    )
-                  else
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: colorScheme.onSurface.withValues(alpha: 0.04),
-                        border: Border.all(
-                          color: colorScheme.onSurface.withValues(alpha: 0.08),
-                          width: 1,
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 10),
-                  Text(
-                    avgText,
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w200,
-                      color: color,
-                      height: 1.0,
-                      fontFeatures: _kEnglishDigitFeatures,
-                    ),
-                  ),
-                ],
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'میانگین مود\nاین هفته ات',
-              textAlign: TextAlign.center,
-              style: _getTitleStyle(context),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                'میانگین مود\nاین هفته ات',
+                textAlign: TextAlign.center,
+                style: _getTitleStyle(context),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -477,103 +566,136 @@ class _StreakCard extends ConsumerWidget {
     // [امروز+2, امروز+1, امروز, دیروز, دو روز پیش] -> به دلیل LTR بودن Row و طراحی بصری
     // اما برای اینکه حس پیشرفت داشته باشد، از چپ به راست: [دو روز پیش, دیروز, امروز, فردا, پس‌فردا]
     final now = DateTime.now();
-    final days = List.generate(5, (index) => now.add(Duration(days: index - 2)));
+    final days = List.generate(
+      5,
+      (index) => now.add(Duration(days: index - 2)),
+    );
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: borderColor, width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEF4444).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+    return InkWell(
+      onTap: () => context.push('/reports?viewMode=1'),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: borderColor, width: 1),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
                       ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const HugeIcon(
-                          icon: HugeIcons.strokeRoundedFire,
-                          size: 14,
-                          color: Color(0xFFEF4444),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: const Color(0xFFEF4444).withValues(alpha: 0.2),
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          StringUtils.toPersianDigit('$streak روز متوالی'),
-                          style: const TextStyle(
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const HugeIcon(
+                            icon: HugeIcons.strokeRoundedFire,
+                            size: 14,
                             color: Color(0xFFEF4444),
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            fontFeatures: _kPersianDigitFeatures,
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Chain Visual
-                  SizedBox(
-                    height: 40,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Positioned(
-                          left: 20,
-                          right: 20,
-                          child: Container(
-                            height: 1,
-                            decoration: BoxDecoration(
-                              color: colorScheme.onSurface.withValues(alpha: 0.08),
+                          const SizedBox(width: 4),
+                          Text(
+                            StringUtils.toPersianDigit('$streak روز متوالی'),
+                            style: const TextStyle(
+                              color: Color(0xFFEF4444),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              fontFeatures: _kPersianDigitFeatures,
                             ),
                           ),
-                        ),
-                        Row(
-                          textDirection: TextDirection.ltr,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildChainLink(context, activeDates.contains(_formatDate(days[0])), size: 22),
-                            _buildChainLink(context, activeDates.contains(_formatDate(days[1])), size: 28),
-                            _buildActiveLink(context, activeDates.contains(_formatDate(days[2])), size: 38),
-                            _buildChainLink(context, activeDates.contains(_formatDate(days[3])), size: 28),
-                            _buildChainLink(context, activeDates.contains(_formatDate(days[4])), size: 22),
-                          ],
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    // Chain Visual
+                    SizedBox(
+                      height: 40,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Positioned(
+                            left: 20,
+                            right: 20,
+                            child: Container(
+                              height: 1,
+                              decoration: BoxDecoration(
+                                color: colorScheme.onSurface.withValues(
+                                  alpha: 0.08,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Row(
+                            textDirection: TextDirection.ltr,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _buildChainLink(
+                                context,
+                                activeDates.contains(_formatDate(days[0])),
+                                size: 22,
+                              ),
+                              _buildChainLink(
+                                context,
+                                activeDates.contains(_formatDate(days[1])),
+                                size: 28,
+                              ),
+                              _buildActiveLink(
+                                context,
+                                activeDates.contains(_formatDate(days[2])),
+                                size: 38,
+                              ),
+                              _buildChainLink(
+                                context,
+                                activeDates.contains(_formatDate(days[3])),
+                                size: 28,
+                              ),
+                              _buildChainLink(
+                                context,
+                                activeDates.contains(_formatDate(days[4])),
+                                size: 22,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'زنجیره در جریان بودنت',
-              textAlign: TextAlign.center,
-              style: _getTitleStyle(context),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                'زنجیره در جریان بودنت',
+                textAlign: TextAlign.center,
+                style: _getTitleStyle(context),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildActiveLink(BuildContext context, bool isActive, {double size = 44}) {
+  Widget _buildActiveLink(
+    BuildContext context,
+    bool isActive, {
+    double size = 44,
+  }) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: size,
@@ -581,23 +703,24 @@ class _StreakCard extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(horizontal: 2),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isActive ? colorScheme.primary : colorScheme.surfaceContainerHighest,
-        border: isActive 
-          ? null 
-          : Border.all(color: colorScheme.onSurface.withValues(alpha: 0.1), width: 1),
+        color: isActive
+            ? colorScheme.primary
+            : colorScheme.surfaceContainerHighest,
+        border: isActive
+            ? null
+            : Border.all(
+                color: colorScheme.onSurface.withValues(alpha: 0.1),
+                width: 1,
+              ),
       ),
       child: Center(
-        child: isActive 
-          ? Icon(
-              Icons.check,
-              color: colorScheme.onPrimary,
-              size: size * 0.6,
-            )
-          : Icon(
-              Icons.question_mark,
-              color: colorScheme.primary,
-              size: size * 0.5,
-            )
+        child: isActive
+            ? Icon(Icons.check, color: colorScheme.onPrimary, size: size * 0.6)
+            : Icon(
+                Icons.question_mark,
+                color: colorScheme.primary,
+                size: size * 0.5,
+              ),
       ),
     );
   }
@@ -636,7 +759,10 @@ class _StreakCard extends ConsumerWidget {
     );
   }
 
-  Set<String> _getActiveDatesSet(List<Task> tasks, List<MoodEntry> moodEntries) {
+  Set<String> _getActiveDatesSet(
+    List<Task> tasks,
+    List<MoodEntry> moodEntries,
+  ) {
     final Set<String> activeDates = {};
 
     // 1. Collect Task Completions
