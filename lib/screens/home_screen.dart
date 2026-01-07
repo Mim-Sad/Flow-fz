@@ -196,11 +196,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: _SliverHeaderDelegate(
-                    child: Container(
-                      color: Theme.of(context).colorScheme.surface,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                        child: _isSelectionMode
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Theme.of(context).colorScheme.surface,
+                          Theme.of(context)
+                              .colorScheme
+                              .surface
+                              .withValues(alpha: 0.9),
+                          Theme.of(context)
+                              .colorScheme
+                              .surface
+                              .withValues(alpha: 0),
+                        ],
+                        stops: const [0, 0.7, 1.0],
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
+                      child: _isSelectionMode
                             ? SizedBox(
                                 height: 48,
                                 child: _buildSelectionHeader(todayTasks, today),
@@ -523,10 +540,10 @@ class _SliverHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  double get maxExtent => 72;
+  double get maxExtent => 80;
 
   @override
-  double get minExtent => 72;
+  double get minExtent => 80;
 
   @override
   bool shouldRebuild(covariant _SliverHeaderDelegate oldDelegate) {
