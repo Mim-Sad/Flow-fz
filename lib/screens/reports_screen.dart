@@ -877,9 +877,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final Map<int, List<double>> activityMoods = {};
     for (var mood in moods) {
       for (var activityId in mood.activityIds) {
+        // Map 1..5 to -100..+100
+        // MoodLevel.index: 0=rad(5), 1=good(4), 2=meh(3), 3=bad(2), 4=awful(1)
+        // rawValue (1-5) = 5 - index
+        // Formula: (rawValue * 50) - 150
+        // 5 -> 250 - 150 = 100
+        // 1 -> 50 - 150 = -100
+        final rawValue = (5 - mood.moodLevel.index).toDouble();
+        final score = (rawValue * 50) - 150;
         activityMoods
             .putIfAbsent(activityId, () => [])
-            .add((5 - mood.moodLevel.index).toDouble());
+            .add(score);
       }
     }
 
@@ -898,9 +906,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       ..sort((a, b) => b.value.compareTo(a.value));
     final badImpacts = [...impacts]..sort((a, b) => a.value.compareTo(b.value));
 
-    // Thresholds: > 3.0 is generally good, < 3.0 is generally bad
-    final topGood = goodImpacts.where((e) => e.value >= 3.0).take(5).toList();
-    final topBad = badImpacts.where((e) => e.value < 3.0).take(5).toList();
+    // Thresholds: > 0 is good, < 0 is bad
+    final topGood = goodImpacts.where((e) => e.value > 0).take(5).toList();
+    final topBad = badImpacts.where((e) => e.value < 0).take(5).toList();
 
     if (topGood.isEmpty && topBad.isEmpty) return const SizedBox.shrink();
 
@@ -987,9 +995,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   ) {
     final theme = Theme.of(context);
     final color = isPositive ? Colors.green : Colors.red;
-    final progress = isPositive
-        ? (entry.value / 5.0)
-        : ((5.0 - entry.value) / 5.0);
+    final progress = (entry.value.abs() / 100.0).clamp(0.0, 1.0);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -1008,7 +1014,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     children: [
                       if (!isPositive) const Spacer(),
                       Container(
-                        width: constraints.maxWidth * progress.clamp(0.0, 1.0),
+                        width: constraints.maxWidth * progress,
                         color: color.withValues(alpha: 0.15),
                       ),
                       if (isPositive) const Spacer(),
@@ -1042,7 +1048,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    _toPersianDigit(entry.value.toStringAsFixed(1)),
+                    _toPersianDigit(
+                      '${entry.value > 0 ? '+' : ''}${entry.value.toInt()}',
+                    ),
                     style: theme.textTheme.labelSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: color,
