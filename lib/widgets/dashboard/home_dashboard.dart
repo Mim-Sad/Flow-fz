@@ -648,27 +648,27 @@ class _StreakCard extends ConsumerWidget {
                               _buildChainLink(
                                 context,
                                 activeDates.contains(_formatDate(days[0])),
-                                size: 22,
+                                size: _kChainLinkSizeSmall,
                               ),
                               _buildChainLink(
                                 context,
                                 activeDates.contains(_formatDate(days[1])),
-                                size: 28,
+                                size: _kChainLinkSizeLarge,
                               ),
                               _buildActiveLink(
                                 context,
                                 activeDates.contains(_formatDate(days[2])),
-                                size: 38,
+                                size: _kActiveLinkSize,
                               ),
                               _buildChainLink(
                                 context,
                                 activeDates.contains(_formatDate(days[3])),
-                                size: 28,
+                                size: _kChainLinkSizeLarge,
                               ),
                               _buildChainLink(
                                 context,
                                 activeDates.contains(_formatDate(days[4])),
-                                size: 22,
+                                size: _kChainLinkSizeSmall,
                               ),
                             ],
                           ),
@@ -691,36 +691,50 @@ class _StreakCard extends ConsumerWidget {
     );
   }
 
+  static const double _kActiveLinkSize = 38.0;
+  static const double _kChainLinkSizeLarge = 28.0;
+  static const double _kChainLinkSizeSmall = 22.0;
+
   Widget _buildActiveLink(
     BuildContext context,
     bool isActive, {
-    double size = 44,
+    double? size,
   }) {
+    final effectiveSize = size ?? _kActiveLinkSize;
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      width: size,
-      height: size,
-      margin: const EdgeInsets.symmetric(horizontal: 2),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isActive
-            ? colorScheme.primary
-            : colorScheme.surfaceContainerHighest,
-        border: isActive
-            ? null
-            : Border.all(
-                color: colorScheme.onSurface.withValues(alpha: 0.1),
-                width: 1,
-              ),
-      ),
-      child: Center(
-        child: isActive
-            ? Icon(Icons.check, color: colorScheme.onPrimary, size: size * 0.6)
-            : Icon(
-                Icons.question_mark,
-                color: colorScheme.primary,
-                size: size * 0.5,
-              ),
+
+    return Semantics(
+      label: isActive ? 'روز فعال در زنجیره' : 'روز غیرفعال در زنجیره',
+      selected: isActive,
+      child: Container(
+        width: effectiveSize,
+        height: effectiveSize,
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isActive
+              ? colorScheme.primary
+              : colorScheme.surfaceContainerHighest,
+          border: isActive
+              ? null
+              : Border.all(
+                  color: colorScheme.onSurface.withValues(alpha: 0.1),
+                  width: 1,
+                ),
+        ),
+        child: Center(
+          child: isActive
+              ? Icon(
+                  Icons.check,
+                  color: colorScheme.onPrimary,
+                  size: effectiveSize * 0.6,
+                )
+              : Icon(
+                  Icons.question_mark,
+                  color: colorScheme.primary,
+                  size: effectiveSize * 0.5,
+                ),
+        ),
       ),
     );
   }
@@ -728,34 +742,40 @@ class _StreakCard extends ConsumerWidget {
   Widget _buildChainLink(
     BuildContext context,
     bool isFilled, {
-    double size = 32,
+    double? size,
   }) {
+    final effectiveSize = size ?? _kChainLinkSizeLarge;
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      width: size,
-      height: size,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isFilled
-            ? colorScheme.primary.withValues(alpha: 0.8)
-            : colorScheme.surfaceContainerLow,
-        border: isFilled
-            ? null
-            : Border.all(
-                color: colorScheme.surfaceContainerHighest,
-                width: 1.5,
-              ),
+
+    return Semantics(
+      label: isFilled ? 'روز موفق در زنجیره' : 'روز ناموفق در زنجیره',
+      selected: isFilled,
+      child: Container(
+        width: effectiveSize,
+        height: effectiveSize,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isFilled
+              ? colorScheme.primary.withValues(alpha: 0.8)
+              : colorScheme.surfaceContainerLow,
+          border: isFilled
+              ? null
+              : Border.all(
+                  color: colorScheme.surfaceContainerHighest,
+                  width: 1.5,
+                ),
+        ),
+        child: isFilled
+            ? Center(
+                child: Icon(
+                  Icons.check,
+                  color: colorScheme.onPrimary,
+                  size: effectiveSize * 0.5,
+                ),
+              )
+            : null,
       ),
-      child: isFilled
-          ? Center(
-              child: Icon(
-                Icons.check,
-                color: colorScheme.onPrimary,
-                size: size * 0.5,
-              ),
-            )
-          : null,
     );
   }
 

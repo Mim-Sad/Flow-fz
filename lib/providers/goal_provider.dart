@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/goal.dart';
@@ -10,9 +11,26 @@ final goalLoadingProvider = StateProvider<bool>((ref) => true);
 class GoalsNotifier extends StateNotifier<List<Goal>> {
   final Ref _ref;
   final DatabaseService _dbService;
+  StreamSubscription<String>? _subscription;
 
   GoalsNotifier(this._ref) : _dbService = _ref.read(databaseServiceProvider), super([]) {
     _loadGoals();
+    _subscribeToChanges();
+  }
+
+  void _subscribeToChanges() {
+    _subscription?.cancel();
+    _subscription = _dbService.changeStream.listen((table) {
+      if (table == 'goals') {
+        _loadGoals();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadGoals() async {

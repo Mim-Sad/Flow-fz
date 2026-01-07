@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -15,6 +16,14 @@ import '../constants/duck_emojis.dart';
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
   static Database? _database;
+
+  // Stream controller for real-time updates
+  final _changeController = StreamController<String>.broadcast();
+  Stream<String> get changeStream => _changeController.stream;
+
+  void notifyChange(String table) {
+    _changeController.add(table);
+  }
 
   factory DatabaseService() => _instance;
 
@@ -225,6 +234,7 @@ class DatabaseService {
       );
     }
 
+    notifyChange('mood_entries');
     return id;
   }
 
@@ -259,12 +269,14 @@ class DatabaseService {
     }
     map['attachments'] = json.encode(mediaIds.map((id) => id.toString()).toList());
 
-    return await db.update(
+    final result = await db.update(
       'mood_entries',
       map,
       where: 'id = ?',
       whereArgs: [entry.id],
     );
+    notifyChange('mood_entries');
+    return result;
   }
 
   Future<List<MoodEntry>> getAllMoodEntries() async {
@@ -297,7 +309,9 @@ class DatabaseService {
     Database db = await database;
     // Delete associated media files
     await deleteMediaByMoodId(id);
-    return await db.delete('mood_entries', where: 'id = ?', whereArgs: [id]);
+    final result = await db.delete('mood_entries', where: 'id = ?', whereArgs: [id]);
+    notifyChange('mood_entries');
+    return result;
   }
 
   Future<void> deleteMediaByMoodId(int moodId) async {
@@ -340,53 +354,65 @@ class DatabaseService {
 
   Future<int> insertActivityCategory(String name, String iconName) async {
     Database db = await database;
-    return await db.insert('activity_categories', {
+    final id = await db.insert('activity_categories', {
       'name': name,
       'iconName': iconName,
       'sortOrder': 0,
       'isSystem': 0
     });
+    notifyChange('activity_categories');
+    return id;
   }
 
   Future<int> updateActivityCategory(ActivityCategory category) async {
     Database db = await database;
-    return await db.update(
+    final result = await db.update(
       'activity_categories',
       category.toMap(),
       where: 'id = ?',
       whereArgs: [category.id]
     );
+    notifyChange('activity_categories');
+    return result;
   }
 
   Future<int> deleteActivityCategory(int id) async {
     Database db = await database;
-    return await db.delete('activity_categories', where: 'id = ?', whereArgs: [id]);
+    final result = await db.delete('activity_categories', where: 'id = ?', whereArgs: [id]);
+    notifyChange('activity_categories');
+    return result;
   }
 
   Future<int> insertActivity(String name, String iconName, int categoryId) async {
     Database db = await database;
-    return await db.insert('activities', {
+    final id = await db.insert('activities', {
       'name': name,
       'iconName': iconName,
       'categoryId': categoryId,
       'sortOrder': 0,
       'isSystem': 0
     });
+    notifyChange('activities');
+    return id;
   }
 
   Future<int> deleteActivity(int id) async {
     Database db = await database;
-    return await db.delete('activities', where: 'id = ?', whereArgs: [id]);
+    final result = await db.delete('activities', where: 'id = ?', whereArgs: [id]);
+    notifyChange('activities');
+    return result;
   }
 
   Future<int> updateActivity(Activity activity) async {
     Database db = await database;
-    return await db.update(
+    final result = await db.update(
       'activities',
       activity.toMap(),
       where: 'id = ?',
       whereArgs: [activity.id],
     );
+    notifyChange('activities');
+    return result;
   }
 
   Future<Database> _initDatabase() async {
@@ -1008,6 +1034,7 @@ class DatabaseService {
       );
     }
 
+    notifyChange('goals');
     return id;
   }
 
@@ -1092,18 +1119,20 @@ class DatabaseService {
       newMediaIds.map((id) => id.toString()).toList(),
     );
 
-    return await db.update(
+    final result = await db.update(
       'goals',
       map,
       where: 'id = ?',
       whereArgs: [goal.id],
     );
+    notifyChange('goals');
+    return result;
   }
 
   Future<int> deleteGoal(int id) async {
     Database db = await database;
     // Soft delete
-    return await db.update(
+    final result = await db.update(
       'goals',
       {
         'isDeleted': 1,
@@ -1112,6 +1141,8 @@ class DatabaseService {
       where: 'id = ?',
       whereArgs: [id],
     );
+    notifyChange('goals');
+    return result;
   }
 
   Future<void> _createMediaTable(Database db) async {
@@ -1200,11 +1231,13 @@ class DatabaseService {
       throw Exception('دسته‌بندی با این نام از قبل وجود دارد');
     }
 
-    return await db.insert(
+    final result = await db.insert(
       'categories',
       category.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+    notifyChange('categories');
+    return result;
   }
 
   Future<int> updateCategory(CategoryData category) async {
@@ -1221,24 +1254,28 @@ class DatabaseService {
       throw Exception('دسته‌بندی با این نام از قبل وجود دارد');
     }
 
-    return await db.update(
+    final result = await db.update(
       'categories',
       category.toMap(),
       where: 'id = ?',
       whereArgs: [category.id],
     );
+    notifyChange('categories');
+    return result;
   }
 
   Future<int> deleteCategory(String id) async {
     Database db = await database;
     // Soft delete: mark as deleted instead of removing
     final now = DateTime.now().toIso8601String();
-    return await db.update(
+    final result = await db.update(
       'categories',
       {'deletedAt': now},
       where: 'id = ?',
       whereArgs: [id],
     );
+    notifyChange('categories');
+    return result;
   }
 
   Future<int> insertTask(Task task) async {
@@ -1298,6 +1335,7 @@ class DatabaseService {
       occurredAt: DateTime.now(),
     );
 
+    notifyChange('tasks');
     return id;
   }
 
@@ -1505,6 +1543,7 @@ class DatabaseService {
       occurredAt: now,
     );
 
+    notifyChange('tasks');
     return task.id!;
   }
 
@@ -1542,6 +1581,7 @@ class DatabaseService {
       occurredAt: DateTime.now(),
     );
 
+    notifyChange('tasks');
     return result;
   }
 
@@ -1568,6 +1608,7 @@ class DatabaseService {
       occurredAt: DateTime.now(),
     );
 
+    notifyChange('tasks');
     return result;
   }
 

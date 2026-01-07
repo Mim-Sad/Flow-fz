@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/task.dart';
 import '../services/database_service.dart';
@@ -19,12 +20,30 @@ class TasksNotifier extends StateNotifier<List<Task>> {
   final Ref _ref;
   final DatabaseService _dbService;
   final NotificationService _notificationService;
+  StreamSubscription<String>? _subscription;
 
   TasksNotifier(this._ref) 
       : _dbService = _ref.read(databaseServiceProvider),
         _notificationService = _ref.read(notificationServiceProvider),
         super([]) {
     _loadTasks();
+    _subscribeToChanges();
+  }
+
+  void _subscribeToChanges() {
+    _subscription?.cancel();
+    _subscription = _dbService.changeStream.listen((table) {
+      if (table == 'tasks') {
+        _loadTasks();
+        _ref.invalidate(allTasksIncludingDeletedProvider);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadTasks() async {

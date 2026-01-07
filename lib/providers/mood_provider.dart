@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/mood_entry.dart';
@@ -75,9 +76,26 @@ final moodProvider = StateNotifierProvider<MoodNotifier, MoodState>((ref) {
 
 class MoodNotifier extends StateNotifier<MoodState> {
   final DatabaseService _db;
+  StreamSubscription<String>? _subscription;
 
   MoodNotifier(this._db) : super(MoodState()) {
     loadMoods();
+    _subscribeToChanges();
+  }
+
+  void _subscribeToChanges() {
+    _subscription?.cancel();
+    _subscription = _db.changeStream.listen((table) {
+      if (table == 'mood_entries') {
+        loadMoods();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 
   Future<void> loadMoods() async {
@@ -198,9 +216,26 @@ final activityProvider = StateNotifierProvider<ActivityNotifier, ActivityState>(
 
 class ActivityNotifier extends StateNotifier<ActivityState> {
   final DatabaseService _db;
+  StreamSubscription<String>? _subscription;
 
   ActivityNotifier(this._db) : super(ActivityState()) {
     loadActivities();
+    _subscribeToChanges();
+  }
+
+  void _subscribeToChanges() {
+    _subscription?.cancel();
+    _subscription = _db.changeStream.listen((table) {
+      if (table == 'activity_categories' || table == 'activities') {
+        loadActivities();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 
   Future<void> loadActivities() async {

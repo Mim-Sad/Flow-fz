@@ -6,6 +6,10 @@ import '../../providers/mood_provider.dart';
 class StreakCard extends StatelessWidget {
   final MoodState moodState;
 
+  static const double _kTimelineCircleSize = 38.0;
+  static const double _kTimelineIconSize = 18.0;
+  static const double _kStreakIconSize = 16.0;
+
   const StreakCard({super.key, required this.moodState});
 
   @override
@@ -87,7 +91,7 @@ class StreakCard extends StatelessWidget {
         children: [
           // Background Line
           Positioned(
-            top: 19,
+            top: _kTimelineCircleSize / 2,
             left: 20,
             right: 20,
             child: Container(
@@ -104,82 +108,88 @@ class StreakCard extends StatelessWidget {
               final hasMood = _hasMoodOnDay(date);
               
               // Connecting line colored if both days have mood
-              // In RTL, the next item (index + 1) is to the left
               final hasNextMood = index < 6 && _hasMoodOnDay(lastSeven[index + 1]);
               final showLine = index < 6;
               final isLineActive = hasMood && hasNextMood;
 
+              final dayLabel = isToday ? 'امروز' : _getFormattedDate(date);
+              final statusLabel = hasMood ? 'ثبت شده' : 'ثبت نشده';
+
               return Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Stack(
-                      alignment: Alignment.center,
-                      clipBehavior: Clip.none,
-                      children: [
-                        if (showLine)
-                          Positioned(
-                            right: 20, // Center of circle
-                            left: -20, // Center of next circle (approx)
-                            top: 19,
-                            child: Container(
-                              height: 2,
-                              color: isLineActive 
+                child: Semantics(
+                  label: 'روز $dayLabel: $statusLabel',
+                  selected: hasMood,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Stack(
+                        alignment: Alignment.center,
+                        clipBehavior: Clip.none,
+                        children: [
+                          if (showLine)
+                            Positioned(
+                              right: 20,
+                              left: -20,
+                              top: _kTimelineCircleSize / 2,
+                              child: Container(
+                                height: 2,
+                                color: isLineActive 
+                                  ? colorScheme.primary 
+                                  : Colors.transparent,
+                              ),
+                            ),
+                          Container(
+                            width: _kTimelineCircleSize,
+                            height: _kTimelineCircleSize,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: hasMood 
                                 ? colorScheme.primary 
-                                : Colors.transparent,
+                                : (colorScheme.surface),
+                              border: hasMood 
+                                ? null 
+                                : Border.all(
+                                    color: isToday 
+                                      ? colorScheme.primary 
+                                      : colorScheme.outlineVariant,
+                                    width: 1.5,
+                                  ),
+                            ),
+                            child: Center(
+                              child: hasMood
+                                  ? HugeIcon(
+                                      icon: HugeIcons.strokeRoundedTick02,
+                                      color: colorScheme.onPrimary,
+                                      size: _kTimelineIconSize,
+                                    )
+                                  : (isToday
+                                      ? Text(
+                                          '؟',
+                                          style: TextStyle(
+                                            color: colorScheme.primary,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        )
+                                      : null),
                             ),
                           ),
-                        Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: hasMood 
-                              ? colorScheme.primary 
-                              : (colorScheme.surface),
-                            border: hasMood 
-                              ? null 
-                              : Border.all(
-                                  color: isToday 
-                                    ? colorScheme.primary 
-                                    : colorScheme.outlineVariant,
-                                  width: 1.5,
-                                ),
-                          ),
-                          child: Center(
-                            child: hasMood
-                                ? HugeIcon(
-                                    icon: HugeIcons.strokeRoundedTick02,
-                                    color: theme.colorScheme.onPrimary,
-                                    size: 18,
-                                  )
-                                : (isToday
-                                    ? Text(
-                                        '؟',
-                                        style: TextStyle(
-                                          color: colorScheme.primary,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      )
-                                    : null),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      isToday ? 'امروز' : _getFormattedDate(date),
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: isToday 
-                          ? colorScheme.primary 
-                          : colorScheme.onSurfaceVariant,
-                        fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                        fontSize: 10,
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      Text(
+                        dayLabel,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: isToday 
+                            ? colorScheme.primary 
+                            : colorScheme.onSurfaceVariant,
+                          fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }),
@@ -191,39 +201,44 @@ class StreakCard extends StatelessWidget {
 
   Widget _buildStreakCounter(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.redAccent.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          HugeIcon(
-            icon: HugeIcons.strokeRoundedFire03,
-            color: Colors.redAccent,
-            size: 16,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            _toPersianDigit(moodState.currentStreak.toString()),
-            style: theme.textTheme.labelLarge?.copyWith(
+    final streakCount = _toPersianDigit(moodState.currentStreak.toString());
+
+    return Semantics(
+      label: 'زنجیره فعلی: $streakCount روز',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.redAccent.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            HugeIcon(
+              icon: HugeIcons.strokeRoundedFire03,
               color: Colors.redAccent,
-              fontWeight: FontWeight.w900,
-              fontFamily: 'IRANSansX',
+              size: _kStreakIconSize,
             ),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            'روز',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: Colors.redAccent,
-              fontWeight: FontWeight.w500,
-              fontFamily: 'IRANSansX',
+            const SizedBox(width: 6),
+            Text(
+              streakCount,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.w900,
+                fontFamily: 'IRANSansX',
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 4),
+            Text(
+              'روز',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.w500,
+                fontFamily: 'IRANSansX',
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
