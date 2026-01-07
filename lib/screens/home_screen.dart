@@ -33,7 +33,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  SortMode _sortMode = SortMode.manual;
+  SortMode _sortMode = SortMode.defaultSort;
 
   // Selection Mode State
   bool _isSelectionMode = false;
@@ -187,98 +187,154 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         }
       },
       child: Scaffold(
-        body: Stack(
-          children: [
-            CustomScrollView(
-              slivers: [
-                const SliverPadding(padding: EdgeInsets.only(top: 80)),
-                if (!isLoading) const SliverToBoxAdapter(child: HomeDashboard()),
-                SliverPadding(
-                  padding: const EdgeInsets.only(
-                    left: 12,
-                    right: 12,
-                    bottom: 80,
-                  ),
-                  sliver: isLoading
-                      ? SliverFillRemaining(
-                          hasScrollBody: false,
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                SizedBox(
-                                      width: 72,
-                                      height: 72,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 8,
-                                        strokeCap: StrokeCap.round,
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .primaryContainer
-                                            .withValues(alpha: 0.2),
+        body: SafeArea(
+          child: CustomScrollView(
+            slivers: [
+              const SliverPadding(padding: EdgeInsets.only(top: 12)),
+              if (!isLoading) const SliverToBoxAdapter(child: HomeDashboard()),
+              if (!isLoading)
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _SliverHeaderDelegate(
+                    child: Container(
+                      color: Theme.of(context).colorScheme.surface,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                        child: _isSelectionMode
+                            ? SizedBox(
+                                height: 48,
+                                child: _buildSelectionHeader(todayTasks, today),
+                              )
+                            : SizedBox(
+                                height: 48,
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      'تسک‌های امروز',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
                                       ),
-                                    )
-                                    .animate(
-                                      onPlay: (controller) =>
-                                          controller.repeat(reverse: true),
-                                    )
-                                    .scale(
-                                      begin: const Offset(0.85, 0.85),
-                                      end: const Offset(1.0, 1.0),
-                                      duration: 1200.ms,
-                                      curve: Curves.easeInOut,
-                                    )
-                                    .fade(
-                                      begin: 0.6,
-                                      end: 1.0,
-                                      duration: 1200.ms,
-                                      curve: Curves.easeInOut,
                                     ),
-                              ],
-                            ),
-                          ),
-                        )
-                      : todayTasks.isEmpty
-                      ? SliverToBoxAdapter(
+                                    _buildSortToggle(),
+                                  ],
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
+              SliverPadding(
+                padding: const EdgeInsets.only(
+                  left: 12,
+                  right: 12,
+                  bottom: 80,
+                ),
+                sliver: isLoading
+                    ? SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const SizedBox(height: 40),
-                              Lottie.asset(
-                                'assets/images/TheSoul/20 glasses.json',
-                                width: 120,
-                                height: 120,
-                                fit: BoxFit.contain,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'برای امروز برنامه‌ای نداری!',
-                                style: TextStyle(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                              ),
+                              SizedBox(
+                                    width: 72,
+                                    height: 72,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 8,
+                                      strokeCap: StrokeCap.round,
+                                      backgroundColor: Theme.of(context)
+                                          .colorScheme
+                                          .primaryContainer
+                                          .withValues(alpha: 0.2),
+                                    ),
+                                  )
+                                  .animate(
+                                    onPlay: (controller) =>
+                                        controller.repeat(reverse: true),
+                                  )
+                                  .scale(
+                                    begin: const Offset(0.85, 0.85),
+                                    end: const Offset(1.0, 1.0),
+                                    duration: 1200.ms,
+                                    curve: Curves.easeInOut,
+                                  )
+                                  .fade(
+                                    begin: 0.6,
+                                    end: 1.0,
+                                    duration: 1200.ms,
+                                    curve: Curves.easeInOut,
+                                  ),
                             ],
                           ),
-                        )
-                      : SliverReorderableList(
-                          itemBuilder: (context, index) {
-                            final task = todayTasks[index];
-                            bool shouldAnimate = !_animatedTaskIds.contains(
-                              task.id,
-                            );
-                            if (shouldAnimate) {
-                              _animatedTaskIds.add(task.id!);
-                            }
+                        ),
+                      )
+                    : todayTasks.isEmpty
+                        ? SliverToBoxAdapter(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const SizedBox(height: 40),
+                                Lottie.asset(
+                                  'assets/images/TheSoul/20 glasses.json',
+                                  width: 120,
+                                  height: 120,
+                                  fit: BoxFit.contain,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'برای امروز برنامه‌ای نداری!',
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : SliverReorderableList(
+                            itemBuilder: (context, index) {
+                              final task = todayTasks[index];
+                              bool shouldAnimate = !_animatedTaskIds.contains(
+                                task.id,
+                              );
+                              if (shouldAnimate) {
+                                _animatedTaskIds.add(task.id!);
+                              }
 
-                            return Padding(
-                              key: ValueKey(task.id),
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: shouldAnimate
-                                  ? FadeInOnce(
-                                      delay: (index * 50).ms,
-                                      child: TaskListTile(
+                              return Padding(
+                                key: ValueKey(task.id),
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: shouldAnimate
+                                    ? FadeInOnce(
+                                        delay: (index * 50).ms,
+                                        child: TaskListTile(
+                                          task: task,
+                                          index: index,
+                                          onStatusToggle: () =>
+                                              _handleStatusToggle(task),
+                                          isReorderEnabled:
+                                              _sortMode == SortMode.manual,
+                                          isSelectionMode: _isSelectionMode,
+                                          isSelected: _selectedTaskIds.contains(
+                                            task.id,
+                                          ),
+                                          onSelect: () =>
+                                              _toggleTaskSelection(task.id!),
+                                          onEnterSelectionMode: () {
+                                            if (!_isSelectionMode) {
+                                              _toggleSelectionMode(true);
+                                            }
+                                            _toggleTaskSelection(
+                                              task.id!,
+                                            ); // Always select the task
+                                          },
+                                        ),
+                                      )
+                                    : TaskListTile(
                                         task: task,
                                         index: index,
                                         onStatusToggle: () =>
@@ -300,104 +356,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                           ); // Always select the task
                                         },
                                       ),
-                                    )
-                                  : TaskListTile(
-                                      task: task,
-                                      index: index,
-                                      onStatusToggle: () =>
-                                          _handleStatusToggle(task),
-                                      isReorderEnabled:
-                                          _sortMode == SortMode.manual,
-                                      isSelectionMode: _isSelectionMode,
-                                      isSelected: _selectedTaskIds.contains(
-                                        task.id,
-                                      ),
-                                      onSelect: () =>
-                                          _toggleTaskSelection(task.id!),
-                                      onEnterSelectionMode: () {
-                                        if (!_isSelectionMode) {
-                                          _toggleSelectionMode(true);
-                                        }
-                                        _toggleTaskSelection(
-                                          task.id!,
-                                        ); // Always select the task
-                                      },
-                                    ),
-                            );
-                          },
-                          itemCount: todayTasks.length,
-                          onReorder: (oldIndex, newIndex) {
-                            // Allow reorder if manual sort OR selection mode is active
-                            if (_sortMode != SortMode.manual &&
-                                !_isSelectionMode) {
-                              return;
-                            }
+                              );
+                            },
+                            itemCount: todayTasks.length,
+                            onReorder: (oldIndex, newIndex) {
+                              // Allow reorder if manual sort OR selection mode is active
+                              if (_sortMode != SortMode.manual &&
+                                  !_isSelectionMode) {
+                                return;
+                              }
 
-                            if (newIndex > oldIndex) newIndex -= 1;
-                            final items = [...todayTasks];
-                            final item = items.removeAt(oldIndex);
-                            items.insert(newIndex, item);
+                              if (newIndex > oldIndex) newIndex -= 1;
+                              final items = [...todayTasks];
+                              final item = items.removeAt(oldIndex);
+                              items.insert(newIndex, item);
 
-                            ref
-                                .read(tasksProvider.notifier)
-                                .reorderTasks(items);
-                            HapticFeedback.mediumImpact();
-                          },
-                        ),
-                ),
-              ],
-            ),
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Theme.of(context).colorScheme.surface,
-                      Theme.of(
-                        context,
-                      ).colorScheme.surface.withValues(alpha: 0.8),
-                      Theme.of(
-                        context,
-                      ).colorScheme.surface.withValues(alpha: 0),
-                    ],
-                    stops: const [0, 0.6, 1.0],
-                  ),
-                ),
-                child: SafeArea(
-                  bottom: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                    child: _isSelectionMode
-                        ? SizedBox(
-                            height: 48,
-                            child: _buildSelectionHeader(todayTasks, today),
-                          )
-                        : SizedBox(
-                            height: 48,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'تسک‌های امروز',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                  ),
-                                ),
-                                _buildSortToggle(),
-                              ],
-                            ),
+                              ref
+                                  .read(tasksProvider.notifier)
+                                  .reorderTasks(items);
+                              HapticFeedback.mediumImpact();
+                            },
                           ),
-                  ),
-                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () {
@@ -523,6 +505,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             date: task.dueDate,
           );
     }
+  }
+}
+
+class _SliverHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+
+  _SliverHeaderDelegate({required this.child});
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return child;
+  }
+
+  @override
+  double get maxExtent => 72;
+
+  @override
+  double get minExtent => 72;
+
+  @override
+  bool shouldRebuild(covariant _SliverHeaderDelegate oldDelegate) {
+    return oldDelegate.child != child;
   }
 }
 
