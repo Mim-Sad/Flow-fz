@@ -7,6 +7,7 @@ import 'package:lottie/lottie.dart';
 import '../widgets/lottie_category_icon.dart';
 import 'package:text_scroll/text_scroll.dart';
 import 'package:intl/intl.dart' as intl;
+import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 import '../utils/string_utils.dart';
 import '../providers/task_provider.dart';
 import '../providers/category_provider.dart';
@@ -34,6 +35,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   SortMode _sortMode = SortMode.defaultSort;
+  DateTime _selectedDate = DateTime.now();
 
   // Selection Mode State
   bool _isSelectionMode = false;
@@ -136,10 +138,57 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _toggleSelectionMode(false);
   }
 
+  Future<void> _selectDate() async {
+    final Jalali? picked = await showPersianDatePicker(
+      context: context,
+      initialDate: Jalali.fromDateTime(_selectedDate),
+      firstDate: Jalali(1300, 1, 1),
+      lastDate: Jalali(1500, 1, 1),
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked.toDateTime();
+      });
+      HapticFeedback.lightImpact();
+    }
+  }
+
+  void _goToPreviousDay() {
+    setState(() {
+      _selectedDate = _selectedDate.subtract(const Duration(days: 1));
+    });
+    HapticFeedback.lightImpact();
+  }
+
+  void _goToNextDay() {
+    setState(() {
+      _selectedDate = _selectedDate.add(const Duration(days: 1));
+    });
+    HapticFeedback.lightImpact();
+  }
+
+  String _formatDate(DateTime date) {
+    final jalali = Jalali.fromDateTime(date);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final d = DateTime(date.year, date.month, date.day);
+
+    if (d == today) {
+      return 'برنامه امروز ${StringUtils.toPersianDigit('${jalali.day} ${jalali.formatter.mN}')}';
+    }
+    return StringUtils.toPersianDigit('${jalali.day} ${jalali.formatter.mN}');
+  }
+
+  bool _isToday(DateTime date) {
+    final now = DateTime.now();
+    return date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final today = DateTime.now();
-    final todayTasks = [...ref.watch(activeTasksProvider(today))];
+    final todayTasks = [...ref.watch(activeTasksProvider(_selectedDate))];
     final isLoading = ref.watch(tasksLoadingProvider);
 
     // Apply Sorting
@@ -196,31 +245,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: _SliverHeaderDelegate(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Theme.of(context).colorScheme.surface,
-                          Theme.of(context)
-                              .colorScheme
-                              .surface
-                              .withValues(alpha: 0.8),
-                          Theme.of(context)
-                              .colorScheme
-                              .surface
-                              .withValues(alpha: 0),
-                        ],
-                        stops: const [0, 0.7, 1.0],
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Theme.of(context).colorScheme.surface,
+                            Theme.of(
+                              context,
+                            ).colorScheme.surface.withValues(alpha: 0.8),
+                            Theme.of(
+                              context,
+                            ).colorScheme.surface.withValues(alpha: 0),
+                          ],
+                          stops: const [0, 0.7, 1.0],
+                        ),
                       ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
-                      child: _isSelectionMode
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
+                        child: _isSelectionMode
                             ? SizedBox(
                                 height: 48,
-                                child: _buildSelectionHeader(todayTasks, today),
+                                child: _buildSelectionHeader(
+                                  todayTasks,
+                                  _selectedDate,
+                                ),
                               )
                             : SizedBox(
                                 height: 48,
@@ -228,13 +278,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text(
-                                      'تسک‌های امروز',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                      ),
-                                    ),
+                                    _buildDateNavigator(),
                                     _buildSortToggle(),
                                   ],
                                 ),
@@ -244,11 +288,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
               SliverPadding(
-                padding: const EdgeInsets.only(
-                  left: 12,
-                  right: 12,
-                  bottom: 80,
-                ),
+                padding: const EdgeInsets.only(left: 12, right: 12, bottom: 80),
                 sliver: isLoading
                     ? SliverFillRemaining(
                         hasScrollBody: false,
@@ -289,111 +329,111 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                       )
                     : todayTasks.isEmpty
-                        ? SliverToBoxAdapter(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const SizedBox(height: 40),
-                                Lottie.asset(
-                                  'assets/images/TheSoul/20 glasses.json',
-                                  width: 120,
-                                  height: 120,
-                                  fit: BoxFit.contain,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'برای امروز برنامه‌ای نداری!',
-                                  style: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
+                    ? SliverToBoxAdapter(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 40),
+                            Lottie.asset(
+                              'assets/images/TheSoul/20 glasses.json',
+                              width: 120,
+                              height: 120,
+                              fit: BoxFit.contain,
                             ),
-                          )
-                        : SliverReorderableList(
-                            itemBuilder: (context, index) {
-                              final task = todayTasks[index];
-                              bool shouldAnimate = !_animatedTaskIds.contains(
-                                task.id,
-                              );
-                              if (shouldAnimate) {
-                                _animatedTaskIds.add(task.id!);
-                              }
+                            const SizedBox(height: 16),
+                            Text(
+                              _isToday(_selectedDate)
+                                  ? 'برای امروز برنامه‌ای نداری!'
+                                  : 'برای این تاریخ برنامه‌ای نداری!',
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : SliverReorderableList(
+                        itemBuilder: (context, index) {
+                          final task = todayTasks[index];
+                          bool shouldAnimate = !_animatedTaskIds.contains(
+                            task.id,
+                          );
+                          if (shouldAnimate) {
+                            _animatedTaskIds.add(task.id!);
+                          }
 
-                              return Padding(
-                                key: ValueKey(task.id),
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: shouldAnimate
-                                    ? FadeInOnce(
-                                        delay: (index * 50).ms,
-                                        child: TaskListTile(
-                                          task: task,
-                                          index: index,
-                                          onStatusToggle: () =>
-                                              _handleStatusToggle(task),
-                                          isReorderEnabled:
-                                              _sortMode == SortMode.manual,
-                                          isSelectionMode: _isSelectionMode,
-                                          isSelected: _selectedTaskIds.contains(
-                                            task.id,
-                                          ),
-                                          onSelect: () =>
-                                              _toggleTaskSelection(task.id!),
-                                          onEnterSelectionMode: () {
-                                            if (!_isSelectionMode) {
-                                              _toggleSelectionMode(true);
-                                            }
-                                            _toggleTaskSelection(
-                                              task.id!,
-                                            ); // Always select the task
-                                          },
-                                        ),
-                                      )
-                                    : TaskListTile(
-                                        task: task,
-                                        index: index,
-                                        onStatusToggle: () =>
-                                            _handleStatusToggle(task),
-                                        isReorderEnabled:
-                                            _sortMode == SortMode.manual,
-                                        isSelectionMode: _isSelectionMode,
-                                        isSelected: _selectedTaskIds.contains(
-                                          task.id,
-                                        ),
-                                        onSelect: () =>
-                                            _toggleTaskSelection(task.id!),
-                                        onEnterSelectionMode: () {
-                                          if (!_isSelectionMode) {
-                                            _toggleSelectionMode(true);
-                                          }
-                                          _toggleTaskSelection(
-                                            task.id!,
-                                          ); // Always select the task
-                                        },
+                          return Padding(
+                            key: ValueKey(task.id),
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: shouldAnimate
+                                ? FadeInOnce(
+                                    delay: (index * 50).ms,
+                                    child: TaskListTile(
+                                      task: task,
+                                      index: index,
+                                      onStatusToggle: () =>
+                                          _handleStatusToggle(task),
+                                      isReorderEnabled:
+                                          _sortMode == SortMode.manual,
+                                      isSelectionMode: _isSelectionMode,
+                                      isSelected: _selectedTaskIds.contains(
+                                        task.id,
                                       ),
-                              );
-                            },
-                            itemCount: todayTasks.length,
-                            onReorder: (oldIndex, newIndex) {
-                              // Allow reorder if manual sort OR selection mode is active
-                              if (_sortMode != SortMode.manual &&
-                                  !_isSelectionMode) {
-                                return;
-                              }
+                                      onSelect: () =>
+                                          _toggleTaskSelection(task.id!),
+                                      onEnterSelectionMode: () {
+                                        if (!_isSelectionMode) {
+                                          _toggleSelectionMode(true);
+                                        }
+                                        _toggleTaskSelection(
+                                          task.id!,
+                                        ); // Always select the task
+                                      },
+                                    ),
+                                  )
+                                : TaskListTile(
+                                    task: task,
+                                    index: index,
+                                    onStatusToggle: () =>
+                                        _handleStatusToggle(task),
+                                    isReorderEnabled:
+                                        _sortMode == SortMode.manual,
+                                    isSelectionMode: _isSelectionMode,
+                                    isSelected: _selectedTaskIds.contains(
+                                      task.id,
+                                    ),
+                                    onSelect: () =>
+                                        _toggleTaskSelection(task.id!),
+                                    onEnterSelectionMode: () {
+                                      if (!_isSelectionMode) {
+                                        _toggleSelectionMode(true);
+                                      }
+                                      _toggleTaskSelection(
+                                        task.id!,
+                                      ); // Always select the task
+                                    },
+                                  ),
+                          );
+                        },
+                        itemCount: todayTasks.length,
+                        onReorder: (oldIndex, newIndex) {
+                          // Allow reorder if manual sort OR selection mode is active
+                          if (_sortMode != SortMode.manual &&
+                              !_isSelectionMode) {
+                            return;
+                          }
 
-                              if (newIndex > oldIndex) newIndex -= 1;
-                              final items = [...todayTasks];
-                              final item = items.removeAt(oldIndex);
-                              items.insert(newIndex, item);
+                          if (newIndex > oldIndex) newIndex -= 1;
+                          final items = [...todayTasks];
+                          final item = items.removeAt(oldIndex);
+                          items.insert(newIndex, item);
 
-                              ref
-                                  .read(tasksProvider.notifier)
-                                  .reorderTasks(items);
-                              HapticFeedback.mediumImpact();
-                            },
-                          ),
+                          ref.read(tasksProvider.notifier).reorderTasks(items);
+                          HapticFeedback.mediumImpact();
+                        },
+                      ),
               ),
             ],
           ),
@@ -463,8 +503,105 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  Widget _buildDateNavigator() {
+    final isNotToday = !_isToday(_selectedDate);
+
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            onPressed: _goToPreviousDay,
+            icon: HugeIcon(
+              icon: HugeIcons.strokeRoundedArrowRight01,
+              size: 20,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          ),
+          InkWell(
+            onTap: _selectDate,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Text(
+                _formatDate(_selectedDate),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  letterSpacing: -0.4,
+                ),
+              ),
+            ),
+          ),
+          if (isNotToday)
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedDate = DateTime.now();
+                });
+                HapticFeedback.mediumImpact();
+              },
+              child:
+                  Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          'برو به امروز',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onPrimary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )
+                      .animate()
+                      .scale(duration: 200.ms, curve: Curves.easeOutBack)
+                      .fadeIn(),
+            ),
+
+          IconButton(
+            onPressed: _goToNextDay,
+            icon: HugeIcon(
+              icon: HugeIcons.strokeRoundedArrowLeft01,
+              size: 20,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSortToggle() {
     return Container(
+      height: 40,
       decoration: BoxDecoration(
         color: Theme.of(
           context,
@@ -682,9 +819,7 @@ class TaskListTile extends ConsumerWidget {
                       SizedBox(
                         height: 24,
                         child: _AutoScrollCapsules(
-                          children: [
-                            ..._buildCapsules(context, ref),
-                          ],
+                          children: [..._buildCapsules(context, ref)],
                         ),
                       ),
                     ],
@@ -892,10 +1027,14 @@ class TaskListTile extends ConsumerWidget {
     if (!task.hasTime) return const SizedBox.shrink();
 
     final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
-    final timeStr = StringUtils.toPersianDigit(intl.DateFormat('HH:mm').format(task.dueDate));
+    final timeStr = StringUtils.toPersianDigit(
+      intl.DateFormat('HH:mm').format(task.dueDate),
+    );
     String label = timeStr;
     if (task.endTime != null) {
-      final endTimeStr = StringUtils.toPersianDigit(intl.DateFormat('HH:mm').format(task.endTime!));
+      final endTimeStr = StringUtils.toPersianDigit(
+        intl.DateFormat('HH:mm').format(task.endTime!),
+      );
       label = '$timeStr - $endTimeStr';
     }
 
@@ -909,7 +1048,11 @@ class TaskListTile extends ConsumerWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          HugeIcon(icon: HugeIcons.strokeRoundedClock01, size: 10, color: onSurfaceVariant),
+          HugeIcon(
+            icon: HugeIcons.strokeRoundedClock01,
+            size: 10,
+            color: onSurfaceVariant,
+          ),
           const SizedBox(width: 4),
           Text(
             label,
@@ -955,9 +1098,7 @@ class TaskListTile extends ConsumerWidget {
           decoration: BoxDecoration(
             color: Colors.blue.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Colors.blue.withValues(alpha: 0.2),
-            ),
+            border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
           ),
           child: const HugeIcon(
             icon: HugeIcons.strokeRoundedRepeat,
@@ -1068,9 +1209,7 @@ class TaskListTile extends ConsumerWidget {
       // Find the goal safely
       Goal? goalData;
       try {
-        goalData = allGoals.firstWhere(
-          (g) => g.id == goalId,
-        );
+        goalData = allGoals.firstWhere((g) => g.id == goalId);
       } catch (_) {
         goalData = null;
       }
@@ -1078,41 +1217,43 @@ class TaskListTile extends ConsumerWidget {
       if (goalData == null) return const SizedBox.shrink();
 
       return InkWell(
-            onTap: () {
-              context.push(
-                SearchRouteBuilder.buildSearchUrl(
-                  goals: [goalId],
-                  specificDate: task.dueDate,
-                ),
-              );
-            },
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(goalData.emoji, style: const TextStyle(fontSize: 10)),
-                  const SizedBox(width: 4),
-                  Text(
-                    goalData.title,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ],
-              ),
+        onTap: () {
+          context.push(
+            SearchRouteBuilder.buildSearchUrl(
+              goals: [goalId],
+              specificDate: task.dueDate,
             ),
           );
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(goalData.emoji, style: const TextStyle(fontSize: 10)),
+              const SizedBox(width: 4),
+              Text(
+                goalData.title,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }).toList();
   }
 
