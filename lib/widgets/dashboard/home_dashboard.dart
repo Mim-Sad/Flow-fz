@@ -244,14 +244,19 @@ class _ProductivityCard extends ConsumerWidget {
                               child: FilledButton.icon(
                                 onPressed: () => context.push('/planning'),
                                 style: FilledButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  textStyle: Theme.of(context)
+                                      .textTheme
+                                      .labelLarge
+                                      ?.copyWith(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                 ),
                                 icon: const HugeIcon(
                                   icon: HugeIcons.strokeRoundedAdd01,
@@ -285,8 +290,7 @@ class _ProductivityCard extends ConsumerWidget {
     return LineChart(
       LineChartData(
         minX: 0,
-        maxX:
-            10, // تنظیم روی ۱۰ برای اینکه بازه ۰ تا ۶ (۷ روز) دقیقاً بشود ۶۰ درصد عرض
+        maxX: maxX / 0.6, // تنظیم برای اینکه بازه داده‌ها (۰ تا ۶) دقیقاً ۶۰ درصد عرض را اشغال کند
         minY: -10,
         maxY: 110,
         gridData: FlGridData(
@@ -332,44 +336,58 @@ class _ProductivityCard extends ConsumerWidget {
   }
 
   _WeeklyProductivity _calculateWeeklyProductivity(List<Task> tasks) {
-    final now = DateUtils.dateOnly(DateTime.now());
-    // محاسبه ۷ روز اخیر (از ۶ روز پیش تا امروز)
-    final startDate = now.subtract(const Duration(days: 6));
+    final now = DateTime.now();
+    // محاسبه شروع هفته (شنبه)
+    final startOfWeek = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: (now.weekday + 1) % 7));
 
     int totalSuccess = 0;
     int totalFailed = 0;
     final spots = <FlSpot>[];
 
+    // پیمایش روزهای هفته از شنبه تا جمعه (مانند منطق گزارشات)
     for (int i = 0; i <= 6; i++) {
-      final day = DateUtils.dateOnly(startDate.add(Duration(days: i)));
-      int success = 0;
-      int failed = 0;
+      final day = startOfWeek.add(Duration(days: i));
+      final dayOnly = DateTime(day.year, day.month, day.day);
+
+      int daySuccess = 0;
+      int dayFailed = 0;
 
       for (final task in tasks) {
-        if (!task.isActiveOnDate(day)) continue;
-        final status = task.getStatusForDate(day);
-        if (status == TaskStatus.success) {
-          success++;
-        } else if (status == TaskStatus.failed) {
-          failed++;
+        if (task.isDeleted) continue;
+
+        // اگر تسک در این روز فعال است (منطق مشابه tasksForRangeProvider)
+        if (task.isActiveOnDate(dayOnly)) {
+          final status = task.getStatusForDate(dayOnly);
+          if (status == TaskStatus.success) {
+            daySuccess++;
+          } else if (status == TaskStatus.failed) {
+            dayFailed++;
+          }
         }
       }
 
-      final denom = success + failed;
-      if (denom > 0) {
-        final rate = (success / denom) * 100;
-        // x از ۰ تا ۶ خواهد بود که نیمه اول بازه ۰ تا ۱۲ است
-        spots.add(FlSpot(i.toDouble(), rate));
+      // فقط برای روزهایی که تا الان گذشته‌اند (یا امروز) نقاط نمودار را اضافه می‌کنیم
+      if (!dayOnly.isAfter(DateTime(now.year, now.month, now.day))) {
+        final denom = daySuccess + dayFailed;
+        if (denom > 0) {
+          final rate = (daySuccess / denom) * 100;
+          spots.add(FlSpot(i.toDouble(), rate));
+        }
       }
 
-      totalSuccess += success;
-      totalFailed += failed;
+      totalSuccess += daySuccess;
+      totalFailed += dayFailed;
     }
 
     final totalRelevant = totalSuccess + totalFailed;
     final percentage = totalRelevant == 0
         ? 0
         : ((totalSuccess / totalRelevant) * 100).round();
+
     return _WeeklyProductivity(spots: spots, maxX: 6, percentage: percentage);
   }
 }
@@ -482,16 +500,22 @@ class _MoodCard extends ConsumerWidget {
                             SizedBox(
                               height: 36,
                               child: FilledButton.icon(
-                                onPressed: () => context.push('/mood?showAdd=true'),
+                                onPressed: () =>
+                                    context.push('/mood?showAdd=true'),
                                 style: FilledButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  textStyle: Theme.of(context)
+                                      .textTheme
+                                      .labelLarge
+                                      ?.copyWith(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                 ),
                                 icon: const HugeIcon(
                                   icon: HugeIcons.strokeRoundedAdd01,
@@ -518,15 +542,17 @@ class _MoodCard extends ConsumerWidget {
   }
 
   double _calculateWeeklyMoodAverage(List<MoodEntry> entries) {
-    final now = DateUtils.dateOnly(DateTime.now());
-    final startOfWeek = now.subtract(Duration(days: (now.weekday + 1) % 7));
-    final endOfWeek = DateUtils.dateOnly(
-      startOfWeek.add(const Duration(days: 6)),
-    ).add(const Duration(days: 1)).subtract(const Duration(milliseconds: 1));
+    final now = DateTime.now();
+    final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+    // محاسبه شروع هفته (شنبه)
+    final startOfWeek = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: (now.weekday + 1) % 7));
 
     final weeklyEntries = entries.where((e) {
-      return !e.dateTime.isBefore(startOfWeek) &&
-          !e.dateTime.isAfter(endOfWeek);
+      return !e.dateTime.isBefore(startOfWeek) && !e.dateTime.isAfter(todayEnd);
     }).toList();
 
     if (weeklyEntries.isEmpty) return 0.0;
@@ -695,11 +721,7 @@ class _StreakCard extends ConsumerWidget {
   static const double _kChainLinkSizeLarge = 28.0;
   static const double _kChainLinkSizeSmall = 22.0;
 
-  Widget _buildActiveLink(
-    BuildContext context,
-    bool isActive, {
-    double? size,
-  }) {
+  Widget _buildActiveLink(BuildContext context, bool isActive, {double? size}) {
     final effectiveSize = size ?? _kActiveLinkSize;
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -739,11 +761,7 @@ class _StreakCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildChainLink(
-    BuildContext context,
-    bool isFilled, {
-    double? size,
-  }) {
+  Widget _buildChainLink(BuildContext context, bool isFilled, {double? size}) {
     final effectiveSize = size ?? _kChainLinkSizeLarge;
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -791,9 +809,9 @@ class _StreakCard extends ConsumerWidget {
         for (final log in task.statusLogs) {
           final payload = log['payload'];
           final occurredAtStr = log['occurredAt'];
-          
-          if (payload is Map && 
-              payload['status'] == TaskStatus.success.index && 
+
+          if (payload is Map &&
+              payload['status'] == TaskStatus.success.index &&
               occurredAtStr != null) {
             try {
               final occurredAt = DateTime.parse(occurredAtStr);
@@ -804,7 +822,7 @@ class _StreakCard extends ConsumerWidget {
           }
         }
       }
-      
+
       // Fallback/Legacy: Also check statusHistory if no logs exist for that success
       // Note: This ensures we don't lose old streaks before statusLogs was implemented
       task.statusHistory.forEach((dateStr, statusIndex) {
