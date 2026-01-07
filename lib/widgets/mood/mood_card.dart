@@ -45,7 +45,6 @@ class MoodCard extends ConsumerWidget {
     final displayIcon = moodInfo['icon'];
 
     final jalali = Jalali.fromDateTime(entry.dateTime);
-    final f = jalali.formatter;
 
     // Filter activities for this entry
     final entryActivities = allActivities
@@ -53,7 +52,7 @@ class MoodCard extends ConsumerWidget {
         .toList();
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12, left: 16, right: 16),
+      margin: const EdgeInsets.only(bottom: 12, left: 12, right: 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
@@ -127,7 +126,7 @@ class MoodCard extends ConsumerWidget {
                           ),
                         ),
                         Text(
-                          '${f.wN} ${f.d} ${f.mN} • ${intl.DateFormat('HH:mm').format(entry.dateTime)}',
+                          '${_formatJalali(jalali)} • ${intl.DateFormat('HH:mm').format(entry.dateTime)}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -348,5 +347,25 @@ class MoodCard extends ConsumerWidget {
       'icon': level.iconPath,
       'emoji': level.emoji,
     };
+  }
+
+  String _formatJalali(Jalali j) {
+    String weekday = j.formatter.wN;
+    if (weekday == 'یک شنبه') weekday = 'یک‌شنبه';
+    if (weekday == 'دو شنبه') weekday = 'دو‌شنبه';
+    if (weekday == 'سه شنبه') weekday = 'سه‌شنبه';
+    if (weekday == 'چهار شنبه') weekday = 'چهار‌شنبه';
+    if (weekday == 'پنج شنبه') weekday = 'پنج‌شنبه';
+    return _toPersianDigit('$weekday ${j.day} ${j.formatter.mN} ${j.year}');
+  }
+
+  String _toPersianDigit(String input) {
+    const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    String result = input;
+    for (int i = 0; i < englishDigits.length; i++) {
+      result = result.replaceAll(englishDigits[i], persianDigits[i]);
+    }
+    return result;
   }
 }

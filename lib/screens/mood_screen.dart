@@ -45,8 +45,6 @@ class _MoodScreenState extends ConsumerState<MoodScreen> {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          const SliverPadding(padding: EdgeInsets.only(top: 20)),
-
           if (!moodState.isLoading && moodState.error == null)
             SliverToBoxAdapter(
               child: StreakCard(moodState: moodState),
