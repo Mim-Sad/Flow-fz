@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/task.dart';
 import 'database_service.dart';
 
-/// سرویس برای به‌روزرسانی خودکار تسک‌های در جریان به ناموفق در نیمه‌شب
+/// سرویس برای به‌روزرسانی خودکار تسک‌های در جریان به ناموفق در ساعت مشخص شده
 class MidnightTaskUpdater {
   static final MidnightTaskUpdater _instance = MidnightTaskUpdater._internal();
   factory MidnightTaskUpdater() => _instance;
@@ -21,73 +21,102 @@ class MidnightTaskUpdater {
     VoidCallback? onUpdate,
   }) async {
     _dbService = dbService;
-    _onUpdateCallback = onUpdate;
+    if (onUpdate != null) {
+      _onUpdateCallback = onUpdate;
+    }
 
-    // بررسی در هنگام راه‌اندازی (اگر از آخرین بررسی نیمه‌شب گذشته باشد)
+    // بررسی در هنگام راه‌اندازی (اگر از آخرین موعد به‌روزرسانی گذشته باشد)
     await _checkAndUpdateIfNeeded();
 
-    // تنظیم Timer برای اجرای روزانه در نیمه‌شب
-    _scheduleMidnightUpdate();
+    // تنظیم Timer برای اجرای روزانه
+    await _scheduleMidnightUpdate();
   }
 
-  /// برنامه‌ریزی به‌روزرسانی در نیمه‌شب
-  void _scheduleMidnightUpdate() {
+  /// دریافت زمان تنظیم شده برای به‌روزرسانی (ساعت و دقیقه)
+  Future<TimeOfDay> _getUpdateTime() async {
+    if (_dbService == null) return const TimeOfDay(hour: 4, minute: 0);
+    try {
+      // ابتدا سعی می‌کنیم فرمت جدید (ساعت:دقیقه) را بخوانیم
+      final timeSetting = await _dbService!.getSetting(DatabaseService.settingMidnightUpdateTime);
+      if (timeSetting != null && timeSetting.contains(':')) {
+        final parts = timeSetting.split(':');
+        return TimeOfDay(
+          hour: int.tryParse(parts[0]) ?? 4,
+          minute: int.tryParse(parts[1]) ?? 0,
+        );
+      }
+
+      // اگر نبود، سراغ تنظیمات قدیمی (فقط ساعت) می‌رویم
+      final hourSetting = await _dbService!.getSetting(DatabaseService.settingMidnightUpdateHour);
+      return TimeOfDay(hour: int.tryParse(hourSetting ?? '4') ?? 4, minute: 0);
+    } catch (e) {
+      debugPrint('❌ MidnightTaskUpdater: خطا در دریافت تنظیمات زمان: $e');
+      return const TimeOfDay(hour: 4, minute: 0);
+    }
+  }
+
+  /// برنامه‌ریزی به‌روزرسانی در ساعت و دقیقه مشخص شده
+  Future<void> _scheduleMidnightUpdate() async {
     // لغو Timer قبلی اگر وجود داشته باشد
     _midnightTimer?.cancel();
 
+    final updateTime = await _getUpdateTime();
     final now = DateTime.now();
-    final tomorrow = DateTime(now.year, now.month, now.day + 1);
-    final midnight = DateTime(
-      tomorrow.year,
-      tomorrow.month,
-      tomorrow.day,
-      0,
-      0,
-      0,
-    );
+    
+    // زمان به‌روزرسانی بعدی
+    DateTime nextUpdate = DateTime(now.year, now.month, now.day, updateTime.hour, updateTime.minute);
+    
+    // اگر از زمان به‌روزرسانی امروز گذشته است، برای فردا برنامه‌ریزی کن
+    if (now.isAfter(nextUpdate) || now.isAtSameMomentAs(nextUpdate)) {
+      nextUpdate = nextUpdate.add(const Duration(days: 1));
+    }
 
-    final durationUntilMidnight = midnight.difference(now);
+    final durationUntilUpdate = nextUpdate.difference(now);
 
     debugPrint(
-      '⏰ MidnightTaskUpdater: تنظیم Timer برای ${durationUntilMidnight.inHours} ساعت و ${durationUntilMidnight.inMinutes % 60} دقیقه دیگر',
+      '⏰ MidnightTaskUpdater: تنظیم Timer برای ساعت ${updateTime.hour.toString().padLeft(2, '0')}:${updateTime.minute.toString().padLeft(2, '0')} (${durationUntilUpdate.inHours} ساعت و ${durationUntilUpdate.inMinutes % 60} دقیقه دیگر)',
     );
 
-    _midnightTimer = Timer(durationUntilMidnight, () {
-      _performMidnightUpdate();
-      // برنامه‌ریزی مجدد برای شب بعد
+    _midnightTimer = Timer(durationUntilUpdate, () async {
+      await _performMidnightUpdate();
+      // برنامه‌ریزی مجدد برای روز بعد
       _scheduleMidnightUpdate();
     });
   }
 
-  /// بررسی و به‌روزرسانی در صورت نیاز
+  /// بررسی و به‌روزرسانی در صورت نیاز (مثلاً اگر برنامه در زمان مقرر بسته بوده)
   Future<void> _checkAndUpdateIfNeeded() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final lastCheckStr = prefs.getString(_lastCheckKey);
+      final updateTime = await _getUpdateTime();
+      final now = DateTime.now();
+
+      // آخرین زمانِ به‌روزرسانیِ برنامه‌ریزی‌شده که باید تا الان اجرا می‌شده
+      DateTime lastScheduledUpdate = DateTime(now.year, now.month, now.day, updateTime.hour, updateTime.minute);
+      
+      if (now.isBefore(lastScheduledUpdate)) {
+        lastScheduledUpdate = lastScheduledUpdate.subtract(const Duration(days: 1));
+      }
 
       if (lastCheckStr != null) {
         final lastCheck = DateTime.parse(lastCheckStr);
-        final now = DateTime.now();
 
-        final todayMidnight = DateTime(now.year, now.month, now.day, 0, 0, 0);
-
-        // اگر آخرین بررسی قبل از امروز بوده، باید روزهای گذشته (تا دیروز) را بررسی کنیم
-        if (lastCheck.isBefore(todayMidnight)) {
+        // اگر آخرین بررسی قبل از آخرین زمانِ به‌روزرسانیِ برنامه‌ریزی‌شده بوده
+        if (lastCheck.isBefore(lastScheduledUpdate)) {
           debugPrint(
-            '🔄 MidnightTaskUpdater: آخرین بررسی قبل از امروز بوده ($lastCheck). بررسی روزهای از قلم افتاده...',
+            '🔄 MidnightTaskUpdater: آخرین بررسی قبل از موعد بوده ($lastCheck < $lastScheduledUpdate). بررسی روزهای از قلم افتاده...',
           );
 
-          // شروع از روزِ آخرین بررسی
-          // چون آن روز تمام شده است، باید وضعیت نهایی آن را چک کنیم
-          DateTime cursorDate = DateTime(
-            lastCheck.year,
-            lastCheck.month,
-            lastCheck.day,
-          );
-          final yesterday = todayMidnight.subtract(const Duration(days: 1));
+          // زمان مبدا برای بررسی روزها: روزِ آخرین بررسی
+          DateTime cursorDate = DateTime(lastCheck.year, lastCheck.month, lastCheck.day);
+          
+          // تا دیروزِ آخرین به‌روزرسانی برنامه‌ریزی شده
+          final yesterdayOfLastScheduled = lastScheduledUpdate.subtract(const Duration(days: 1));
+          final yesterdayOfLastScheduledOnlyDate = DateTime(yesterdayOfLastScheduled.year, yesterdayOfLastScheduled.month, yesterdayOfLastScheduled.day);
 
-          while (!cursorDate.isAfter(yesterday)) {
-            debugPrint(
+          while (!cursorDate.isAfter(yesterdayOfLastScheduledOnlyDate)) {
+             debugPrint(
               '🔄 MidnightTaskUpdater: در حال بررسی برای تاریخ ${cursorDate.toString().split(' ')[0]}...',
             );
             await _updatePendingTasksToFailed(cursorDate);
@@ -97,24 +126,28 @@ class MidnightTaskUpdater {
       } else {
         // اولین بار است که اجرا می‌شود
         debugPrint(
-          '🔄 MidnightTaskUpdater: اولین اجرا، بررسی تسک‌های دیروز...',
+          '🔄 MidnightTaskUpdater: اولین اجرا، بررسی تسک‌های قبل از آخرین موعد...',
         );
-        final yesterday = DateTime.now().subtract(const Duration(days: 1));
-        await _updatePendingTasksToFailed(yesterday);
+        final yesterdayOfLastScheduled = lastScheduledUpdate.subtract(const Duration(days: 1));
+        await _updatePendingTasksToFailed(yesterdayOfLastScheduled);
       }
 
-      // ذخیره زمان آخرین بررسی
+      // ذخیره زمان آخرین بررسی (الان)
       await prefs.setString(_lastCheckKey, DateTime.now().toIso8601String());
     } catch (e) {
       debugPrint('❌ MidnightTaskUpdater: خطا در بررسی: $e');
     }
   }
 
-  /// اجرای به‌روزرسانی در نیمه‌شب
+  /// اجرای به‌روزرسانی در ساعت مقرر
   Future<void> _performMidnightUpdate() async {
-    debugPrint('🌙 MidnightTaskUpdater: اجرای به‌روزرسانی نیمه‌شب...');
+    final updateTime = await _getUpdateTime();
+    debugPrint(
+      '🌙 MidnightTaskUpdater: اجرای به‌روزرسانی خودکار (ساعت ${updateTime.hour.toString().padLeft(2, '0')}:${updateTime.minute.toString().padLeft(2, '0')})...',
+    );
 
     try {
+      // تسک‌های دیروز را به ناموفق تبدیل می‌کنیم
       final yesterday = DateTime.now().subtract(const Duration(days: 1));
       await _updatePendingTasksToFailed(yesterday);
 
@@ -123,10 +156,10 @@ class MidnightTaskUpdater {
       await prefs.setString(_lastCheckKey, DateTime.now().toIso8601String());
 
       debugPrint(
-        '✅ MidnightTaskUpdater: به‌روزرسانی نیمه‌شب با موفقیت انجام شد',
+        '✅ MidnightTaskUpdater: به‌روزرسانی خودکار با موفقیت انجام شد',
       );
     } catch (e) {
-      debugPrint('❌ MidnightTaskUpdater: خطا در به‌روزرسانی نیمه‌شب: $e');
+      debugPrint('❌ MidnightTaskUpdater: خطا در به‌روزرسانی خودکار: $e');
     }
   }
 

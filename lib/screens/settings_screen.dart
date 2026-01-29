@@ -18,6 +18,7 @@ import '../providers/goal_provider.dart';
 import 'categories_screen.dart';
 import 'goals_screen.dart';
 import 'mood_settings_screen.dart';
+import '../services/midnight_task_updater.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -38,6 +39,77 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  TimeOfDay _midnightUpdateTime = const TimeOfDay(hour: 4, minute: 0);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMidnightUpdateTime();
+  }
+
+  Future<void> _loadMidnightUpdateTime() async {
+    final timeStr = await DatabaseService().getSetting(
+      DatabaseService.settingMidnightUpdateTime,
+    );
+    if (mounted) {
+      if (timeStr != null && timeStr.contains(':')) {
+        final parts = timeStr.split(':');
+        setState(() {
+          _midnightUpdateTime = TimeOfDay(
+            hour: int.tryParse(parts[0]) ?? 4,
+            minute: int.tryParse(parts[1]) ?? 0,
+          );
+        });
+      } else {
+        // Fallback to old hour-only setting
+        final hourStr = await DatabaseService().getSetting(
+          DatabaseService.settingMidnightUpdateHour,
+        );
+        setState(() {
+          _midnightUpdateTime = TimeOfDay(
+            hour: int.tryParse(hourStr ?? '4') ?? 4,
+            minute: 0,
+          );
+        });
+      }
+    }
+  }
+
+  Future<void> _updateMidnightUpdateTime(TimeOfDay time) async {
+    try {
+      setState(() {
+        _midnightUpdateTime = time;
+      });
+
+      final timeValue = '${time.hour}:${time.minute}';
+      await DatabaseService().setSetting(
+        DatabaseService.settingMidnightUpdateTime,
+        timeValue,
+      );
+
+      // راه اندازی مجدد تایمر با زمان جدید
+      await MidnightTaskUpdater().initialize(DatabaseService());
+
+      if (mounted) {
+        FlowToast.show(
+          context,
+          message:
+              'زمان به‌روزرسانی به ${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')} تغییر یافت',
+          type: FlowToastType.success,
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ خطا در ذخیره زمان میدنایت: $e');
+      if (mounted) {
+        FlowToast.show(
+          context,
+          message: 'خطا در ذخیره تنظیمات',
+          type: FlowToastType.error,
+        );
+      }
+    }
+  }
+
   Future<void> _exportData() async {
     try {
       final data = await DatabaseService().exportData();
@@ -179,10 +251,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ref.read(moodProvider.notifier).loadMoods(),
             ref.read(activityProvider.notifier).loadActivities(),
           ]);
-          
+
           ref.invalidate(categoryProvider);
           ref.invalidate(themeProvider);
-          
+
           // Wait a bit for invalidation to settle
           await Future.delayed(const Duration(milliseconds: 500));
 
@@ -394,11 +466,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 title: const Text(
                   'مدیریت دسته‌بندی‌ها',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 subtitle: const Text(
                   'افزودن، ویرایش و حذف دسته‌بندی‌ها',
-                  style: TextStyle(fontSize: 12),
+                  style: TextStyle(fontSize: 11),
                 ),
                 leading: HugeIcon(
                   icon: HugeIcons.strokeRoundedArchive02,
@@ -443,11 +515,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 title: const Text(
                   'مدیریت اهداف',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 subtitle: const Text(
                   'افزودن، ویرایش و مشاهده پیشرفت اهداف',
-                  style: TextStyle(fontSize: 12),
+                  style: TextStyle(fontSize: 11),
                 ),
                 leading: HugeIcon(
                   icon: HugeIcons.strokeRoundedTarget02,
@@ -492,11 +564,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 title: const Text(
                   'تنظیمات مود‌ها',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 subtitle: const Text(
                   'مدیریت دسته‌بندی‌ها و فعالیت‌های روزانه',
-                  style: TextStyle(fontSize: 12),
+                  style: TextStyle(fontSize: 11),
                 ),
                 leading: HugeIcon(
                   icon: HugeIcons.strokeRoundedFlash,
@@ -514,6 +586,73 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       builder: (context) => const MoodSettingsScreen(),
                     ),
                   );
+                },
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Midnight Update Hour
+          FadeInOnce(
+            delay: 320.ms,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: onCardColor.withValues(alpha: 0.1),
+                  width: 1,
+                ),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 4,
+                ),
+                title: const Text(
+                  'زمان همگام سازی تسک ها',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                subtitle: Text(
+                  'تسک‌های انجام نشده در ساعت ${_midnightUpdateTime.hour.toString().padLeft(2, '0')}:${_midnightUpdateTime.minute.toString().padLeft(2, '0')} به وضعیت ناموفق تغییر می‌کنند!',
+                  style: const TextStyle(fontSize: 11),
+                ),
+                leading: HugeIcon(
+                  icon: HugeIcons.strokeRoundedClock01,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${_midnightUpdateTime.hour.toString().padLeft(2, '0')}:${_midnightUpdateTime.minute.toString().padLeft(2, '0')}',
+                    style: TextStyle(
+                      color: theme.colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                onTap: () async {
+                  final TimeOfDay? picked = await showTimePicker(
+                    context: context,
+                    initialTime: _midnightUpdateTime,
+                    helpText: 'انتخاب زمان به‌روزرسانی',
+                    confirmText: 'تایید',
+                    cancelText: 'لغو',
+                    hourLabelText: 'ساعت',
+                    minuteLabelText: 'دقیقه',
+                  );
+                  if (picked != null) {
+                    _updateMidnightUpdateTime(picked);
+                  }
                 },
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -541,11 +680,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 title: const Text(
                   'پشتیبان‌گیری و بازگردانی',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 subtitle: const Text(
                   'ذخیره و بازیابی اطلاعات برنامه',
-                  style: TextStyle(fontSize: 12),
+                  style: TextStyle(fontSize: 11),
                 ),
                 leading: HugeIcon(
                   icon: HugeIcons.strokeRoundedDatabase01,
@@ -723,11 +862,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 title: const Text(
                   'حالت ذخیره نیرو',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 subtitle: const Text(
                   'غیر فعال کردن برخی انیمیشن‌ها',
-                  style: TextStyle(fontSize: 12),
+                  style: TextStyle(fontSize: 11),
                 ),
                 leading: HugeIcon(
                   icon: HugeIcons.strokeRoundedFlash,

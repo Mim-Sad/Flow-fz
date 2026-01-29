@@ -14,6 +14,9 @@ import '../models/activity.dart';
 import '../constants/duck_emojis.dart';
 
 class DatabaseService {
+  static const String settingMidnightUpdateTime = 'midnight_update_time'; // تغییر از hour به time برای شامل شدن دقیقه
+  static const String settingMidnightUpdateHour = 'midnight_update_hour'; // نگه داشتن برای سازگاری موقت اگر لازم باشد
+
   static final DatabaseService _instance = DatabaseService._internal();
   static Database? _database;
 
